@@ -48,7 +48,7 @@
                     isEnemy: true,
                     isBoss: true,
                     id: `enemy-${Date.now()}-boss`,
-                    energy: 1,
+                    energy: base.startingEnergy !== undefined ? base.startingEnergy : 1,
                     atkMod: 0,
                     spdMod: 0,
                     defMod: 1.0,
@@ -77,7 +77,7 @@
                         atk: enemyAtk,
                         isEnemy: true,
                         id: `enemy-${Date.now()}-${i}`,
-                        energy: 1,
+                        energy: base.startingEnergy !== undefined ? base.startingEnergy : 1,
                         atkMod: 0,
                         spdMod: 0,
                         defMod: 1.0,
@@ -90,7 +90,7 @@
 
             // Reset player energy and mods
             currentRun.party.forEach(p => {
-                p.energy = 1;
+                p.energy = p.startingEnergy !== undefined ? p.startingEnergy : 1;
                 p.atkMod = 0;
                 p.spdMod = 0;
                 p.defMod = 1.0;

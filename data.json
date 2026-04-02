@@ -14,10 +14,26 @@
       "atk": 12,
       "spd": 8,
       "moves": [
-        { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Howl", "c": 1, "t": "Beast", "p": 1.0, "effect": { "type": "atk_buff", "value": 3, "turns": 2 } }
+        {
+          "n": "Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Howl",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "effect": {
+            "type": "atk_buff",
+            "value": 3,
+            "turns": 2
+          }
+        }
       ],
-      "art": "/Art/Wolf.png"
+      "art": "/Art/Wolf.png",
+      "startingEnergy": 1
     },
     "bear": {
       "id": "bear",
@@ -27,10 +43,26 @@
       "atk": 14,
       "spd": 3,
       "moves": [
-        { "n": "Maul", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Guard", "c": 1, "t": "Beast", "p": 1.0, "effect": { "type": "def_buff", "value": 0.5, "turns": 2 } }
+        {
+          "n": "Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "effect": {
+            "type": "def_buff",
+            "value": 0.5,
+            "turns": 2
+          }
+        }
       ],
-      "art": "/Art/Bear.png"
+      "art": "/Art/Bear.png",
+      "startingEnergy": 1
     },
     "slime": {
       "id": "slime",
@@ -40,10 +72,21 @@
       "atk": 8,
       "spd": 4,
       "moves": [
-        { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.5 }
+        {
+          "n": "Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 1.5
+        }
       ],
-      "art": "/Art/Slime.png"
+      "art": "/Art/Slime.png",
+      "startingEnergy": 1
     },
     "mushroom": {
       "id": "mushroom",
@@ -53,10 +96,30 @@
       "atk": 10,
       "spd": 5,
       "moves": [
-        { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0, "effect": { "type": "stun", "chance": 0.2 } },
-        { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0, "effect": { "type": "poison", "value": 3, "turns": 3 } }
+        {
+          "n": "Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.2
+          }
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 1,
+          "effect": {
+            "type": "poison",
+            "value": 3,
+            "turns": 3
+          }
+        }
       ],
-      "art": "/Art/Mushroom.png"
+      "art": "/Art/Mushroom.png",
+      "startingEnergy": 1
     },
     "sentry": {
       "id": "sentry",
@@ -66,10 +129,25 @@
       "atk": 10,
       "spd": 4,
       "moves": [
-        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0, "effect": { "type": "stun", "chance": 0.3 } }
+        {
+          "n": "Snipe",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.3
+          }
+        }
       ],
-      "art": "/Art/Sentry.png"
+      "art": "/Art/Sentry.png",
+      "startingEnergy": 1
     },
     "sparkbot": {
       "id": "sparkbot",
@@ -79,228 +157,764 @@
       "atk": 14,
       "spd": 7,
       "moves": [
-        { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0, "effect": { "type": "spd_buff", "value": 3, "turns": 2 } }
+        {
+          "n": "Zap",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Overcharge",
+          "c": 1,
+          "t": "Mech",
+          "p": 1,
+          "effect": {
+            "type": "spd_buff",
+            "value": 3,
+            "turns": 2
+          }
+        }
       ],
-      "art": "/Art/Spark-bot.png"
+      "art": "/Art/Spark-bot.png",
+      "startingEnergy": 1
     }
   },
   "MERGES": [
-    { 
-      "name": "Alpha Wolf", 
-      "parents": ["wolf", "wolf"], 
-      "hp": 50, "atk": 16, "spd": 10, "art": "🐺🔥",
+    {
+      "name": "Alpha Wolf",
+      "parents": [
+        "wolf",
+        "wolf"
+      ],
+      "hp": 50,
+      "atk": 16,
+      "spd": 10,
+      "art": "🐺🔥",
       "moves": [
-        { "n": "Alpha Bite", "c": 1, "t": "Beast", "p": 1.3 },
-        { "n": "Alpha Howl", "c": 2, "t": "Beast", "p": 1.0, "effect": { "type": "atk_buff", "value": 4, "turns": 3 } }
-      ]
+        {
+          "n": "Alpha Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1.3
+        },
+        {
+          "n": "Alpha Howl",
+          "c": 2,
+          "t": "Beast",
+          "p": 1,
+          "effect": {
+            "type": "atk_buff",
+            "value": 4,
+            "turns": 3
+          }
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Elder Bear", 
-      "parents": ["bear", "bear"], 
-      "hp": 70, "atk": 18, "spd": 2, "art": "🐻🔥",
+    {
+      "name": "Elder Bear",
+      "parents": [
+        "bear",
+        "bear"
+      ],
+      "hp": 70,
+      "atk": 18,
+      "spd": 2,
+      "art": "🐻🔥",
       "moves": [
-        { "n": "Elder Maul", "c": 1, "t": "Beast", "p": 1.3 },
-        { "n": "Elder Guard", "c": 1, "t": "Beast", "p": 1.0, "effect": { "type": "def_buff", "value": 0.5, "turns": 2 } }
-      ]
+        {
+          "n": "Elder Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1.3
+        },
+        {
+          "n": "Elder Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "effect": {
+            "type": "def_buff",
+            "value": 0.5,
+            "turns": 2
+          }
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "King Slime", 
-      "parents": ["slime", "slime"], 
-      "hp": 45, "atk": 12, "spd": 5, "art": "🧪🔥",
+    {
+      "name": "King Slime",
+      "parents": [
+        "slime",
+        "slime"
+      ],
+      "hp": 45,
+      "atk": 12,
+      "spd": 5,
+      "art": "🧪🔥",
       "moves": [
-        { "n": "King Spit", "c": 1, "t": "Nature", "p": 1.3 },
-        { "n": "King Heal", "c": 2, "t": "Nature", "p": 2.0 }
-      ]
+        {
+          "n": "King Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.3
+        },
+        {
+          "n": "King Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 2
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Giant Mushroom", 
-      "parents": ["mushroom", "mushroom"], 
-      "hp": 50, "atk": 15, "spd": 6, "art": "🍄🔥",
+    {
+      "name": "Giant Mushroom",
+      "parents": [
+        "mushroom",
+        "mushroom"
+      ],
+      "hp": 50,
+      "atk": 15,
+      "spd": 6,
+      "art": "🍄🔥",
       "moves": [
-        { "n": "Giant Spore", "c": 1, "t": "Nature", "p": 1.0, "effect": { "type": "stun", "chance": 0.4 } },
-        { "n": "Giant Poison Cloud", "c": 2, "t": "Nature", "p": 1.0, "effect": { "type": "poison", "value": 5, "turns": 3 } }
-      ]
+        {
+          "n": "Giant Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.4
+          }
+        },
+        {
+          "n": "Giant Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 1,
+          "effect": {
+            "type": "poison",
+            "value": 5,
+            "turns": 3
+          }
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Elite Sentry", 
-      "parents": ["sentry", "sentry"], 
-      "hp": 60, "atk": 14, "spd": 5, "art": "🤖🔥",
+    {
+      "name": "Elite Sentry",
+      "parents": [
+        "sentry",
+        "sentry"
+      ],
+      "hp": 60,
+      "atk": 14,
+      "spd": 5,
+      "art": "🤖🔥",
       "moves": [
-        { "n": "Elite Snipe", "c": 1, "t": "Mech", "p": 1.3 },
-        { "n": "Elite Stun Bolt", "c": 2, "t": "Mech", "p": 1.0, "effect": { "type": "stun", "chance": 0.6 } }
-      ]
+        {
+          "n": "Elite Snipe",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.3
+        },
+        {
+          "n": "Elite Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.6
+          }
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Ultimate Spark-Bot", 
-      "parents": ["sparkbot", "sparkbot"], 
-      "hp": 40, "atk": 18, "spd": 8, "art": "⚡🔥",
+    {
+      "name": "Ultimate Spark-Bot",
+      "parents": [
+        "sparkbot",
+        "sparkbot"
+      ],
+      "hp": 40,
+      "atk": 18,
+      "spd": 8,
+      "art": "⚡🔥",
       "moves": [
-        { "n": "Ultimate Zap", "c": 1, "t": "Mech", "p": 1.3 },
-        { "n": "Ultimate Overcharge", "c": 2, "t": "Mech", "p": 1.0, "effect": { "type": "spd_buff", "value": 5, "turns": 3 } }
-      ]
+        {
+          "n": "Ultimate Zap",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.3
+        },
+        {
+          "n": "Ultimate Overcharge",
+          "c": 2,
+          "t": "Mech",
+          "p": 1,
+          "effect": {
+            "type": "spd_buff",
+            "value": 5,
+            "turns": 3
+          }
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Dire Ursa", 
-      "parents": ["wolf", "bear"], 
-      "hp": 60, "atk": 20, "spd": 7, "art": "🐺🐻",
+    {
+      "name": "Dire Ursa",
+      "parents": [
+        "wolf",
+        "bear"
+      ],
+      "hp": 60,
+      "atk": 20,
+      "spd": 7,
+      "art": "🐺🐻",
       "moves": [
-        { "n": "Devour", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Howl", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Guard", "c": 1, "t": "Beast", "p": 1.0 }
-      ]
+        {
+          "n": "Devour",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Howl",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Slimy Wolf", 
-      "parents": ["wolf", "slime"], 
-      "hp": 42, "atk": 13, "spd": 7, "art": "🐺🧪",
+    {
+      "name": "Slimy Wolf",
+      "parents": [
+        "wolf",
+        "slime"
+      ],
+      "hp": 42,
+      "atk": 13,
+      "spd": 7,
+      "art": "🐺🧪",
       "moves": [
-        { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Howl", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 }
-      ]
+        {
+          "n": "Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Howl",
+          "c": 2,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Spore Wolf", 
-      "parents": ["wolf", "mushroom"], 
-      "hp": 45, "atk": 16, "spd": 8, "art": "🐺🍄",
+    {
+      "name": "Spore Wolf",
+      "parents": [
+        "wolf",
+        "mushroom"
+      ],
+      "hp": 45,
+      "atk": 16,
+      "spd": 8,
+      "art": "🐺🍄",
       "moves": [
-        { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Howl", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0 }
-      ]
+        {
+          "n": "Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Howl",
+          "c": 2,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Iron Wolf", 
-      "parents": ["wolf", "sentry"], 
-      "hp": 54, "atk": 17, "spd": 7, "art": "🐺🤖",
+    {
+      "name": "Iron Wolf",
+      "parents": [
+        "wolf",
+        "sentry"
+      ],
+      "hp": 54,
+      "atk": 17,
+      "spd": 7,
+      "art": "🐺🤖",
       "moves": [
-        { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Howl", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 }
-      ]
+        {
+          "n": "Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Howl",
+          "c": 2,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Snipe",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Volt Wolf", 
-      "parents": ["wolf", "sparkbot"], 
-      "hp": 42, "atk": 18, "spd": 9, "art": "🐺⚡",
+    {
+      "name": "Volt Wolf",
+      "parents": [
+        "wolf",
+        "sparkbot"
+      ],
+      "hp": 42,
+      "atk": 18,
+      "spd": 9,
+      "art": "🐺⚡",
       "moves": [
-        { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Howl", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0 }
-      ]
+        {
+          "n": "Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Howl",
+          "c": 2,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Zap",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Overcharge",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Mossy Bear", 
-      "parents": ["bear", "slime"], 
-      "hp": 54, "atk": 14, "spd": 4, "art": "🐻🧪",
+    {
+      "name": "Mossy Bear",
+      "parents": [
+        "bear",
+        "slime"
+      ],
+      "hp": 54,
+      "atk": 14,
+      "spd": 4,
+      "art": "🐻🧪",
       "moves": [
-        { "n": "Maul", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Guard", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 }
-      ]
+        {
+          "n": "Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Guard",
+          "c": 2,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Fungal Bear", 
-      "parents": ["bear", "mushroom"], 
-      "hp": 57, "atk": 17, "spd": 5, "art": "🐻🍄",
+    {
+      "name": "Fungal Bear",
+      "parents": [
+        "bear",
+        "mushroom"
+      ],
+      "hp": 57,
+      "atk": 17,
+      "spd": 5,
+      "art": "🐻🍄",
       "moves": [
-        { "n": "Maul", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Guard", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0 }
-      ]
+        {
+          "n": "Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Guard",
+          "c": 2,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Armored Bear", 
-      "parents": ["bear", "sentry"], 
-      "hp": 66, "atk": 18, "spd": 4, "art": "🐻🤖",
+    {
+      "name": "Armored Bear",
+      "parents": [
+        "bear",
+        "sentry"
+      ],
+      "hp": 66,
+      "atk": 18,
+      "spd": 4,
+      "art": "🐻🤖",
       "moves": [
-        { "n": "Maul", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Guard", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 }
-      ]
+        {
+          "n": "Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Guard",
+          "c": 2,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Snipe",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Plasma Bear", 
-      "parents": ["bear", "sparkbot"], 
-      "hp": 54, "atk": 19, "spd": 6, "art": "🐻⚡",
+    {
+      "name": "Plasma Bear",
+      "parents": [
+        "bear",
+        "sparkbot"
+      ],
+      "hp": 54,
+      "atk": 19,
+      "spd": 6,
+      "art": "🐻⚡",
       "moves": [
-        { "n": "Maul", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Guard", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 3, "t": "Mech", "p": 1.0 }
-      ]
+        {
+          "n": "Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Guard",
+          "c": 2,
+          "t": "Beast",
+          "p": 1
+        },
+        {
+          "n": "Zap",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Overcharge",
+          "c": 3,
+          "t": "Mech",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Mycelium Ooze", 
-      "parents": ["slime", "mushroom"], 
-      "hp": 50, "atk": 16, "spd": 5, "art": "🧪🍄",
+    {
+      "name": "Mycelium Ooze",
+      "parents": [
+        "slime",
+        "mushroom"
+      ],
+      "hp": 50,
+      "atk": 16,
+      "spd": 5,
+      "art": "🧪🍄",
       "moves": [
-        { "n": "Fungal Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 },
-        { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0 }
-      ]
+        {
+          "n": "Fungal Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Bio-Tank", 
-      "parents": ["slime", "sentry"], 
-      "hp": 48, "atk": 14, "spd": 5, "art": "🧪🤖",
+    {
+      "name": "Bio-Tank",
+      "parents": [
+        "slime",
+        "sentry"
+      ],
+      "hp": 48,
+      "atk": 14,
+      "spd": 5,
+      "art": "🧪🤖",
       "moves": [
-        { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 },
-        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 }
-      ]
+        {
+          "n": "Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Snipe",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Pulse Slime", 
-      "parents": ["slime", "sparkbot"], 
-      "hp": 36, "atk": 14, "spd": 7, "art": "🧪⚡",
+    {
+      "name": "Pulse Slime",
+      "parents": [
+        "slime",
+        "sparkbot"
+      ],
+      "hp": 36,
+      "atk": 14,
+      "spd": 7,
+      "art": "🧪⚡",
       "moves": [
-        { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 },
-        { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0 }
-      ]
+        {
+          "n": "Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Zap",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Overcharge",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Rooted Sentry", 
-      "parents": ["mushroom", "sentry"], 
-      "hp": 51, "atk": 17, "spd": 5, "art": "🍄🤖",
+    {
+      "name": "Rooted Sentry",
+      "parents": [
+        "mushroom",
+        "sentry"
+      ],
+      "hp": 51,
+      "atk": 17,
+      "spd": 5,
+      "art": "🍄🤖",
       "moves": [
-        { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0 },
-        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 }
-      ]
+        {
+          "n": "Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Snipe",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Neon Shroom", 
-      "parents": ["mushroom", "sparkbot"], 
-      "hp": 39, "atk": 17, "spd": 7, "art": "🍄⚡",
+    {
+      "name": "Neon Shroom",
+      "parents": [
+        "mushroom",
+        "sparkbot"
+      ],
+      "hp": 39,
+      "atk": 17,
+      "spd": 7,
+      "art": "🍄⚡",
       "moves": [
-        { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0 },
-        { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0 }
-      ]
+        {
+          "n": "Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 1
+        },
+        {
+          "n": "Zap",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Overcharge",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     },
-    { 
-      "name": "Assault Mech", 
-      "parents": ["sentry", "sparkbot"], 
-      "hp": 48, "atk": 20, "spd": 7, "art": "🤖⚡",
+    {
+      "name": "Assault Mech",
+      "parents": [
+        "sentry",
+        "sparkbot"
+      ],
+      "hp": 48,
+      "atk": 20,
+      "spd": 7,
+      "art": "🤖⚡",
       "moves": [
-        { "n": "Shockwave", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0 }
-      ]
+        {
+          "n": "Shockwave",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 1
+        },
+        {
+          "n": "Overcharge",
+          "c": 1,
+          "t": "Mech",
+          "p": 1
+        }
+      ],
+      "startingEnergy": 1
     }
   ],
   "BOSSES": {
@@ -312,10 +926,25 @@
       "atk": 25,
       "spd": 6,
       "moves": [
-        { "n": "Blast", "c": 1, "t": "Neutral", "p": 1.0 },
-        { "n": "Devastate", "c": 3, "t": "Neutral", "p": 1.5, "effect": { "type": "stun", "chance": 0.5 } }
+        {
+          "n": "Blast",
+          "c": 1,
+          "t": "Neutral",
+          "p": 1
+        },
+        {
+          "n": "Devastate",
+          "c": 3,
+          "t": "Neutral",
+          "p": 1.5,
+          "effect": {
+            "type": "stun",
+            "chance": 0.5
+          }
+        }
       ],
-      "art": "👹"
+      "art": "👹",
+      "startingEnergy": 1
     }
   }
 }
