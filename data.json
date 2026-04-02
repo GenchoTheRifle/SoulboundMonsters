@@ -66,7 +66,7 @@
       "atk": 10,
       "spd": 4,
       "moves": [
-        { "n": "Slam", "c": 1, "t": "Mech", "p": 1.0 },
+        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
         { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0, "effect": { "type": "stun", "chance": 0.3 } }
       ],
       "art": "/Art/Sentry.png"
@@ -127,7 +127,7 @@
       "parents": ["sentry", "sentry"], 
       "hp": 60, "atk": 14, "spd": 5, "art": "🤖🔥",
       "moves": [
-        { "n": "Elite Slam", "c": 1, "t": "Mech", "p": 1.3 },
+        { "n": "Elite Snipe", "c": 1, "t": "Mech", "p": 1.3 },
         { "n": "Elite Stun Bolt", "c": 2, "t": "Mech", "p": 1.0, "effect": { "type": "stun", "chance": 0.6 } }
       ]
     },
@@ -137,18 +137,17 @@
       "hp": 40, "atk": 18, "spd": 8, "art": "⚡🔥",
       "moves": [
         { "n": "Ultimate Zap", "c": 1, "t": "Mech", "p": 1.3 },
-        { "n": "Ultimate Overcharge", "c": 3, "t": "Mech", "p": 1.0, "effect": { "type": "spd_buff", "value": 5, "turns": 3 } }
+        { "n": "Ultimate Overcharge", "c": 2, "t": "Mech", "p": 1.0, "effect": { "type": "spd_buff", "value": 5, "turns": 3 } }
       ]
     },
     { 
       "name": "Dire Ursa", 
       "parents": ["wolf", "bear"], 
-      "hp": 60, "atk": 18, "spd": 7, "art": "🐺🐻",
+      "hp": 60, "atk": 20, "spd": 7, "art": "🐺🐻",
       "moves": [
-        { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Howl", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Maul", "c": 1, "t": "Beast", "p": 1.0 },
-        { "n": "Guard", "c": 2, "t": "Beast", "p": 1.0 }
+        { "n": "Devour", "c": 1, "t": "Beast", "p": 1.0 },
+        { "n": "Howl", "c": 1, "t": "Beast", "p": 1.0 },
+        { "n": "Guard", "c": 1, "t": "Beast", "p": 1.0 }
       ]
     },
     { 
@@ -180,7 +179,7 @@
       "moves": [
         { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
         { "n": "Howl", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Slam", "c": 1, "t": "Mech", "p": 1.0 },
+        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
         { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 }
       ]
     },
@@ -192,7 +191,7 @@
         { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
         { "n": "Howl", "c": 2, "t": "Beast", "p": 1.0 },
         { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 3, "t": "Mech", "p": 1.0 }
+        { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0 }
       ]
     },
     { 
@@ -224,7 +223,7 @@
       "moves": [
         { "n": "Maul", "c": 1, "t": "Beast", "p": 1.0 },
         { "n": "Guard", "c": 2, "t": "Beast", "p": 1.0 },
-        { "n": "Slam", "c": 1, "t": "Mech", "p": 1.0 },
+        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
         { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 }
       ]
     },
@@ -242,11 +241,10 @@
     { 
       "name": "Mycelium Ooze", 
       "parents": ["slime", "mushroom"], 
-      "hp": 39, "atk": 13, "spd": 5, "art": "🧪🍄",
+      "hp": 50, "atk": 16, "spd": 5, "art": "🧪🍄",
       "moves": [
-        { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
+        { "n": "Fungal Spit", "c": 1, "t": "Nature", "p": 1.0 },
         { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 },
-        { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0 },
         { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0 }
       ]
     },
@@ -257,7 +255,7 @@
       "moves": [
         { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
         { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 },
-        { "n": "Slam", "c": 1, "t": "Mech", "p": 1.0 },
+        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
         { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 }
       ]
     },
@@ -267,9 +265,9 @@
       "hp": 36, "atk": 14, "spd": 7, "art": "🧪⚡",
       "moves": [
         { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 3, "t": "Nature", "p": 1.0 },
+        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 },
         { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 3, "t": "Mech", "p": 1.0 }
+        { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0 }
       ]
     },
     { 
@@ -279,7 +277,7 @@
       "moves": [
         { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0 },
         { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0 },
-        { "n": "Slam", "c": 1, "t": "Mech", "p": 1.0 },
+        { "n": "Snipe", "c": 1, "t": "Mech", "p": 1.0 },
         { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 }
       ]
     },
@@ -291,18 +289,17 @@
         { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0 },
         { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0 },
         { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 3, "t": "Mech", "p": 1.0 }
+        { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0 }
       ]
     },
     { 
       "name": "Assault Mech", 
       "parents": ["sentry", "sparkbot"], 
-      "hp": 48, "atk": 18, "spd": 7, "art": "🤖⚡",
+      "hp": 48, "atk": 20, "spd": 7, "art": "🤖⚡",
       "moves": [
-        { "n": "Slam", "c": 1, "t": "Mech", "p": 1.0 },
+        { "n": "Shockwave", "c": 1, "t": "Mech", "p": 1.0 },
         { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 },
-        { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
-        { "n": "Overcharge", "c": 3, "t": "Mech", "p": 1.0 }
+        { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0 }
       ]
     }
   ],
@@ -315,7 +312,7 @@
       "atk": 25,
       "spd": 6,
       "moves": [
-        { "n": "Slam", "c": 1, "t": "Neutral", "p": 1.0 },
+        { "n": "Blast", "c": 1, "t": "Neutral", "p": 1.0 },
         { "n": "Devastate", "c": 3, "t": "Neutral", "p": 1.5, "effect": { "type": "stun", "chance": 0.5 } }
       ],
       "art": "👹"
