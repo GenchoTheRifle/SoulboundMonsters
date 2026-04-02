@@ -17,7 +17,7 @@
         { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
         { "n": "Howl", "c": 1, "t": "Beast", "p": 1.0, "effect": { "type": "atk_buff", "value": 3, "turns": 2 } }
       ],
-      "art": "🐺"
+      "art": "/Art/Wolf.png"
     },
     "bear": {
       "id": "bear",
@@ -30,7 +30,7 @@
         { "n": "Maul", "c": 1, "t": "Beast", "p": 1.0 },
         { "n": "Guard", "c": 1, "t": "Beast", "p": 1.0, "effect": { "type": "def_buff", "value": 0.5, "turns": 2 } }
       ],
-      "art": "🐻"
+      "art": "/Art/Bear.png"
     },
     "slime": {
       "id": "slime",
@@ -43,7 +43,7 @@
         { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
         { "n": "Heal", "c": 2, "t": "Nature", "p": 1.5 }
       ],
-      "art": "🧪"
+      "art": "/Art/Slime.png"
     },
     "mushroom": {
       "id": "mushroom",
@@ -56,7 +56,7 @@
         { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0, "effect": { "type": "stun", "chance": 0.2 } },
         { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0, "effect": { "type": "poison", "value": 3, "turns": 3 } }
       ],
-      "art": "🍄"
+      "art": "/Art/Mushroom.png"
     },
     "sentry": {
       "id": "sentry",
@@ -69,7 +69,7 @@
         { "n": "Slam", "c": 1, "t": "Mech", "p": 1.0 },
         { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0, "effect": { "type": "stun", "chance": 0.3 } }
       ],
-      "art": "🤖"
+      "art": "/Art/Sentry.png"
     },
     "sparkbot": {
       "id": "sparkbot",
@@ -82,7 +82,7 @@
         { "n": "Zap", "c": 1, "t": "Mech", "p": 1.0 },
         { "n": "Overcharge", "c": 1, "t": "Mech", "p": 1.0, "effect": { "type": "spd_buff", "value": 3, "turns": 2 } }
       ],
-      "art": "⚡"
+      "art": "/Art/Spark-bot.png"
     }
   },
   "MERGES": [
@@ -159,7 +159,7 @@
         { "n": "Bite", "c": 1, "t": "Beast", "p": 1.0 },
         { "n": "Howl", "c": 2, "t": "Beast", "p": 1.0 },
         { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 3, "t": "Nature", "p": 1.0 }
+        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 }
       ]
     },
     { 
@@ -203,7 +203,7 @@
         { "n": "Maul", "c": 1, "t": "Beast", "p": 1.0 },
         { "n": "Guard", "c": 2, "t": "Beast", "p": 1.0 },
         { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 3, "t": "Nature", "p": 1.0 }
+        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 }
       ]
     },
     { 
@@ -245,7 +245,7 @@
       "hp": 39, "atk": 13, "spd": 5, "art": "🧪🍄",
       "moves": [
         { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 3, "t": "Nature", "p": 1.0 },
+        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 },
         { "n": "Spore", "c": 1, "t": "Nature", "p": 1.0 },
         { "n": "Poison Cloud", "c": 2, "t": "Nature", "p": 1.0 }
       ]
@@ -256,7 +256,7 @@
       "hp": 48, "atk": 14, "spd": 5, "art": "🧪🤖",
       "moves": [
         { "n": "Spit", "c": 1, "t": "Nature", "p": 1.0 },
-        { "n": "Heal", "c": 3, "t": "Nature", "p": 1.0 },
+        { "n": "Heal", "c": 2, "t": "Nature", "p": 1.0 },
         { "n": "Slam", "c": 1, "t": "Mech", "p": 1.0 },
         { "n": "Stun Bolt", "c": 2, "t": "Mech", "p": 1.0 }
       ]
