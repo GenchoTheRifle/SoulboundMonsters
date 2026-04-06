@@ -13,5 +13,5 @@
             activeTurnIndex: 0
         };
 
-        let selectionSlots = [null, null];
+        let selectionSlots = [null, null, null, null];
         let mergeSlots = [null, null];

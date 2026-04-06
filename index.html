@@ -9,11 +9,17 @@
 </head>
 <body>
     <div id="game-container">
+        <!-- Title Screen -->
+        <div id="screen-title" class="screen active" style="justify-content: center; align-items: center;">
+            <h1 style="font-size: 100px; margin-bottom: 80px; letter-spacing: 5px;">LABBORN MONSTERS</h1>
+            <button onclick="showScreen('screen-menu')" style="font-size: 50px; padding: 20px 80px; border-radius: 15px;">PLAY</button>
+        </div>
+
         <!-- Main Menu -->
-        <div id="screen-menu" class="screen active">
-            <h1>LABBORN MONSTERS</h1>
-            <button onclick="showScreen('screen-selection')">START RUN</button>
-            <button onclick="openCollection()">COLLECTION</button>
+        <div id="screen-menu" class="screen" style="justify-content: center; align-items: center;">
+            <h1 style="font-size: 80px; margin-bottom: 60px;">MAIN MENU</h1>
+            <button onclick="showScreen('screen-selection')" style="font-size: 40px; padding: 20px 60px; width: 500px; margin-bottom: 30px; border-radius: 15px;">START RUN</button>
+            <button onclick="openCollection()" style="font-size: 40px; padding: 20px 60px; width: 500px; border-radius: 15px;">COLLECTION</button>
         </div>
 
         <!-- Collection -->
@@ -28,15 +34,36 @@
         </div>
 
         <!-- Selection -->
-        <div id="screen-selection" class="screen">
-            <h2>SELECT 2 STARTERS</h2>
-            <div class="selection-container">
-                <div id="slot-0" class="select-slot" onclick="openSelectionModal(0)">+</div>
-                <div id="slot-1" class="select-slot" onclick="openSelectionModal(1)">+</div>
+        <div id="screen-selection" class="screen" style="background: url('/Art/Background.png') center/cover; position: relative; padding: 0;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);"></div>
+            
+            <h2 style="position: absolute; top: 20px; left: 20px; z-index: 10; margin: 0; text-shadow: 2px 2px 4px #000;">SELECT 2 STARTERS</h2>
+            
+            <button onclick="showScreen('screen-menu')" style="position: absolute; bottom: 20px; left: 20px; z-index: 10; width: 150px;">BACK</button>
+
+            <!-- Middle: 4 transparent boxes -->
+            <div style="position: absolute; top: 50%; left: calc(50% - 200px); transform: translate(-50%, -50%); z-index: 10;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px black;">
+                    <div style="text-align: center; width: 150px;">BACKLINE</div>
+                    <div style="text-align: center; width: 150px;">FRONTLINE</div>
+                </div>
+                <div style="position: relative; padding: 40px; background: url('/Art/Map.png') center/cover; border-radius: 15px; border: 2px solid #444;">
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); border-radius: 15px;"></div>
+                    <div class="team" style="position: relative; z-index: 2; width: auto; padding: 0; direction: rtl;">
+                        <div id="slot-0" class="select-slot" data-slot="0" ondrop="drop(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                        <div id="slot-1" class="select-slot" data-slot="1" ondrop="drop(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                        <div id="slot-2" class="select-slot" data-slot="2" ondrop="drop(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                        <div id="slot-3" class="select-slot" data-slot="3" ondrop="drop(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                    </div>
+                </div>
             </div>
-            <div id="selection-list" style="flex: 1; overflow-y: auto;"></div>
-            <button id="btn-start-run" disabled onclick="startRun()">ENTER MAP</button>
-            <button onclick="showScreen('screen-menu')">BACK</button>
+
+            <!-- Right: Starters list -->
+            <div style="position: absolute; top: 0; right: 0; width: 400px; height: 100%; background: rgba(0,0,0,0.85); padding: 20px; z-index: 10; display: flex; flex-direction: column; border-left: 2px solid #444;">
+                <h3 style="margin-top: 0; text-align: center;">Available</h3>
+                <div id="selection-list" style="flex: 1; display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; overflow-y: auto; margin-bottom: 20px;" ondrop="dropList(event)" ondragover="allowDrop(event)"></div>
+                <button id="btn-start-run" disabled onclick="startRun()" style="width: 100%; padding: 15px; font-size: 18px;">ENTER MAP</button>
+            </div>
         </div>
 
         <!-- Map -->
@@ -54,9 +81,9 @@
                 <div class="element-triangle-top">
                     <div style="font-size: 10px; margin-bottom: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">Element Counters</div>
                     <div style="position: relative; width: 140px; height: 110px; margin: 0 auto;">
-                        <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); color: var(--beast); font-weight: bold; text-shadow: 0 0 5px rgba(0,0,0,0.8);">Beast</div>
-                        <div style="position: absolute; bottom: 10px; right: 10px; color: var(--nature); font-weight: bold; text-shadow: 0 0 5px rgba(0,0,0,0.8);">Nature</div>
-                        <div style="position: absolute; bottom: 10px; left: 10px; color: var(--mech); font-weight: bold; text-shadow: 0 0 5px rgba(0,0,0,0.8);">Mech</div>
+                        <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%);"><img src="/Art/Beast.png" style="width:24px; height:24px;" alt="Beast" /></div>
+                        <div style="position: absolute; bottom: 10px; right: 10px;"><img src="/Art/Nature.png" style="width:24px; height:24px;" alt="Nature" /></div>
+                        <div style="position: absolute; bottom: 10px; left: 10px;"><img src="/Art/Mech.png" style="width:24px; height:24px;" alt="Mech" /></div>
                         
                         <div style="position: absolute; top: 35px; right: 25px; color: #888; font-size: 20px; font-weight: bold;">↘</div>
                         <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: #888; font-size: 20px; font-weight: bold;">←</div>
@@ -109,7 +136,7 @@
         <div id="modal-selection" class="modal">
             <div class="modal-content">
                 <h3 id="modal-title">Select Monster</h3>
-                <div id="modal-list" style="max-height: 300px; overflow-y: auto;"></div>
+                <div id="modal-list"></div>
                 <button id="modal-selection-close-btn" onclick="closeModal('modal-selection')" style="width:100%">CLOSE</button>
             </div>
         </div>
@@ -130,6 +157,22 @@
                     <button id="confirm-yes">YES</button>
                     <button id="confirm-no">NO</button>
                 </div>
+            </div>
+        </div>
+
+        <div id="modal-collection-details" class="modal">
+            <div class="modal-content" style="text-align: center; max-width: 500px;">
+                <h2 id="col-detail-name" style="font-size: 36px; margin-bottom: 10px;">Name</h2>
+                <div id="col-detail-types" class="type-container" style="margin-bottom: 20px;"></div>
+                <div id="col-detail-art" class="monster-art" style="font-size: 150px; height: 180px; display: flex; justify-content: center; align-items: center; margin: 20px 0;"></div>
+                <div class="stats-row" style="font-size: 24px; justify-content: space-around; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                    <span id="col-detail-hp"></span>
+                    <span id="col-detail-atk"></span>
+                    <span id="col-detail-spd"></span>
+                </div>
+                <div id="col-detail-moves" class="moves-list" style="font-size: 20px; margin-bottom: 20px; color: #ddd;"></div>
+                <div id="col-detail-parents" style="font-size: 18px; color: #aaa; margin-bottom: 20px;"></div>
+                <button onclick="closeModal('modal-collection-details')" style="width:100%; font-size: 24px; padding: 15px;">CLOSE</button>
             </div>
         </div>
     </div>

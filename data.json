@@ -24,11 +24,12 @@
           "n": "Howl",
           "c": 1,
           "t": "Beast",
-          "p": 1,
+          "p": 0,
           "effect": {
             "type": "atk_buff",
             "value": 3,
-            "turns": 2
+            "turns": 3,
+            "target": "self"
           }
         }
       ],
@@ -53,11 +54,12 @@
           "n": "Guard",
           "c": 1,
           "t": "Beast",
-          "p": 1,
+          "p": 0,
           "effect": {
-            "type": "def_buff",
+            "type": "guard",
             "value": 0.5,
-            "turns": 2
+            "turns": 999,
+            "target": "self"
           }
         }
       ],
@@ -82,7 +84,11 @@
           "n": "Heal",
           "c": 2,
           "t": "Nature",
-          "p": 1.5
+          "p": 1.5,
+          "effect": {
+            "type": "heal",
+            "target": "ally"
+          }
         }
       ],
       "art": "/Art/Slime.png",
@@ -102,19 +108,21 @@
           "t": "Nature",
           "p": 1,
           "effect": {
-            "type": "stun",
-            "chance": 0.2
+            "type": "sleep",
+            "chance": 0.3,
+            "turns": 2
           }
         },
         {
           "n": "Poison Cloud",
           "c": 2,
           "t": "Nature",
-          "p": 1,
+          "p": 0,
           "effect": {
             "type": "poison",
-            "value": 3,
-            "turns": 3
+            "value": 4,
+            "turns": 3,
+            "target": "all_enemies"
           }
         }
       ],
@@ -139,10 +147,11 @@
           "n": "Stun Bolt",
           "c": 2,
           "t": "Mech",
-          "p": 1,
+          "p": 0,
           "effect": {
             "type": "stun",
-            "chance": 0.3
+            "chance": 1,
+            "turns": 1
           }
         }
       ],
@@ -161,17 +170,23 @@
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.2,
+            "turns": 1
+          }
         },
         {
           "n": "Overcharge",
           "c": 1,
           "t": "Mech",
-          "p": 1,
+          "p": 0,
           "effect": {
             "type": "spd_buff",
             "value": 3,
-            "turns": 2
+            "turns": 2,
+            "target": "self"
           }
         }
       ],
@@ -189,7 +204,7 @@
       "hp": 50,
       "atk": 16,
       "spd": 10,
-      "art": "🐺🔥",
+      "art": "/Art/Alpha Wolf.png",
       "moves": [
         {
           "n": "Alpha Bite",
@@ -199,7 +214,7 @@
         },
         {
           "n": "Alpha Howl",
-          "c": 2,
+          "c": 1,
           "t": "Beast",
           "p": 1,
           "effect": {
@@ -220,7 +235,7 @@
       "hp": 70,
       "atk": 18,
       "spd": 2,
-      "art": "🐻🔥",
+      "art": "/Art/Elder Bear.png",
       "moves": [
         {
           "n": "Elder Maul",
@@ -251,7 +266,7 @@
       "hp": 45,
       "atk": 12,
       "spd": 5,
-      "art": "🧪🔥",
+      "art": "/Art/King Slime.png",
       "moves": [
         {
           "n": "King Spit",
@@ -277,7 +292,7 @@
       "hp": 50,
       "atk": 15,
       "spd": 6,
-      "art": "🍄🔥",
+      "art": "/Art/Giant Mushroom.png",
       "moves": [
         {
           "n": "Giant Spore",
@@ -312,7 +327,7 @@
       "hp": 60,
       "atk": 14,
       "spd": 5,
-      "art": "🤖🔥",
+      "art": "/Art/Elite Sentry.png",
       "moves": [
         {
           "n": "Elite Snipe",
@@ -342,7 +357,7 @@
       "hp": 40,
       "atk": 18,
       "spd": 8,
-      "art": "⚡🔥",
+      "art": "/Art/Ultimate Spark-bot.png",
       "moves": [
         {
           "n": "Ultimate Zap",
@@ -365,7 +380,7 @@
       "startingEnergy": 1
     },
     {
-      "name": "Dire Ursa",
+      "name": "Bearwolf",
       "parents": [
         "wolf",
         "bear"
@@ -373,25 +388,38 @@
       "hp": 60,
       "atk": 20,
       "spd": 7,
-      "art": "🐺🐻",
+      "art": "/Art/Bearwolf.png",
       "moves": [
         {
           "n": "Devour",
           "c": 1,
           "t": "Beast",
-          "p": 1
+          "p": 1.2
         },
         {
-          "n": "Howl",
-          "c": 1,
+          "n": "Savage Stance",
+          "c": 2,
           "t": "Beast",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "savage_stance",
+            "atk_value": 4,
+            "atk_turns": 3,
+            "guard_value": 0.5,
+            "guard_turns": 999,
+            "target": "self"
+          }
         },
         {
-          "n": "Guard",
+          "n": "Intimidate",
           "c": 1,
           "t": "Beast",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "atk_debuff",
+            "value": 3,
+            "turns": 2
+          }
         }
       ],
       "startingEnergy": 1
@@ -405,17 +433,11 @@
       "hp": 42,
       "atk": 13,
       "spd": 7,
-      "art": "🐺🧪",
+      "art": "/Art/Slimy Wolf.png",
       "moves": [
         {
           "n": "Bite",
           "c": 1,
-          "t": "Beast",
-          "p": 1
-        },
-        {
-          "n": "Howl",
-          "c": 2,
           "t": "Beast",
           "p": 1
         },
@@ -426,10 +448,26 @@
           "p": 1
         },
         {
+          "n": "Howl",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "atk_buff",
+            "value": 3,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
           "n": "Heal",
           "c": 2,
           "t": "Nature",
-          "p": 1
+          "p": 1.5,
+          "effect": {
+            "type": "heal",
+            "target": "ally"
+          }
         }
       ],
       "startingEnergy": 1
@@ -443,7 +481,7 @@
       "hp": 45,
       "atk": 16,
       "spd": 8,
-      "art": "🐺🍄",
+      "art": "/Art/Spore Wolf.png",
       "moves": [
         {
           "n": "Bite",
@@ -452,22 +490,39 @@
           "p": 1
         },
         {
-          "n": "Howl",
-          "c": 2,
-          "t": "Beast",
-          "p": 1
-        },
-        {
           "n": "Spore",
           "c": 1,
           "t": "Nature",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "sleep",
+            "chance": 0.3,
+            "turns": 2
+          }
+        },
+        {
+          "n": "Howl",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "atk_buff",
+            "value": 3,
+            "turns": 3,
+            "target": "self"
+          }
         },
         {
           "n": "Poison Cloud",
           "c": 2,
           "t": "Nature",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "poison",
+            "value": 4,
+            "turns": 3,
+            "target": "all_enemies"
+          }
         }
       ],
       "startingEnergy": 1
@@ -481,17 +536,11 @@
       "hp": 54,
       "atk": 17,
       "spd": 7,
-      "art": "🐺🤖",
+      "art": "/Art/Iron Wolf.png",
       "moves": [
         {
           "n": "Bite",
           "c": 1,
-          "t": "Beast",
-          "p": 1
-        },
-        {
-          "n": "Howl",
-          "c": 2,
           "t": "Beast",
           "p": 1
         },
@@ -502,16 +551,33 @@
           "p": 1
         },
         {
+          "n": "Howl",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "atk_buff",
+            "value": 3,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
           "n": "Stun Bolt",
           "c": 2,
           "t": "Mech",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "stun",
+            "chance": 1,
+            "turns": 1
+          }
         }
       ],
       "startingEnergy": 1
     },
     {
-      "name": "Volt Wolf",
+      "name": "Spark Wolf",
       "parents": [
         "wolf",
         "sparkbot"
@@ -519,7 +585,7 @@
       "hp": 42,
       "atk": 18,
       "spd": 9,
-      "art": "🐺⚡",
+      "art": "/Art/Spark Wolf.png",
       "moves": [
         {
           "n": "Bite",
@@ -528,22 +594,39 @@
           "p": 1
         },
         {
-          "n": "Howl",
-          "c": 2,
-          "t": "Beast",
-          "p": 1
-        },
-        {
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.2,
+            "turns": 1
+          }
+        },
+        {
+          "n": "Howl",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "atk_buff",
+            "value": 3,
+            "turns": 3,
+            "target": "self"
+          }
         },
         {
           "n": "Overcharge",
           "c": 1,
           "t": "Mech",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "spd_buff",
+            "value": 3,
+            "turns": 2,
+            "target": "self"
+          }
         }
       ],
       "startingEnergy": 1
@@ -557,17 +640,11 @@
       "hp": 54,
       "atk": 14,
       "spd": 4,
-      "art": "🐻🧪",
+      "art": "/Art/Mossy Bear.png",
       "moves": [
         {
           "n": "Maul",
           "c": 1,
-          "t": "Beast",
-          "p": 1
-        },
-        {
-          "n": "Guard",
-          "c": 2,
           "t": "Beast",
           "p": 1
         },
@@ -578,10 +655,26 @@
           "p": 1
         },
         {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "guard",
+            "value": 0.5,
+            "turns": 999,
+            "target": "self"
+          }
+        },
+        {
           "n": "Heal",
           "c": 2,
           "t": "Nature",
-          "p": 1
+          "p": 1.5,
+          "effect": {
+            "type": "heal",
+            "target": "ally"
+          }
         }
       ],
       "startingEnergy": 1
@@ -595,17 +688,11 @@
       "hp": 57,
       "atk": 17,
       "spd": 5,
-      "art": "🐻🍄",
+      "art": "/Art/Fungal Bear.png",
       "moves": [
         {
           "n": "Maul",
           "c": 1,
-          "t": "Beast",
-          "p": 1
-        },
-        {
-          "n": "Guard",
-          "c": 2,
           "t": "Beast",
           "p": 1
         },
@@ -613,19 +700,42 @@
           "n": "Spore",
           "c": 1,
           "t": "Nature",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "sleep",
+            "chance": 0.3,
+            "turns": 2
+          }
+        },
+        {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "guard",
+            "value": 0.5,
+            "turns": 999,
+            "target": "self"
+          }
         },
         {
           "n": "Poison Cloud",
           "c": 2,
           "t": "Nature",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "poison",
+            "value": 4,
+            "turns": 3,
+            "target": "all_enemies"
+          }
         }
       ],
       "startingEnergy": 1
     },
     {
-      "name": "Armored Bear",
+      "name": "Artillery Bear",
       "parents": [
         "bear",
         "sentry"
@@ -633,17 +743,11 @@
       "hp": 66,
       "atk": 18,
       "spd": 4,
-      "art": "🐻🤖",
+      "art": "/Art/Artillery Bear.png",
       "moves": [
         {
           "n": "Maul",
           "c": 1,
-          "t": "Beast",
-          "p": 1
-        },
-        {
-          "n": "Guard",
-          "c": 2,
           "t": "Beast",
           "p": 1
         },
@@ -654,10 +758,27 @@
           "p": 1
         },
         {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "guard",
+            "value": 0.5,
+            "turns": 999,
+            "target": "self"
+          }
+        },
+        {
           "n": "Stun Bolt",
           "c": 2,
           "t": "Mech",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "stun",
+            "chance": 1,
+            "turns": 1
+          }
         }
       ],
       "startingEnergy": 1
@@ -671,7 +792,7 @@
       "hp": 54,
       "atk": 19,
       "spd": 6,
-      "art": "🐻⚡",
+      "art": "/Art/Plasma Bear.png",
       "moves": [
         {
           "n": "Maul",
@@ -680,22 +801,39 @@
           "p": 1
         },
         {
-          "n": "Guard",
-          "c": 2,
-          "t": "Beast",
-          "p": 1
-        },
-        {
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.2,
+            "turns": 1
+          }
+        },
+        {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "guard",
+            "value": 0.5,
+            "turns": 999,
+            "target": "self"
+          }
         },
         {
           "n": "Overcharge",
-          "c": 3,
+          "c": 1,
           "t": "Mech",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "spd_buff",
+            "value": 3,
+            "turns": 2,
+            "target": "self"
+          }
         }
       ],
       "startingEnergy": 1
@@ -709,25 +847,41 @@
       "hp": 50,
       "atk": 16,
       "spd": 5,
-      "art": "🧪🍄",
+      "art": "/Art/Mycelium Ooze.png",
       "moves": [
         {
-          "n": "Fungal Spit",
-          "c": 1,
-          "t": "Nature",
-          "p": 1
-        },
-        {
-          "n": "Heal",
+          "n": "Slumber Sludge",
           "c": 2,
           "t": "Nature",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "sleep",
+            "chance": 0.5,
+            "turns": 2
+          }
         },
         {
-          "n": "Poison Cloud",
+          "n": "Toxin",
           "c": 2,
           "t": "Nature",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "poison",
+            "value": 8,
+            "turns": 3
+          }
+        },
+        {
+          "n": "Renewal Spores",
+          "c": 3,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "regen",
+            "value": 5,
+            "turns": 3,
+            "target": "all_allies"
+          }
         }
       ],
       "startingEnergy": 1
@@ -741,17 +895,11 @@
       "hp": 48,
       "atk": 14,
       "spd": 5,
-      "art": "🧪🤖",
+      "art": "/Art/Bio-Tank.png",
       "moves": [
         {
           "n": "Spit",
           "c": 1,
-          "t": "Nature",
-          "p": 1
-        },
-        {
-          "n": "Heal",
-          "c": 2,
           "t": "Nature",
           "p": 1
         },
@@ -762,10 +910,25 @@
           "p": 1
         },
         {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 1.5,
+          "effect": {
+            "type": "heal",
+            "target": "ally"
+          }
+        },
+        {
           "n": "Stun Bolt",
           "c": 2,
           "t": "Mech",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "stun",
+            "chance": 1,
+            "turns": 1
+          }
         }
       ],
       "startingEnergy": 1
@@ -779,7 +942,7 @@
       "hp": 36,
       "atk": 14,
       "spd": 7,
-      "art": "🧪⚡",
+      "art": "/Art/Pulse Slime.png",
       "moves": [
         {
           "n": "Spit",
@@ -788,28 +951,43 @@
           "p": 1
         },
         {
-          "n": "Heal",
-          "c": 2,
-          "t": "Nature",
-          "p": 1
-        },
-        {
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.2,
+            "turns": 1
+          }
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 1.5,
+          "effect": {
+            "type": "heal",
+            "target": "ally"
+          }
         },
         {
           "n": "Overcharge",
           "c": 1,
           "t": "Mech",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "spd_buff",
+            "value": 3,
+            "turns": 2,
+            "target": "self"
+          }
         }
       ],
       "startingEnergy": 1
     },
     {
-      "name": "Rooted Sentry",
+      "name": "Rooted Cannon",
       "parents": [
         "mushroom",
         "sentry"
@@ -817,19 +995,18 @@
       "hp": 51,
       "atk": 17,
       "spd": 5,
-      "art": "🍄🤖",
+      "art": "/Art/Rooted Cannon.png",
       "moves": [
         {
           "n": "Spore",
           "c": 1,
           "t": "Nature",
-          "p": 1
-        },
-        {
-          "n": "Poison Cloud",
-          "c": 2,
-          "t": "Nature",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "sleep",
+            "chance": 0.3,
+            "turns": 2
+          }
         },
         {
           "n": "Snipe",
@@ -838,10 +1015,27 @@
           "p": 1
         },
         {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "poison",
+            "value": 4,
+            "turns": 3,
+            "target": "all_enemies"
+          }
+        },
+        {
           "n": "Stun Bolt",
           "c": 2,
           "t": "Mech",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "stun",
+            "chance": 1,
+            "turns": 1
+          }
         }
       ],
       "startingEnergy": 1
@@ -855,31 +1049,53 @@
       "hp": 39,
       "atk": 17,
       "spd": 7,
-      "art": "🍄⚡",
+      "art": "/Art/Neon Shroom.png",
       "moves": [
         {
           "n": "Spore",
           "c": 1,
           "t": "Nature",
-          "p": 1
-        },
-        {
-          "n": "Poison Cloud",
-          "c": 2,
-          "t": "Nature",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "sleep",
+            "chance": 0.3,
+            "turns": 2
+          }
         },
         {
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1
+          "p": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.2,
+            "turns": 1
+          }
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "poison",
+            "value": 4,
+            "turns": 3,
+            "target": "all_enemies"
+          }
         },
         {
           "n": "Overcharge",
           "c": 1,
           "t": "Mech",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "spd_buff",
+            "value": 3,
+            "turns": 2,
+            "target": "self"
+          }
         }
       ],
       "startingEnergy": 1
@@ -893,25 +1109,37 @@
       "hp": 48,
       "atk": 20,
       "spd": 7,
-      "art": "🤖⚡",
+      "art": "/Art/Assault Mech.png",
       "moves": [
         {
-          "n": "Shockwave",
-          "c": 1,
+          "n": "Bulletstorm",
+          "c": 3,
           "t": "Mech",
-          "p": 1
+          "p": 2
         },
         {
-          "n": "Stun Bolt",
+          "n": "Shockwave",
           "c": 2,
           "t": "Mech",
-          "p": 1
+          "p": 0.8,
+          "effect": {
+            "type": "stun",
+            "chance": 0.3,
+            "turns": 1,
+            "target": "all_enemies"
+          }
         },
         {
-          "n": "Overcharge",
-          "c": 1,
+          "n": "Full Throttle",
+          "c": 2,
           "t": "Mech",
-          "p": 1
+          "p": 0,
+          "effect": {
+            "type": "spd_buff",
+            "value": 4,
+            "turns": 3,
+            "target": "all_allies"
+          }
         }
       ],
       "startingEnergy": 1

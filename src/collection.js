@@ -19,29 +19,51 @@
             return `<div style="font-size:${size}px; line-height:1;">${art}</div>`;
         }
 
+        function openCollectionDetails(monster, isDiscovered, isMerge) {
+            if (!isDiscovered) return;
+            
+            document.getElementById('col-detail-name').innerText = monster.name;
+            
+            const types = (Array.isArray(monster.type) ? monster.type : [monster.type]).filter(Boolean);
+            document.getElementById('col-detail-types').innerHTML = types.map(t => {
+                const icon = getElementIcon(t);
+                return icon ? `<img src="${icon}" style="width:32px; height:32px;" alt="${t}" title="${t}" />` : `<div class="type-tag type-${t.toLowerCase()}" style="font-size: 16px; padding: 5px 10px;">${t}</div>`;
+            }).join('');
+            
+            document.getElementById('col-detail-art').innerHTML = renderArt(monster.art, 150);
+            
+            document.getElementById('col-detail-hp').innerText = `HP: ${monster.hp}`;
+            document.getElementById('col-detail-atk').innerText = `ATK: ${monster.atk}`;
+            document.getElementById('col-detail-spd').innerText = `SPD: ${monster.spd}`;
+            
+            const moves = monster.moves || [];
+            document.getElementById('col-detail-moves').innerHTML = moves.map(m => `${m.n} (${m.c} EN)`).join('<br>');
+            
+            if (isMerge) {
+                const p1 = STARTERS[monster.parents[0]];
+                const p2 = STARTERS[monster.parents[1]];
+                document.getElementById('col-detail-parents').innerText = `Parents: ${p1.name} + ${p2.name}`;
+            } else {
+                document.getElementById('col-detail-parents').innerText = '';
+            }
+            
+            document.getElementById('modal-collection-details').style.display = 'flex';
+        }
+
         function renderCollection() {
             const list = document.getElementById('collection-list');
             list.innerHTML = '';
+            list.className = 'collection-grid'; // Add class for grid styling
 
             if (currentCollectionTab === 'starters') {
                 Object.values(STARTERS).forEach(s => {
                     const unlocked = gameState.unlockedStarters.includes(s.id);
                     const card = document.createElement('div');
-                    card.className = `monster-card ${unlocked ? '' : 'locked'}`;
+                    card.className = `collection-square ${unlocked ? '' : 'locked'}`;
+                    card.onclick = () => openCollectionDetails(s, unlocked, false);
                     card.innerHTML = `
-                        <div class="type-container">
-                            <div class="type-tag type-${s.type.toLowerCase()}">${s.type}</div>
-                        </div>
-                        <div class="monster-art" style="height:60px; display:flex; justify-content:center; align-items:center;">${renderArt(s.art)}</div>
-                        <strong>${s.name}</strong>
-                        ${unlocked ? `
-                            <div class="stats-row">
-                                <span>HP: ${s.hp}</span>
-                                <span>ATK: ${s.atk}</span>
-                                <span>SPD: ${s.spd}</span>
-                            </div>
-                            <div class="moves-list">${s.moves.map(m => `${m.n}(${m.c})`).join(', ')}</div>
-                        ` : '<div style="margin-top:10px">LOCKED</div>'}
+                        <div class="monster-art">${renderArt(s.art, 80)}</div>
+                        <strong>${unlocked ? s.name : '???'}</strong>
                     `;
                     list.appendChild(card);
                 });
@@ -49,32 +71,19 @@
                 MERGES.forEach(m => {
                     const discovered = gameState.discoveredMerges.includes(m.name);
                     const card = document.createElement('div');
-                    card.className = `monster-card ${discovered ? '' : 'locked'}`;
+                    card.className = `collection-square ${discovered ? '' : 'locked'}`;
+                    card.onclick = () => openCollectionDetails(m, discovered, true);
                     
                     if (discovered) {
-                        const p1 = STARTERS[m.parents[0]];
-                        const p2 = STARTERS[m.parents[1]];
-                        const types = [...new Set([
-                            ...(Array.isArray(p1.type) ? p1.type : [p1.type]),
-                            ...(Array.isArray(p2.type) ? p2.type : [p2.type])
-                        ])];
-                        const moves = m.moves || [];
                         card.innerHTML = `
-                            <div class="type-container">
-                                ${types.map(t => `<div class="type-tag type-${t.toLowerCase()}">${t}</div>`).join('')}
-                            </div>
-                            <div class="monster-art" style="height:60px; display:flex; justify-content:center; align-items:center;">${renderArt(m.art)}</div>
+                            <div class="monster-art">${renderArt(m.art, 80)}</div>
                             <strong>${m.name}</strong>
-                            <div style="font-size:10px; color:#888">${p1.name} + ${p2.name}</div>
-                            <div class="stats-row">
-                                <span>HP: ${m.hp}</span>
-                                <span>ATK: ${m.atk}</span>
-                                <span>SPD: ${m.spd}</span>
-                            </div>
-                            <div class="moves-list">${moves.map(mv => `${mv.n}(${mv.c})`).join(', ')}</div>
                         `;
                     } else {
-                        card.innerHTML = `<strong>???</strong><div style="margin-top:10px">NOT DISCOVERED</div>`;
+                        card.innerHTML = `
+                            <div class="monster-art" style="font-size: 80px;">?</div>
+                            <strong>???</strong>
+                        `;
                     }
                     list.appendChild(card);
                 });

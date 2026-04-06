@@ -10,7 +10,12 @@
                 const slot = document.getElementById(`merge-slot-${i}`);
                 if (s) {
                     slot.classList.add('filled');
-                    slot.innerHTML = `<strong>${s.name}</strong>`;
+                    slot.innerHTML = `
+                        <div style="width:80px; height:80px; margin-bottom:5px;">
+                            ${renderArt(s.art, 60)}
+                        </div>
+                        <strong>${s.name}</strong>
+                    `;
                 } else {
                     slot.classList.remove('filled');
                     slot.innerHTML = '+';
@@ -29,11 +34,25 @@
             const closeBtn = document.getElementById('modal-selection-close-btn');
             closeBtn.onclick = () => closeModal('modal-selection');
             
+            list.className = 'collection-grid';
+            
             currentRun.party.forEach((m, idx) => {
                 if (mergeSlots.includes(m) || m.currentHp <= 0) return; // Hide dead monsters
-                const btn = document.createElement('button');
-                btn.style.width = '100%';
-                btn.innerHTML = `${m.name} (HP: ${m.currentHp}/${m.hp})`;
+                const btn = document.createElement('div');
+                btn.className = 'collection-square';
+                
+                const types = (Array.isArray(m.type) ? m.type : [m.type]).filter(Boolean);
+                const typeHtml = types.map(t => {
+                    const icon = getElementIcon(t);
+                    return icon ? `<img src="${icon}" style="width:28px; height:28px;" alt="${t}" title="${t}" />` : `<div class="type-tag type-${t.toLowerCase()}" style="font-size: 10px; padding: 2px 4px;">${t}</div>`;
+                }).join('');
+
+                btn.innerHTML = `
+                    <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">${renderArt(m.art, 60)}</div>
+                    <strong>${m.name}</strong>
+                    <div style="font-size:10px; color:#ccc; margin-top:2px;">HP: ${m.currentHp}/${m.hp}</div>
+                    <div style="display:flex; gap:2px; margin-top:5px;">${typeHtml}</div>
+                `;
                 btn.onclick = () => {
                     mergeSlots[slotIndex] = m;
                     updateMergeUI();
@@ -69,18 +88,30 @@
                 };
 
                 // Remove parents, add child
-                currentRun.party = currentRun.party.filter(m => m !== p1 && m !== p2);
-                currentRun.party.push(newMonster);
+                currentRun.party = currentRun.party.map(p => {
+                    if (p === p1) return newMonster;
+                    if (p === p2) return null;
+                    return p;
+                });
 
                 if (!gameState.discoveredMerges.includes(outcome.name)) {
                     gameState.discoveredMerges.push(outcome.name);
                     saveGame();
                 }
 
+                const htmlContent = `
+                    <div style="display:flex; flex-direction:column; align-items:center; margin: 15px 0;">
+                        <div style="width:150px; height:150px; margin-bottom:10px;">
+                            ${renderArt(outcome.art, 100)}
+                        </div>
+                        <strong style="font-size:24px; color: var(--accent);">${outcome.name}</strong>
+                    </div>
+                `;
+
                 showGameAlert("Merge Success", `Merged into ${outcome.name}!`, () => {
                     mergeSlots = [null, null];
                     updateMergeUI();
-                });
+                }, htmlContent);
             } else {
                 showGameAlert("Merge Error", "These monsters cannot merge!");
             }

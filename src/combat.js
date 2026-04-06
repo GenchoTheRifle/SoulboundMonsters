@@ -90,6 +90,7 @@
 
             // Reset player energy and mods
             currentRun.party.forEach(p => {
+                if (!p) return;
                 p.energy = p.startingEnergy !== undefined ? p.startingEnergy : 1;
                 p.atkMod = 0;
                 p.spdMod = 0;
@@ -99,12 +100,19 @@
                 p.poison = 0;
             });
 
+            // Pad enemies to 4 slots if not boss
+            if (node.type !== 'boss') {
+                while (combatState.enemies.length < 4) {
+                    combatState.enemies.push(null);
+                }
+            }
+
             calculateTurnOrder();
             updateCombatUI();
             nextTurn();
         }
         function calculateTurnOrder() {
-            const all = [...currentRun.party, ...combatState.enemies].filter(u => u.currentHp > 0);
+            const all = [...currentRun.party, ...combatState.enemies].filter(u => u && u.currentHp > 0);
             all.sort((a, b) => b.spd - a.spd);
             currentRun.turnOrder = all;
             currentRun.activeTurnIndex = 0;
@@ -119,14 +127,32 @@
             enemyTeam.innerHTML = '';
             playerTeam.innerHTML = '';
 
-            if (combatState.enemies.some(e => e.isBoss)) {
+            if (combatState.enemies.some(e => e && e.isBoss)) {
                 enemyTeam.classList.add('boss-team');
             } else {
                 enemyTeam.classList.remove('boss-team');
             }
 
-            combatState.enemies.forEach(e => enemyTeam.appendChild(createCombatantEl(e)));
-            currentRun.party.forEach(p => playerTeam.appendChild(createCombatantEl(p)));
+            combatState.enemies.forEach((e, index) => {
+                if (e) {
+                    const el = createCombatantEl(e);
+                    enemyTeam.appendChild(el);
+                } else {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'combatant empty';
+                    enemyTeam.appendChild(emptyDiv);
+                }
+            });
+            currentRun.party.forEach((p, index) => {
+                if (p) {
+                    const el = createCombatantEl(p);
+                    playerTeam.appendChild(el);
+                } else {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'combatant empty';
+                    playerTeam.appendChild(emptyDiv);
+                }
+            });
 
             const turnOrderEl = document.getElementById('turn-order');
             turnOrderEl.innerHTML = '';
@@ -146,8 +172,9 @@
             
             const infoEl = document.getElementById('active-unit-info');
             if (combatState.activeUnit && !combatState.activeUnit.isEnemy) {
-                const types = Array.isArray(combatState.activeUnit.type) ? combatState.activeUnit.type : [combatState.activeUnit.type];
-                infoEl.innerHTML = `${combatState.activeUnit.name} (${types.join('/')})`;
+                const types = (Array.isArray(combatState.activeUnit.type) ? combatState.activeUnit.type : [combatState.activeUnit.type]).filter(Boolean);
+                const typeIcons = types.map(t => getElementIcon(t) ? `<img src="${getElementIcon(t)}" style="width:24px; height:24px; vertical-align:middle;" alt="${t}" />` : t).join('');
+                infoEl.innerHTML = `<span style="vertical-align:middle;">${combatState.activeUnit.name}</span> <span style="display:inline-flex; gap:2px; vertical-align:middle;">${typeIcons}</span>`;
             } else {
                 infoEl.innerHTML = '';
             }
@@ -165,7 +192,8 @@
             
             let isTargetable = false;
             if (combatState.targetingMove && u.currentHp > 0) {
-                if (combatState.targetingMove.n.includes('Heal')) {
+                const targetType = combatState.targetingMove.effect?.target || "enemy";
+                if (targetType === "ally") {
                     isTargetable = !u.isEnemy;
                 } else {
                     isTargetable = u.isEnemy;
@@ -174,7 +202,11 @@
 
             div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargetable ? 'targetable' : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''}`;
             const hpPerc = Math.max(0, (u.currentHp / u.hp) * 100);
-            const types = Array.isArray(u.type) ? u.type : [u.type];
+            let hpColor = '#ff6b6b';
+            if (hpPerc > 66) hpColor = '#51cf66';
+            else if (hpPerc > 33) hpColor = '#fcc419';
+
+            const types = (Array.isArray(u.type) ? u.type : [u.type]).filter(Boolean);
             
             let artHtml = '';
             if (u.art.includes('.png') || u.art.includes('/')) {
@@ -183,18 +215,37 @@
                 artHtml = `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${u.art}</div>`;
             }
 
+            let statusHtml = '';
+            if (u.currentHp > 0) {
+                if (u.poison > 0) statusHtml += `<div style="color: #9c27b0; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Poisoned</div>`;
+                if (u.sleep > 0) statusHtml += `<div style="color: #00bcd4; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Sleeping</div>`;
+                if (u.stunned > 0) statusHtml += `<div style="color: #ffeb3b; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Stunned</div>`;
+                if (u.buffs && u.buffs.some(b => b.type === 'regen')) statusHtml += `<div style="color: #4caf50; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Regen</div>`;
+                if (u.defMod < 1.0) statusHtml += `<div style="color: #2196f3; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Guarded</div>`;
+                if (u.atkMod > 0) statusHtml += `<div style="color: #f44336; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">ATK Up</div>`;
+                if (u.atkMod < 0) statusHtml += `<div style="color: #795548; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">ATK Down</div>`;
+                if (u.spdMod > 0) statusHtml += `<div style="color: #ff9800; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">SPD Up</div>`;
+            }
+
             div.innerHTML = `
-                <div class="type-container" style="position:absolute; top:-15px; left:50%; transform:translateX(-50%); z-index:3;">
-                    ${types.map(t => `<div class="type-tag type-${t.toLowerCase()}" style="font-size:8px; padding:2px 4px;">${t}</div>`).join('')}
+                <div style="position: absolute; top: -40px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10;">
+                    ${statusHtml}
                 </div>
                 <div class="monster-art-container">
                     ${artHtml}
                     <div class="shadow-ellipse"></div>
                 </div>
                 <div class="stats-container">
-                    <div class="name">Lv.1 ${u.name}</div>
-                    <div class="hp-bar"><div class="hp-fill" style="width:${hpPerc}%"></div></div>
-                    <div style="font-size:8px; color:#ccc; margin-top:2px;">${u.currentHp}/${u.hp}</div>
+                    <div class="name" style="display:flex; align-items:center; justify-content:center; gap:5px;">
+                        ${u.name}
+                        <div class="type-container" style="display:flex; gap:2px;">
+                            ${types.map(t => {
+                                const icon = getElementIcon(t);
+                                return icon ? `<img src="${icon}" style="width:24px; height:24px;" alt="${t}" />` : `<div class="type-tag type-${t.toLowerCase()}" style="font-size:8px; padding:2px 4px;">${t}</div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    <div class="hp-bar"><div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor};"></div></div>
                 </div>
             `;
             if (u === combatState.activeUnit) div.classList.add('active-turn');
@@ -207,12 +258,12 @@
 
         async function nextTurn() {
             // Check win/loss
-            if (combatState.enemies.every(e => e.currentHp <= 0)) {
+            if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
                 combatLog("Victory!");
                 setTimeout(endCombat, 1500, true);
                 return;
             }
-            if (currentRun.party.every(p => p.currentHp <= 0)) {
+            if (currentRun.party.every(p => !p || p.currentHp <= 0)) {
                 combatLog("Defeat...");
                 setTimeout(() => showScreen('screen-menu'), 2000);
                 return;
@@ -224,9 +275,16 @@
                 return;
             }
 
-            if (unit.stunned) {
+            if (unit.stunned > 0) {
                 combatLog(`${unit.name} is stunned and skips their turn!`);
-                unit.stunned = false;
+                unit.stunned--;
+                setTimeout(advanceTurn, 1000);
+                return;
+            }
+
+            if (unit.sleep > 0) {
+                combatLog(`${unit.name} is asleep and skips their turn!`);
+                unit.sleep--;
                 setTimeout(advanceTurn, 1000);
                 return;
             }
@@ -264,19 +322,37 @@
                     unit.buffs.forEach(b => {
                         if (b.type === 'atk_buff') unit.atkMod += b.value;
                         if (b.type === 'spd_buff') unit.spdMod += b.value;
-                        if (b.type === 'def_buff') unit.defMod *= b.value;
+                        if (b.type === 'guard') unit.defMod = b.value;
+                        if (b.type === 'regen') {
+                            const healAmount = b.value;
+                            unit.currentHp = Math.min(unit.hp, unit.currentHp + healAmount);
+                            combatLog(`${unit.name} regenerated ${healAmount} HP!`);
+                        }
+                    });
+                }
+
+                // Decay debuffs
+                if (unit.debuffs) {
+                    unit.debuffs.forEach(d => d.turns--);
+                    unit.debuffs = unit.debuffs.filter(d => d.turns > 0);
+                    
+                    unit.debuffs.forEach(d => {
+                        if (d.type === 'atk_debuff') unit.atkMod -= d.value;
                     });
                 }
 
                 // Poison
-                if (unit.poison > 0) {
+                if (unit.poison > 0 && unit.poisonTurns > 0) {
                     const dmg = unit.poison;
                     unit.currentHp -= dmg;
+                    unit.poisonTurns--;
+                    if (unit.poisonTurns <= 0) unit.poison = 0;
+                    
                     combatLog(`${unit.name} took ${dmg} poison damage!`);
                     if (unit.currentHp <= 0) {
                         combatLog(`${unit.name} fainted from poison!`);
                         if (!unit.isEnemy) {
-                            currentRun.party = currentRun.party.filter(p => p.currentHp > 0);
+                            currentRun.party = currentRun.party.map(p => p && p.currentHp > 0 ? p : null);
                         }
                         calculateTurnOrder(); // Refresh order if someone died
                     }
@@ -295,21 +371,23 @@
 
             unit.moves.forEach(m => {
                 const btn = document.createElement('button');
-                btn.className = `move-btn ${m.t.toLowerCase()}`;
+                const moveType = m.t || '';
+                btn.className = `move-btn ${moveType.toLowerCase()}`;
                 const isTargetingThis = combatState.targetingMove === m;
                 if (isTargetingThis) btn.style.background = 'gold';
                 
                 btn.disabled = currentEnergy < m.c;
                 btn.innerHTML = `
-                    <div style="display:flex; flex-direction:column; align-items:flex-start">
-                        <span style="font-weight:bold">${m.n}</span>
-                        <span style="font-size:9px; opacity:0.8">${m.t}</span>
+                    <div style="display:flex; flex-direction:row; align-items:center; gap: 5px;">
+                        <span style="font-weight:bold; font-size:16px;">${m.n}</span>
+                        <span style="display:flex; align-items:center;">${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="width:20px; height:20px;" alt="${moveType}" />` : moveType}</span>
                     </div>
                     <span class="move-cost">${m.c} EN</span>
                 `;
                 btn.onclick = () => {
-                    if (m.n.includes('Guard') || m.n.includes('Howl') || m.n.includes('Overcharge')) {
-                        executeMove(unit, m, unit);
+                    const targetType = m.effect?.target || "enemy";
+                    if (targetType === "self" || targetType === "all_allies" || targetType === "all_enemies") {
+                        executeMove(unit, m, unit); // target doesn't matter for AoE/self
                     } else {
                         combatState.targetingMove = m;
                         combatLog("Select a target!");
@@ -326,66 +404,114 @@
             attacker.energy -= move.c;
             combatState.targetingMove = null;
 
-            if (move.effect) {
-                const eff = move.effect;
-                if (eff.type === 'atk_buff' || eff.type === 'spd_buff' || eff.type === 'def_buff') {
-                    attacker.buffs.push({ ...eff });
-                    // Apply immediately
-                    if (eff.type === 'atk_buff') attacker.atkMod += eff.value;
-                    if (eff.type === 'spd_buff') attacker.spdMod += eff.value;
-                    if (eff.type === 'def_buff') attacker.defMod *= eff.value;
-                    combatLog(`${attacker.name} used ${move.n} and boosted stats!`);
-                } else if (eff.type === 'heal') {
-                    // Handled below if name contains Heal, but let's make it generic
-                }
-            }
+            const targetType = move.effect?.target || "enemy";
+            let targets = [];
 
-            if (move.n.includes('Heal')) {
-                const amount = Math.floor((attacker.atk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
-                target.currentHp = Math.min(target.hp, target.currentHp + amount);
-                combatLog(`${attacker.name} used ${move.n} and healed ${target.name} for ${amount}!`);
-            } else if (move.n.includes('Guard') || move.n.includes('Howl') || move.n.includes('Overcharge')) {
-                // Buffs handled above by move.effect
-                if (!move.effect) combatLog(`${attacker.name} used ${move.n}! (Buffed)`);
-            } else {
-                // If no target provided (e.g. enemy AI), pick random
+            if (targetType === "self") {
+                targets = [attacker];
+            } else if (targetType === "all_allies") {
+                targets = attacker.isEnemy ? combatState.enemies.filter(e => e && e.currentHp > 0) : currentRun.party.filter(p => p && p.currentHp > 0);
+            } else if (targetType === "all_enemies") {
+                targets = attacker.isEnemy ? currentRun.party.filter(p => p && p.currentHp > 0) : combatState.enemies.filter(e => e && e.currentHp > 0);
+            } else if (targetType === "ally") {
                 if (!target) {
-                    const targets = attacker.isEnemy ? currentRun.party : combatState.enemies;
-                    const aliveTargets = targets.filter(t => t.currentHp > 0);
-                    if (aliveTargets.length > 0) {
-                        target = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
+                    const allies = attacker.isEnemy ? combatState.enemies : currentRun.party;
+                    const aliveAllies = allies.filter(a => a && a.currentHp > 0);
+                    aliveAllies.sort((a, b) => (a.currentHp / a.hp) - (b.currentHp / b.hp));
+                    target = aliveAllies[0];
+                }
+                targets = [target];
+            } else { // enemy
+                if (!target) {
+                    const enemies = attacker.isEnemy ? currentRun.party : combatState.enemies;
+                    const aliveEnemies = enemies.filter(e => e && e.currentHp > 0);
+                    if (aliveEnemies.length > 0) {
+                        target = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
                     }
                 }
-
-                if (target) {
-                    const damage = calculateDamage(attacker, move, target);
-                    target.currentHp -= damage;
-                    combatLog(`${attacker.name} used ${move.n} on ${target.name} for ${damage}!`);
-                    
-                    // Apply target effects
-                    if (move.effect) {
-                        const eff = move.effect;
-                        if (eff.type === 'stun' && Math.random() < eff.chance) {
-                            target.stunned = true;
-                            combatLog(`${target.name} was stunned!`);
-                        }
-                        if (eff.type === 'poison') {
-                            target.poison = eff.value;
-                            combatLog(`${target.name} was poisoned!`);
-                        }
-                    }
-
-                    if (target.currentHp <= 0) {
-                        if (target.isEnemy && !combatState.firstKilledEnemy) {
-                            combatState.firstKilledEnemy = target;
-                        } else if (!target.isEnemy) {
-                            combatLog(`${target.name} has fallen!`);
-                            currentRun.party = currentRun.party.filter(p => p.currentHp > 0);
-                            calculateTurnOrder();
-                        }
-                    }
-                }
+                if (target) targets = [target];
             }
+
+            combatLog(`${attacker.name} used ${move.n}!`);
+
+            targets.forEach(t => {
+                if (!t || t.currentHp <= 0) return;
+
+                // Damage
+                if (move.p > 0) {
+                    let damage = calculateDamage(attacker, move, t);
+                    
+                    // Apply Guard reduction
+                    if (t.defMod < 1.0) {
+                        damage = Math.floor(damage * t.defMod);
+                        t.defMod = 1.0; // Guard is consumed on hit
+                        if (t.buffs) {
+                            t.buffs = t.buffs.filter(b => b.type !== 'guard');
+                        }
+                    }
+
+                    t.currentHp -= damage;
+                    combatLog(`${t.name} took ${damage} damage!`);
+
+                    // Wake up if sleeping
+                    if (t.sleep > 0) {
+                        t.sleep = 0;
+                        combatLog(`${t.name} woke up!`);
+                    }
+                }
+
+                // Effects
+                if (move.effect) {
+                    const eff = move.effect;
+                    if (eff.type === 'atk_buff' || eff.type === 'spd_buff' || eff.type === 'guard' || eff.type === 'savage_stance' || eff.type === 'regen') {
+                        if (!t.buffs) t.buffs = [];
+                        
+                        if (eff.type === 'savage_stance') {
+                            t.buffs.push({ type: 'atk_buff', value: eff.atk_value, turns: eff.atk_turns });
+                            t.buffs.push({ type: 'guard', value: eff.guard_value, turns: eff.guard_turns });
+                            t.atkMod += eff.atk_value;
+                            t.defMod = eff.guard_value;
+                            combatLog(`${t.name} entered Savage Stance!`);
+                        } else {
+                            t.buffs.push({ ...eff });
+                            if (eff.type === 'atk_buff') t.atkMod += eff.value;
+                            if (eff.type === 'spd_buff') t.spdMod += eff.value;
+                            if (eff.type === 'guard') t.defMod = eff.value;
+                            if (eff.type === 'regen') combatLog(`${t.name} gained Health Regen!`);
+                            else combatLog(`${t.name} boosted stats!`);
+                        }
+                    } else if (eff.type === 'atk_debuff') {
+                        if (!t.debuffs) t.debuffs = [];
+                        t.debuffs.push({ ...eff });
+                        t.atkMod -= eff.value;
+                        combatLog(`${t.name}'s attack was lowered!`);
+                    } else if (eff.type === 'heal') {
+                        const amount = Math.floor((attacker.atk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
+                        t.currentHp = Math.min(t.hp, t.currentHp + amount);
+                        combatLog(`${t.name} was healed for ${amount}!`);
+                    } else if (eff.type === 'stun' && Math.random() < eff.chance) {
+                        t.stunned = eff.turns;
+                        combatLog(`${t.name} was stunned!`);
+                    } else if (eff.type === 'sleep' && Math.random() < eff.chance) {
+                        t.sleep = eff.turns;
+                        combatLog(`${t.name} fell asleep!`);
+                    } else if (eff.type === 'poison') {
+                        t.poison = eff.value;
+                        t.poisonTurns = eff.turns;
+                        combatLog(`${t.name} was poisoned!`);
+                    }
+                }
+
+                if (t.currentHp <= 0) {
+                    if (t.isEnemy && !combatState.firstKilledEnemy) {
+                        combatState.firstKilledEnemy = t;
+                    } else if (!t.isEnemy) {
+                        combatLog(`${t.name} has fallen!`);
+                        currentRun.party = currentRun.party.map(p => p && p.currentHp > 0 ? p : null);
+                        calculateTurnOrder();
+                    }
+                }
+            });
 
             updateCombatUI();
             
@@ -396,8 +522,10 @@
                 // For player, just re-render controls
                 renderMoveControls(attacker);
                 // Check if enemies all dead
-                if (combatState.enemies.every(e => e.currentHp <= 0)) {
+                if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
                     setTimeout(nextTurn, 500);
+                } else if (attacker.energy === 0) {
+                    setTimeout(advanceTurn, 500);
                 }
             }
         }
@@ -426,7 +554,7 @@
 
         function enemyAI(unit) {
             // Check if win/loss already
-            if (combatState.enemies.every(e => e.currentHp <= 0) || currentRun.party.every(p => p.currentHp <= 0)) return;
+            if (combatState.enemies.every(e => !e || e.currentHp <= 0) || currentRun.party.every(p => !p || p.currentHp <= 0)) return;
 
             const affordableMoves = unit.moves.filter(m => m.c <= unit.energy);
             
@@ -443,14 +571,7 @@
                 affordableMoves.sort((a, b) => b.c - a.c);
                 const move = Math.random() < 0.7 ? affordableMoves[0] : affordableMoves[Math.floor(Math.random() * affordableMoves.length)];
                 
-                // If it's a heal, target an ally with lowest HP
-                if (move.n.includes('Heal')) {
-                    const allies = combatState.enemies.filter(e => e.currentHp > 0);
-                    allies.sort((a, b) => (a.currentHp / a.hp) - (b.currentHp / b.hp));
-                    executeMove(unit, move, allies[0]);
-                } else {
-                    executeMove(unit, move);
-                }
+                executeMove(unit, move);
             } else {
                 // No moves affordable, end turn
                 setTimeout(advanceTurn, 800);
@@ -483,8 +604,9 @@
                             atk: base.atk
                         };
                         
-                        if (currentRun.party.length < 4) {
-                            currentRun.party.push(recruit);
+                        const emptyIndex = currentRun.party.findIndex(p => p === null);
+                        if (emptyIndex !== -1) {
+                            currentRun.party[emptyIndex] = recruit;
                             // Unlock in collection
                             if (!gameState.unlockedStarters.includes(recruit.id)) {
                                 gameState.unlockedStarters.push(recruit.id);
@@ -517,11 +639,26 @@
                 advanceRun();
             };
             
+            list.className = 'collection-grid';
+            
             currentRun.party.forEach((m, idx) => {
-                const btn = document.createElement('button');
-                btn.style.width = '100%';
-                btn.innerHTML = `Replace ${m.name}`;
-                btn.onclick = () => {
+                if (!m) return;
+                const btn = document.createElement('div');
+                btn.className = 'collection-square';
+                
+                const types = (Array.isArray(m.type) ? m.type : [m.type]).filter(Boolean);
+                const typeHtml = types.map(t => {
+                    const icon = getElementIcon(t);
+                    return icon ? `<img src="${icon}" style="width:28px; height:28px;" alt="${t}" title="${t}" />` : `<div class="type-tag type-${t.toLowerCase()}" style="font-size: 10px; padding: 2px 4px;">${t}</div>`;
+                }).join('');
+
+                btn.innerHTML = `
+                    <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:5px;">${renderArt(m.art, 60)}</div>
+                    <strong>${m.name}</strong>
+                    <div style="display:flex; gap:2px; margin-top:2px; justify-content:center;">${typeHtml}</div>
+                    <button style="margin-top: 10px; width: 100%;">Replace</button>
+                `;
+                btn.querySelector('button').onclick = () => {
                     currentRun.party[idx] = recruit;
                     // Unlock in collection
                     if (!gameState.unlockedStarters.includes(recruit.id)) {
