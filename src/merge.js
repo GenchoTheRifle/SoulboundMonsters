@@ -6,15 +6,38 @@
         }
 
         function updateMergeUI() {
+            // Update Party Slots
+            for (let i = 0; i < 4; i++) {
+                const slot = document.getElementById(`merge-party-slot-${i}`);
+                const m = currentRun.party[i];
+                if (m && !mergeSlots.includes(m)) {
+                    slot.innerHTML = `
+                        <div draggable="true" ondragstart="dragStart(event, 'party', ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
+                            <div style="width:80px; height:80px; margin-bottom:5px;">
+                                ${renderArt(m.art, 60)}
+                            </div>
+                            <strong style="font-size:12px; text-align:center;">${m.name}</strong>
+                        </div>
+                    `;
+                    slot.classList.add('filled');
+                } else {
+                    slot.innerHTML = '';
+                    slot.classList.remove('filled');
+                }
+            }
+
+            // Update Merge Slots
             mergeSlots.forEach((s, i) => {
                 const slot = document.getElementById(`merge-slot-${i}`);
                 if (s) {
                     slot.classList.add('filled');
                     slot.innerHTML = `
-                        <div style="width:80px; height:80px; margin-bottom:5px;">
-                            ${renderArt(s.art, 60)}
+                        <div draggable="true" ondragstart="dragStart(event, 'merge', ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
+                            <div style="width:80px; height:80px; margin-bottom:5px;">
+                                ${renderArt(s.art, 60)}
+                            </div>
+                            <strong style="font-size:12px; text-align:center;">${s.name}</strong>
                         </div>
-                        <strong>${s.name}</strong>
                     `;
                 } else {
                     slot.classList.remove('filled');
@@ -22,7 +45,72 @@
                 }
             });
             document.getElementById('btn-do-merge').disabled = mergeSlots.includes(null);
-            document.getElementById('merge-result').innerText = '';
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function dragStart(ev, source, index) {
+            ev.dataTransfer.setData("source", source);
+            ev.dataTransfer.setData("index", index);
+        }
+
+        function dropMergeParty(ev) {
+            ev.preventDefault();
+            const source = ev.dataTransfer.getData("source");
+            const sourceIndex = parseInt(ev.dataTransfer.getData("index"));
+            
+            let targetSlot = ev.target.closest('.select-slot');
+            if (!targetSlot) return;
+            const targetIndex = parseInt(targetSlot.getAttribute('data-slot'));
+
+            if (source === 'party') {
+                // Swap in party
+                const temp = currentRun.party[sourceIndex];
+                currentRun.party[sourceIndex] = currentRun.party[targetIndex];
+                currentRun.party[targetIndex] = temp;
+            } else if (source === 'merge') {
+                // Move from merge back to party
+                const m = mergeSlots[sourceIndex];
+                mergeSlots[sourceIndex] = null;
+                // If target slot is empty, we don't need to do anything special since it's already in the party array, just not in mergeSlots anymore
+                // But if we want to swap positions, we can find its original index and swap
+                const originalIndex = currentRun.party.indexOf(m);
+                if (originalIndex !== -1 && originalIndex !== targetIndex) {
+                    const temp = currentRun.party[originalIndex];
+                    currentRun.party[originalIndex] = currentRun.party[targetIndex];
+                    currentRun.party[targetIndex] = temp;
+                }
+            }
+            updateMergeUI();
+        }
+
+        function dropMergeSlot(ev) {
+            ev.preventDefault();
+            const source = ev.dataTransfer.getData("source");
+            const sourceIndex = parseInt(ev.dataTransfer.getData("index"));
+            
+            let targetSlot = ev.target.closest('.merge-slot');
+            if (!targetSlot) return;
+            const targetIndex = parseInt(targetSlot.getAttribute('data-slot'));
+
+            if (source === 'party') {
+                const m = currentRun.party[sourceIndex];
+                if (m && m.currentHp > 0) {
+                    // If moving to a merge slot, check if it's already in the other slot
+                    if (mergeSlots[1 - targetIndex] === m) {
+                        mergeSlots[1 - targetIndex] = null;
+                    }
+                    mergeSlots[targetIndex] = m;
+                }
+            } else if (source === 'merge') {
+                // Swap merge slots
+                const temp = mergeSlots[sourceIndex];
+                mergeSlots[sourceIndex] = mergeSlots[targetIndex];
+                mergeSlots[targetIndex] = temp;
+            }
+            updateMergeUI();
         }
 
         function openMergeModal(slotIndex) {
@@ -88,11 +176,11 @@
                 };
 
                 // Remove parents, add child
-                currentRun.party = currentRun.party.map(p => {
-                    if (p === p1) return newMonster;
-                    if (p === p2) return null;
-                    return p;
-                });
+                const p1Index = currentRun.party.indexOf(p1);
+                const p2Index = currentRun.party.indexOf(p2);
+                
+                currentRun.party[p1Index] = newMonster;
+                currentRun.party[p2Index] = null;
 
                 if (!gameState.discoveredMerges.includes(outcome.name)) {
                     gameState.discoveredMerges.push(outcome.name);

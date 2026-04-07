@@ -75,6 +75,57 @@
                     container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
                 }
             }, 100);
+
+            updateMapPartyUI();
+        }
+
+        function updateMapPartyUI() {
+            for (let i = 0; i < 4; i++) {
+                const slot = document.getElementById(`map-party-slot-${i}`);
+                if (!slot) continue;
+                const m = currentRun.party[i];
+                if (m) {
+                    slot.innerHTML = `
+                        <div draggable="true" ondragstart="dragStartMap(event, ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
+                            <div style="width:80px; height:80px; margin-bottom:5px;">
+                                ${renderArt(m.art, 60)}
+                            </div>
+                            <strong style="font-size:12px; text-align:center;">${m.name}</strong>
+                        </div>
+                    `;
+                    slot.classList.add('filled');
+                } else {
+                    slot.innerHTML = '';
+                    slot.classList.remove('filled');
+                }
+            }
+        }
+
+        function openMapTeamModal() {
+            updateMapPartyUI();
+            document.getElementById('modal-map-team').style.display = 'flex';
+        }
+
+        function dragStartMap(ev, index) {
+            ev.dataTransfer.setData("index", index);
+        }
+
+        window.dropMapParty = function(ev) {
+            ev.preventDefault();
+            const sourceIndexStr = ev.dataTransfer.getData("index");
+            if (!sourceIndexStr) return;
+            const sourceIndex = parseInt(sourceIndexStr);
+            
+            let targetSlot = ev.target.closest('.select-slot');
+            if (!targetSlot) return;
+            const targetIndex = parseInt(targetSlot.getAttribute('data-slot'));
+
+            // Swap in party
+            const temp = currentRun.party[sourceIndex];
+            currentRun.party[sourceIndex] = currentRun.party[targetIndex];
+            currentRun.party[targetIndex] = temp;
+            
+            updateMapPartyUI();
         }
 
         function proceedToNode() {

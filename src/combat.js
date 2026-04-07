@@ -124,8 +124,6 @@
 
             const enemyTeam = document.getElementById('enemy-team');
             const playerTeam = document.getElementById('player-team');
-            enemyTeam.innerHTML = '';
-            playerTeam.innerHTML = '';
 
             if (combatState.enemies.some(e => e && e.isBoss)) {
                 enemyTeam.classList.add('boss-team');
@@ -133,24 +131,29 @@
                 enemyTeam.classList.remove('boss-team');
             }
 
+            while (enemyTeam.children.length < 4) enemyTeam.appendChild(document.createElement('div'));
+            while (enemyTeam.children.length > 4) enemyTeam.removeChild(enemyTeam.lastChild);
+            while (playerTeam.children.length < 4) playerTeam.appendChild(document.createElement('div'));
+            while (playerTeam.children.length > 4) playerTeam.removeChild(playerTeam.lastChild);
+
             combatState.enemies.forEach((e, index) => {
+                const child = enemyTeam.children[index];
                 if (e) {
-                    const el = createCombatantEl(e);
-                    enemyTeam.appendChild(el);
+                    updateCombatantEl(child, e);
                 } else {
-                    const emptyDiv = document.createElement('div');
-                    emptyDiv.className = 'combatant empty';
-                    enemyTeam.appendChild(emptyDiv);
+                    child.className = 'combatant empty';
+                    child.innerHTML = '';
+                    child.onclick = null;
                 }
             });
             currentRun.party.forEach((p, index) => {
+                const child = playerTeam.children[index];
                 if (p) {
-                    const el = createCombatantEl(p);
-                    playerTeam.appendChild(el);
+                    updateCombatantEl(child, p);
                 } else {
-                    const emptyDiv = document.createElement('div');
-                    emptyDiv.className = 'combatant empty';
-                    playerTeam.appendChild(emptyDiv);
+                    child.className = 'combatant empty';
+                    child.innerHTML = '';
+                    child.onclick = null;
                 }
             });
 
@@ -173,8 +176,18 @@
             const infoEl = document.getElementById('active-unit-info');
             if (combatState.activeUnit && !combatState.activeUnit.isEnemy) {
                 const types = (Array.isArray(combatState.activeUnit.type) ? combatState.activeUnit.type : [combatState.activeUnit.type]).filter(Boolean);
-                const typeIcons = types.map(t => getElementIcon(t) ? `<img src="${getElementIcon(t)}" style="width:24px; height:24px; vertical-align:middle;" alt="${t}" />` : t).join('');
-                infoEl.innerHTML = `<span style="vertical-align:middle;">${combatState.activeUnit.name}</span> <span style="display:inline-flex; gap:2px; vertical-align:middle;">${typeIcons}</span>`;
+                
+                let typeIconHtml = '';
+                if (types.length === 2) {
+                    if (types.includes('Beast') && types.includes('Mech')) typeIconHtml = `<img src="/Art/BeastMech.png" style="width:32px; height:32px; vertical-align:middle;" title="Beast/Mech" />`;
+                    else if (types.includes('Mech') && types.includes('Nature')) typeIconHtml = `<img src="/Art/MechNature.png" style="width:32px; height:32px; vertical-align:middle;" title="Mech/Nature" />`;
+                    else if (types.includes('Nature') && types.includes('Beast')) typeIconHtml = `<img src="/Art/NatureBeast.png" style="width:32px; height:32px; vertical-align:middle;" title="Nature/Beast" />`;
+                } else if (types.length === 1) {
+                    const icon = getElementIcon(types[0]);
+                    if (icon) typeIconHtml = `<img src="${icon}" style="width:32px; height:32px; vertical-align:middle;" title="${types[0]}" />`;
+                }
+
+                infoEl.innerHTML = `<span style="vertical-align:middle;">${combatState.activeUnit.name}</span> <span style="display:inline-flex; gap:2px; vertical-align:middle;">${typeIconHtml}</span>`;
             } else {
                 infoEl.innerHTML = '';
             }
@@ -187,9 +200,7 @@
             }
         }
 
-        function createCombatantEl(u) {
-            const div = document.createElement('div');
-            
+        function updateCombatantEl(div, u) {
             let isTargetable = false;
             if (combatState.targetingMove && u.currentHp > 0) {
                 const targetType = combatState.targetingMove.effect?.target || "enemy";
@@ -217,43 +228,69 @@
 
             let statusHtml = '';
             if (u.currentHp > 0) {
-                if (u.poison > 0) statusHtml += `<div style="color: #9c27b0; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Poisoned</div>`;
-                if (u.sleep > 0) statusHtml += `<div style="color: #00bcd4; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Sleeping</div>`;
-                if (u.stunned > 0) statusHtml += `<div style="color: #ffeb3b; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Stunned</div>`;
-                if (u.buffs && u.buffs.some(b => b.type === 'regen')) statusHtml += `<div style="color: #4caf50; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Regen</div>`;
-                if (u.defMod < 1.0) statusHtml += `<div style="color: #2196f3; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">Guarded</div>`;
-                if (u.atkMod > 0) statusHtml += `<div style="color: #f44336; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">ATK Up</div>`;
-                if (u.atkMod < 0) statusHtml += `<div style="color: #795548; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">ATK Down</div>`;
-                if (u.spdMod > 0) statusHtml += `<div style="color: #ff9800; font-weight: bold; text-shadow: 1px 1px 2px black; margin-bottom: 2px;">SPD Up</div>`;
+                const goodStyle = 'width:40px; height:40px; filter: drop-shadow(0 0 5px rgba(0,255,0,0.8));';
+                const badStyle = 'width:40px; height:40px; filter: drop-shadow(0 0 5px rgba(255,0,0,0.8));';
+                if (u.poison > 0) statusHtml += `<img src="/Art/Poison.png" style="${badStyle}" title="Poisoned" />`;
+                if (u.sleep > 0) statusHtml += `<img src="/Art/Sleep.png" style="${badStyle}" title="Sleeping" />`;
+                if (u.stunned > 0) statusHtml += `<img src="/Art/Stun.png" style="${badStyle}" title="Stunned" />`;
+                if (u.buffs && u.buffs.some(b => b.type === 'regen')) statusHtml += `<img src="/Art/Regen.png" style="${goodStyle}" title="Regen" />`;
+                if (u.defMod < 1.0) statusHtml += `<img src="/Art/Guard.png" style="${goodStyle}" title="Guarded" />`;
+                if (u.atkMod > 0) statusHtml += `<img src="/Art/Buff DMG.png" style="${goodStyle}" title="ATK Up" />`;
+                if (u.atkMod < 0) statusHtml += `<img src="/Art/Debuff DMG.png" style="${badStyle}" title="ATK Down" />`;
+                if (u.spdMod > 0) statusHtml += `<img src="/Art/Buff SPD.png" style="${goodStyle}" title="SPD Up" />`;
             }
 
-            div.innerHTML = `
-                <div style="position: absolute; top: -40px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10;">
-                    ${statusHtml}
-                </div>
-                <div class="monster-art-container">
-                    ${artHtml}
-                    <div class="shadow-ellipse"></div>
-                </div>
-                <div class="stats-container">
-                    <div class="name" style="display:flex; align-items:center; justify-content:center; gap:5px;">
-                        ${u.name}
-                        <div class="type-container" style="display:flex; gap:2px;">
-                            ${types.map(t => {
-                                const icon = getElementIcon(t);
-                                return icon ? `<img src="${icon}" style="width:24px; height:24px;" alt="${t}" />` : `<div class="type-tag type-${t.toLowerCase()}" style="font-size:8px; padding:2px 4px;">${t}</div>`;
-                            }).join('')}
+            let typeIconHtml = '';
+            if (types.length === 2) {
+                if (types.includes('Beast') && types.includes('Mech')) typeIconHtml = `<img src="/Art/BeastMech.png" style="width:40px; height:40px;" title="Beast/Mech" />`;
+                else if (types.includes('Mech') && types.includes('Nature')) typeIconHtml = `<img src="/Art/MechNature.png" style="width:40px; height:40px;" title="Mech/Nature" />`;
+                else if (types.includes('Nature') && types.includes('Beast')) typeIconHtml = `<img src="/Art/NatureBeast.png" style="width:40px; height:40px;" title="Nature/Beast" />`;
+            } else if (types.length === 1) {
+                const icon = getElementIcon(types[0]);
+                if (icon) typeIconHtml = `<img src="${icon}" style="width:40px; height:40px;" title="${types[0]}" />`;
+            }
+
+            const iconPosition = u.isEnemy ? 'right: -10px;' : 'left: -10px;';
+
+            if (!div.querySelector('.hp-fill')) {
+                div.innerHTML = `
+                    <div class="monster-art-container" style="position: relative;">
+                        <div class="art-content">${artHtml}</div>
+                        <div class="shadow-ellipse"></div>
+                        <div class="status-container" style="position: absolute; bottom: 0; left: 0; width: 100%; display:flex; justify-content:center; gap:4px; z-index: 10;">
+                            ${statusHtml}
                         </div>
                     </div>
-                    <div class="hp-bar"><div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor};"></div></div>
-                </div>
-            `;
+                    <div class="stats-container" style="position: relative; padding-top: 10px;">
+                        <div class="type-icon-container" style="position: absolute; top: -10px; ${iconPosition} z-index: 11;">
+                            ${typeIconHtml}
+                        </div>
+                        <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
+                            ${u.name}
+                        </div>
+                        <div class="hp-bar" style="margin-bottom: 4px;"><div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor}; transition: width 1.5s ease-out, background-color 1.5s ease-out;"></div></div>
+                    </div>
+                `;
+            } else {
+                div.querySelector('.art-content').innerHTML = artHtml;
+                div.querySelector('.status-container').innerHTML = statusHtml;
+                div.querySelector('.type-icon-container').innerHTML = typeIconHtml;
+                div.querySelector('.type-icon-container').style.cssText = `position: absolute; top: -10px; ${iconPosition} z-index: 11;`;
+                div.querySelector('.name').innerHTML = u.name;
+                
+                const hpFill = div.querySelector('.hp-fill');
+                hpFill.style.width = `${hpPerc}%`;
+                hpFill.style.backgroundColor = hpColor;
+            }
+
             if (u === combatState.activeUnit) div.classList.add('active-turn');
+            else div.classList.remove('active-turn');
             
             if (isTargetable) {
                 div.onclick = () => executeMove(combatState.activeUnit, combatState.targetingMove, u);
+            } else {
+                div.onclick = null;
             }
-            return div;
         }
 
         async function nextTurn() {
@@ -265,7 +302,7 @@
             }
             if (currentRun.party.every(p => !p || p.currentHp <= 0)) {
                 combatLog("Defeat...");
-                setTimeout(() => showScreen('screen-menu'), 2000);
+                setTimeout(() => endCombat(false), 2000);
                 return;
             }
 
@@ -438,25 +475,34 @@
                 if (!t || t.currentHp <= 0) return;
 
                 // Damage
-                if (move.p > 0) {
-                    let damage = calculateDamage(attacker, move, t);
-                    
-                    // Apply Guard reduction
-                    if (t.defMod < 1.0) {
-                        damage = Math.floor(damage * t.defMod);
-                        t.defMod = 1.0; // Guard is consumed on hit
-                        if (t.buffs) {
-                            t.buffs = t.buffs.filter(b => b.type !== 'guard');
+                if (move.p > 0 && move.effect?.type !== 'heal') {
+                    const hitCount = move.hits || 1;
+                    const dmgMultiplier = 1.0 / hitCount;
+
+                    for (let i = 0; i < hitCount; i++) {
+                        if (t.currentHp <= 0) break;
+                        
+                        // Pass dmgMultiplier to calculateDamage or multiply it here
+                        let damage = calculateDamage(attacker, move, t);
+                        damage = Math.max(1, Math.floor(damage * dmgMultiplier));
+                        
+                        // Apply Guard reduction
+                        if (t.defMod < 1.0) {
+                            damage = Math.floor(damage * t.defMod);
+                            t.defMod = 1.0; // Guard is consumed on hit
+                            if (t.buffs) {
+                                t.buffs = t.buffs.filter(b => b.type !== 'guard');
+                            }
                         }
-                    }
 
-                    t.currentHp -= damage;
-                    combatLog(`${t.name} took ${damage} damage!`);
+                        t.currentHp -= damage;
+                        combatLog(`${t.name} took ${damage} damage!`);
 
-                    // Wake up if sleeping
-                    if (t.sleep > 0) {
-                        t.sleep = 0;
-                        combatLog(`${t.name} woke up!`);
+                        // Wake up if sleeping
+                        if (t.sleep > 0) {
+                            t.sleep = 0;
+                            combatLog(`${t.name} woke up!`);
+                        }
                     }
                 }
 
@@ -515,16 +561,25 @@
 
             updateCombatUI();
             
+            // Check win/loss immediately after move
+            if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
+                combatLog("Victory!");
+                setTimeout(endCombat, 1500, true);
+                return;
+            }
+            if (currentRun.party.every(p => !p || p.currentHp <= 0)) {
+                combatLog("Defeat...");
+                setTimeout(() => endCombat(false), 2000);
+                return;
+            }
+
             // If enemy, check if can move again
             if (attacker.isEnemy) {
                 setTimeout(() => enemyAI(attacker), 800);
             } else {
                 // For player, just re-render controls
                 renderMoveControls(attacker);
-                // Check if enemies all dead
-                if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
-                    setTimeout(nextTurn, 500);
-                } else if (attacker.energy === 0) {
+                if (attacker.energy === 0) {
                     setTimeout(advanceTurn, 500);
                 }
             }
@@ -554,7 +609,16 @@
 
         function enemyAI(unit) {
             // Check if win/loss already
-            if (combatState.enemies.every(e => !e || e.currentHp <= 0) || currentRun.party.every(p => !p || p.currentHp <= 0)) return;
+            if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
+                combatLog("Victory!");
+                setTimeout(endCombat, 1500, true);
+                return;
+            }
+            if (currentRun.party.every(p => !p || p.currentHp <= 0)) {
+                combatLog("Defeat...");
+                setTimeout(() => endCombat(false), 2000);
+                return;
+            }
 
             const affordableMoves = unit.moves.filter(m => m.c <= unit.energy);
             
@@ -588,6 +652,12 @@
             combatState.ended = true;
 
             if (isWin) {
+                // If it's the final boss, show You Win screen
+                if (currentRun.nodeIndex >= currentRun.nodes.length - 1) {
+                    advanceRun();
+                    return;
+                }
+
                 // Recruitment
                 if (combatState.firstKilledEnemy) {
                     const e = combatState.firstKilledEnemy;
@@ -624,6 +694,10 @@
                     }
                 }
                 advanceRun();
+            } else {
+                showGameAlert("YOU DIED!", "Your party was defeated.", () => {
+                    showScreen('screen-menu');
+                });
             }
         }
 
@@ -679,15 +753,18 @@
                 // Victory Run
                 const allStarterIds = Object.keys(STARTERS);
                 const locked = allStarterIds.filter(id => !gameState.unlockedStarters.includes(id));
+                let msg = "Congratulations! You have completed the run.";
                 if (locked.length > 0) {
                     const newId = locked[Math.floor(Math.random() * locked.length)];
                     gameState.unlockedStarters.push(newId);
-                    alert(`RUN COMPLETE! Unlocked new starter: ${STARTERS[newId].name}`);
+                    msg += `\nUnlocked new starter: ${STARTERS[newId].name}`;
                 } else {
-                    alert(`RUN COMPLETE! All starters already unlocked.`);
+                    msg += `\nAll starters already unlocked.`;
                 }
                 saveGame();
-                showScreen('screen-menu');
+                showGameAlert("YOU WIN!", msg, () => {
+                    showScreen('screen-menu');
+                });
             } else {
                 showScreen('screen-map');
                 renderMap();

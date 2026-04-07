@@ -19,7 +19,7 @@
                         <div style="display:flex; gap:2px; margin-top:2px; pointer-events: none; justify-content:center;">${typeHtml}</div>
                     `;
                     slot.setAttribute('draggable', 'true');
-                    slot.ondragstart = (e) => dragStart(e, s.id, i);
+                    slot.ondragstart = (e) => dragStartSelection(e, s.id, i);
                 } else {
                     slot.classList.remove('filled');
                     slot.innerHTML = '';
@@ -48,7 +48,7 @@
                 btn.className = 'collection-square';
                 btn.style.cursor = 'grab';
                 btn.setAttribute('draggable', 'true');
-                btn.ondragstart = (e) => dragStart(e, id, null);
+                btn.ondragstart = (e) => dragStartSelection(e, id, null);
 
                 const types = (Array.isArray(s.type) ? s.type : [s.type]).filter(Boolean);
                 const typeHtml = types.map(t => {
@@ -65,7 +65,7 @@
             });
         }
 
-        function dragStart(e, id, slotIndex) {
+        function dragStartSelection(e, id, slotIndex) {
             draggedStarterId = id;
             draggedFromSlot = slotIndex;
             e.dataTransfer.setData('text/plain', id);
