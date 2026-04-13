@@ -447,8 +447,7 @@
             top: 20px;
         }
 
-        .combatant.enemy .monster-art-container > img,
-        .combatant.enemy .monster-art-container > div:not(.shadow-ellipse) {
+        .combatant.enemy .monster-art-container > .art-content {
             transform: scaleX(-1);
         }
 
@@ -476,6 +475,22 @@
             opacity: 0.3;
         }
         
+        .combatant.not-targetable {
+            filter: brightness(0.4);
+            pointer-events: none;
+        }
+
+        .combatant.targetable .monster-art-container img,
+        .combatant.targetable .monster-art-container div {
+            filter: drop-shadow(0 0 15px #ff4757);
+            cursor: pointer;
+        }
+        
+        .combatant.targetable.ally .monster-art-container img,
+        .combatant.targetable.ally .monster-art-container div {
+            filter: drop-shadow(0 0 15px #2ed573);
+        }
+
         .combatant.active-turn .monster-art-container img,
         .combatant.active-turn .monster-art-container div {
             filter: drop-shadow(0 0 8px gold);

@@ -10,7 +10,10 @@
             ended: false
         };
 
+        let isExecutingMove = false;
+
         function initCombat(node) {
+            isExecutingMove = false;
             showScreen('screen-combat');
             combatState.log = ["Combat Started!"];
             combatState.targetingMove = null;
@@ -51,8 +54,9 @@
                     energy: base.startingEnergy !== undefined ? base.startingEnergy : 1,
                     atkMod: 0,
                     spdMod: 0,
-                    defMod: 1.0,
+                    defMod: 0,
                     buffs: [],
+                    debuffs: [],
                     stunned: false,
                     poison: 0
                 });
@@ -67,21 +71,24 @@
                     // User wants enemies to be 20% WEAKER than player monsters.
                     // We'll use the base stats * levelMult * 0.8 to ensure they are always 20% weaker than a "standard" version of themselves at that level.
                     const enemyHp = Math.floor(base.hp * levelMult * 0.8);
-                    const enemyAtk = Math.floor(base.atk * levelMult * 0.8);
+                    const enemyMatk = Math.floor(base.matk * levelMult * 0.8);
+                    const enemyRatk = Math.floor(base.ratk * levelMult * 0.8);
 
                     combatState.enemies.push({
                         ...base,
                         baseId: base.id, // Keep track of base ID for recruitment
                         hp: enemyHp,
                         currentHp: enemyHp,
-                        atk: enemyAtk,
+                        matk: enemyMatk,
+                        ratk: enemyRatk,
                         isEnemy: true,
                         id: `enemy-${Date.now()}-${i}`,
                         energy: base.startingEnergy !== undefined ? base.startingEnergy : 1,
                         atkMod: 0,
                         spdMod: 0,
-                        defMod: 1.0,
+                        defMod: 0,
                         buffs: [],
+                        debuffs: [],
                         stunned: false,
                         poison: 0
                     });
@@ -94,8 +101,9 @@
                 p.energy = p.startingEnergy !== undefined ? p.startingEnergy : 1;
                 p.atkMod = 0;
                 p.spdMod = 0;
-                p.defMod = 1.0;
+                p.defMod = 0;
                 p.buffs = [];
+                p.debuffs = [];
                 p.stunned = false;
                 p.poison = 0;
             });
@@ -111,11 +119,23 @@
             updateCombatUI();
             nextTurn();
         }
-        function calculateTurnOrder() {
+        function calculateTurnOrder(isMidCombat = false) {
             const all = [...currentRun.party, ...combatState.enemies].filter(u => u && u.currentHp > 0);
-            all.sort((a, b) => b.spd - a.spd);
-            currentRun.turnOrder = all;
-            currentRun.activeTurnIndex = 0;
+            all.sort((a, b) => {
+                const spdA = a.spd * (1 + (a.spdMod || 0));
+                const spdB = b.spd * (1 + (b.spdMod || 0));
+                return spdB - spdA;
+            });
+            
+            if (isMidCombat && currentRun.turnOrder) {
+                const currentUnit = currentRun.turnOrder[currentRun.activeTurnIndex];
+                currentRun.turnOrder = all;
+                const newIndex = currentRun.turnOrder.findIndex(u => u === currentUnit);
+                currentRun.activeTurnIndex = newIndex !== -1 ? newIndex : 0;
+            } else {
+                currentRun.turnOrder = all;
+                currentRun.activeTurnIndex = 0;
+            }
         }
 
         function updateCombatUI() {
@@ -136,20 +156,21 @@
             while (playerTeam.children.length < 4) playerTeam.appendChild(document.createElement('div'));
             while (playerTeam.children.length > 4) playerTeam.removeChild(playerTeam.lastChild);
 
-            combatState.enemies.forEach((e, index) => {
-                const child = enemyTeam.children[index];
+            for (let i = 0; i < 4; i++) {
+                const child = enemyTeam.children[i];
+                const e = combatState.enemies[i];
                 if (e) {
-                    updateCombatantEl(child, e);
+                    updateCombatantEl(child, e, i);
                 } else {
                     child.className = 'combatant empty';
                     child.innerHTML = '';
                     child.onclick = null;
                 }
-            });
+            }
             currentRun.party.forEach((p, index) => {
                 const child = playerTeam.children[index];
                 if (p) {
-                    updateCombatantEl(child, p);
+                    updateCombatantEl(child, p, index);
                 } else {
                     child.className = 'combatant empty';
                     child.innerHTML = '';
@@ -177,15 +198,7 @@
             if (combatState.activeUnit && !combatState.activeUnit.isEnemy) {
                 const types = (Array.isArray(combatState.activeUnit.type) ? combatState.activeUnit.type : [combatState.activeUnit.type]).filter(Boolean);
                 
-                let typeIconHtml = '';
-                if (types.length === 2) {
-                    if (types.includes('Beast') && types.includes('Mech')) typeIconHtml = `<img src="/Art/BeastMech.png" style="width:32px; height:32px; vertical-align:middle;" title="Beast/Mech" />`;
-                    else if (types.includes('Mech') && types.includes('Nature')) typeIconHtml = `<img src="/Art/MechNature.png" style="width:32px; height:32px; vertical-align:middle;" title="Mech/Nature" />`;
-                    else if (types.includes('Nature') && types.includes('Beast')) typeIconHtml = `<img src="/Art/NatureBeast.png" style="width:32px; height:32px; vertical-align:middle;" title="Nature/Beast" />`;
-                } else if (types.length === 1) {
-                    const icon = getElementIcon(types[0]);
-                    if (icon) typeIconHtml = `<img src="${icon}" style="width:32px; height:32px; vertical-align:middle;" title="${types[0]}" />`;
-                }
+                const typeIconHtml = getTypeIconHtml(types, 32);
 
                 infoEl.innerHTML = `<span style="vertical-align:middle;">${combatState.activeUnit.name}</span> <span style="display:inline-flex; gap:2px; vertical-align:middle;">${typeIconHtml}</span>`;
             } else {
@@ -200,18 +213,50 @@
             }
         }
 
-        function updateCombatantEl(div, u) {
-            let isTargetable = false;
-            if (combatState.targetingMove && u.currentHp > 0) {
-                const targetType = combatState.targetingMove.effect?.target || "enemy";
-                if (targetType === "ally") {
-                    isTargetable = !u.isEnemy;
+        function animateValue(obj, start, end, duration, maxHp) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const current = Math.floor(progress * (end - start) + start);
+                obj.innerHTML = `HP: ${current}/${maxHp}`;
+                obj.setAttribute('data-current-hp', current);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
                 } else {
-                    isTargetable = u.isEnemy;
+                    obj.innerHTML = `HP: ${end}/${maxHp}`;
+                    obj.setAttribute('data-current-hp', end);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function updateCombatantEl(div, u, index) {
+            let isTargetable = false;
+            let isTargeting = !!combatState.targetingMove;
+            if (isTargeting && u.currentHp > 0) {
+                const targetType = combatState.targetingMove.effect?.target || "enemy";
+                let isCorrectSide = false;
+                if (targetType === "ally") {
+                    isCorrectSide = !u.isEnemy;
+                } else {
+                    isCorrectSide = u.isEnemy;
+                }
+
+                if (isCorrectSide) {
+                    if (combatState.targetingMove.melee) {
+                        const targetTeam = u.isEnemy ? combatState.enemies : currentRun.party;
+                        const frontlineDead = (!targetTeam[0] || targetTeam[0].currentHp <= 0) && (!targetTeam[1] || targetTeam[1].currentHp <= 0);
+                        if (index < 2 || frontlineDead) {
+                            isTargetable = true;
+                        }
+                    } else {
+                        isTargetable = true;
+                    }
                 }
             }
 
-            div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargetable ? 'targetable' : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''}`;
+            div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargeting ? (isTargetable ? 'targetable' : 'not-targetable') : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''}`;
             const hpPerc = Math.max(0, (u.currentHp / u.hp) * 100);
             let hpColor = '#ff6b6b';
             if (hpPerc > 66) hpColor = '#51cf66';
@@ -230,29 +275,45 @@
             if (u.currentHp > 0) {
                 const goodStyle = 'width:40px; height:40px; filter: drop-shadow(0 0 5px rgba(0,255,0,0.8));';
                 const badStyle = 'width:40px; height:40px; filter: drop-shadow(0 0 5px rgba(255,0,0,0.8));';
-                if (u.poison > 0) statusHtml += `<img src="/Art/Poison.png" style="${badStyle}" title="Poisoned" />`;
-                if (u.sleep > 0) statusHtml += `<img src="/Art/Sleep.png" style="${badStyle}" title="Sleeping" />`;
-                if (u.stunned > 0) statusHtml += `<img src="/Art/Stun.png" style="${badStyle}" title="Stunned" />`;
-                if (u.buffs && u.buffs.some(b => b.type === 'regen')) statusHtml += `<img src="/Art/Regen.png" style="${goodStyle}" title="Regen" />`;
-                if (u.defMod < 1.0) statusHtml += `<img src="/Art/Guard.png" style="${goodStyle}" title="Guarded" />`;
-                if (u.atkMod > 0) statusHtml += `<img src="/Art/Buff DMG.png" style="${goodStyle}" title="ATK Up" />`;
-                if (u.atkMod < 0) statusHtml += `<img src="/Art/Debuff DMG.png" style="${badStyle}" title="ATK Down" />`;
-                if (u.spdMod > 0) statusHtml += `<img src="/Art/Buff SPD.png" style="${goodStyle}" title="SPD Up" />`;
+                
+                const renderIcon = (src, style, title, turns) => {
+                    let html = `<div style="position:relative; display:inline-block;">
+                        <img src="${src}" style="${style}" title="${title}" />`;
+                    if (turns !== undefined && turns > 0) {
+                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:12px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:2;">${turns}</div>`;
+                    }
+                    html += `</div>`;
+                    return html;
+                };
+
+                if (u.poison > 0) statusHtml += renderIcon('/Art/Poison.png', badStyle, 'Poisoned', u.poisonTurns);
+                if (u.sleep > 0) statusHtml += renderIcon('/Art/Sleep.png', badStyle, 'Sleeping', u.sleep);
+                if (u.stunned > 0) statusHtml += renderIcon('/Art/Stun.png', badStyle, 'Stunned', u.stunned);
+                
+                if (u.buffs) {
+                    const regenBuff = u.buffs.find(b => b.type === 'regen' || b.type === 'regen_flat');
+                    if (regenBuff) statusHtml += renderIcon('/Art/Regen.png', goodStyle, 'Regen', regenBuff.turns);
+                    
+                    const atkBuff = u.buffs.find(b => b.type === 'atk_buff' || b.type === 'atk_buff_pct');
+                    if (atkBuff) statusHtml += renderIcon('/Art/Buff DMG.png', goodStyle, 'ATK Up', atkBuff.turns);
+                    
+                    const spdBuff = u.buffs.find(b => b.type === 'spd_buff' || b.type === 'spd_buff_pct');
+                    if (spdBuff) statusHtml += renderIcon('/Art/Buff SPD.png', goodStyle, 'SPD Up', spdBuff.turns);
+                }
+                
+                if (u.debuffs) {
+                    const atkDebuff = u.debuffs.find(b => b.type === 'atk_debuff' || b.type === 'atk_debuff_pct');
+                    if (atkDebuff) statusHtml += renderIcon('/Art/Debuff DMG.png', badStyle, 'ATK Down', atkDebuff.turns);
+                }
+
+                if (u.defMod > 0) statusHtml += renderIcon('/Art/Guard.png', goodStyle, 'Guarded');
             }
 
-            let typeIconHtml = '';
-            if (types.length === 2) {
-                if (types.includes('Beast') && types.includes('Mech')) typeIconHtml = `<img src="/Art/BeastMech.png" style="width:40px; height:40px;" title="Beast/Mech" />`;
-                else if (types.includes('Mech') && types.includes('Nature')) typeIconHtml = `<img src="/Art/MechNature.png" style="width:40px; height:40px;" title="Mech/Nature" />`;
-                else if (types.includes('Nature') && types.includes('Beast')) typeIconHtml = `<img src="/Art/NatureBeast.png" style="width:40px; height:40px;" title="Nature/Beast" />`;
-            } else if (types.length === 1) {
-                const icon = getElementIcon(types[0]);
-                if (icon) typeIconHtml = `<img src="${icon}" style="width:40px; height:40px;" title="${types[0]}" />`;
-            }
+            const typeIconHtml = getTypeIconHtml(types, 40);
 
             const iconPosition = u.isEnemy ? 'right: -10px;' : 'left: -10px;';
 
-            if (!div.querySelector('.hp-fill')) {
+            if (!div.querySelector('.hp-fill') || !div.querySelector('.hp-text')) {
                 div.innerHTML = `
                     <div class="monster-art-container" style="position: relative;">
                         <div class="art-content">${artHtml}</div>
@@ -269,6 +330,9 @@
                             ${u.name}
                         </div>
                         <div class="hp-bar" style="margin-bottom: 4px;"><div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor}; transition: width 1.5s ease-out, background-color 1.5s ease-out;"></div></div>
+                        <div class="hp-text" style="text-align: center; color: white; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px black;" data-current-hp="${Math.ceil(u.currentHp)}">
+                            HP: ${Math.ceil(u.currentHp)}/${u.hp}
+                        </div>
                     </div>
                 `;
             } else {
@@ -281,6 +345,16 @@
                 const hpFill = div.querySelector('.hp-fill');
                 hpFill.style.width = `${hpPerc}%`;
                 hpFill.style.backgroundColor = hpColor;
+
+                const hpTextEl = div.querySelector('.hp-text');
+                const targetHp = Math.ceil(u.currentHp);
+                const currentDisplayedHp = parseInt(hpTextEl.getAttribute('data-current-hp')) || targetHp;
+                
+                if (currentDisplayedHp !== targetHp) {
+                    animateValue(hpTextEl, currentDisplayedHp, targetHp, 1500, u.hp);
+                } else {
+                    hpTextEl.innerHTML = `HP: ${targetHp}/${u.hp}`;
+                }
             }
 
             if (u === combatState.activeUnit) div.classList.add('active-turn');
@@ -341,6 +415,7 @@
 
         function advanceTurn() {
             if (combatState.ended) return;
+            combatState.targetingMove = null;
             combatState.isPlayerTurn = false;
             updateCombatUI();
             const unit = currentRun.turnOrder[currentRun.activeTurnIndex];
@@ -349,18 +424,22 @@
                 
                 // Decay buffs
                 if (unit.buffs) {
-                    unit.buffs.forEach(b => b.turns--);
-                    unit.buffs = unit.buffs.filter(b => b.turns > 0);
+                    unit.buffs.forEach(b => {
+                        if (b.type !== 'guard' && b.type !== 'guard_pct') {
+                            b.turns--;
+                        }
+                    });
+                    unit.buffs = unit.buffs.filter(b => b.turns > 0 || b.type === 'guard' || b.type === 'guard_pct');
                     
                     // Recalculate mods
                     unit.atkMod = 0;
                     unit.spdMod = 0;
-                    unit.defMod = 1.0;
+                    unit.defMod = 0;
                     unit.buffs.forEach(b => {
-                        if (b.type === 'atk_buff') unit.atkMod += b.value;
-                        if (b.type === 'spd_buff') unit.spdMod += b.value;
-                        if (b.type === 'guard') unit.defMod = b.value;
-                        if (b.type === 'regen') {
+                        if (b.type === 'atk_buff' || b.type === 'atk_buff_pct') unit.atkMod += b.value;
+                        if (b.type === 'spd_buff' || b.type === 'spd_buff_pct') unit.spdMod += b.value;
+                        if (b.type === 'guard' || b.type === 'guard_pct') unit.defMod = b.value;
+                        if (b.type === 'regen' || b.type === 'regen_flat') {
                             const healAmount = b.value;
                             unit.currentHp = Math.min(unit.hp, unit.currentHp + healAmount);
                             combatLog(`${unit.name} regenerated ${healAmount} HP!`);
@@ -374,7 +453,7 @@
                     unit.debuffs = unit.debuffs.filter(d => d.turns > 0);
                     
                     unit.debuffs.forEach(d => {
-                        if (d.type === 'atk_debuff') unit.atkMod -= d.value;
+                        if (d.type === 'atk_debuff' || d.type === 'atk_debuff_pct') unit.atkMod -= d.value;
                     });
                 }
 
@@ -388,10 +467,7 @@
                     combatLog(`${unit.name} took ${dmg} poison damage!`);
                     if (unit.currentHp <= 0) {
                         combatLog(`${unit.name} fainted from poison!`);
-                        if (!unit.isEnemy) {
-                            currentRun.party = currentRun.party.map(p => p && p.currentHp > 0 ? p : null);
-                        }
-                        calculateTurnOrder(); // Refresh order if someone died
+                        calculateTurnOrder(true); // Refresh order if someone died
                     }
                 }
             }
@@ -436,10 +512,13 @@
             });
         }
 
-        function executeMove(attacker, move, target) {
+        async function executeMove(attacker, move, target) {
+            if (isExecutingMove) return;
             if (attacker.energy < move.c) return;
+            isExecutingMove = true;
             attacker.energy -= move.c;
             combatState.targetingMove = null;
+            document.getElementById('move-controls').innerHTML = ''; // Disable UI during move
 
             const targetType = move.effect?.target || "enemy";
             let targets = [];
@@ -463,7 +542,12 @@
                     const enemies = attacker.isEnemy ? currentRun.party : combatState.enemies;
                     const aliveEnemies = enemies.filter(e => e && e.currentHp > 0);
                     if (aliveEnemies.length > 0) {
-                        target = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+                        let validTargets = aliveEnemies;
+                        if (move.melee) {
+                            const frontline = enemies.slice(0, 2).filter(e => e && e.currentHp > 0);
+                            if (frontline.length > 0) validTargets = frontline;
+                        }
+                        target = validTargets[Math.floor(Math.random() * validTargets.length)];
                     }
                 }
                 if (target) targets = [target];
@@ -471,27 +555,24 @@
 
             combatLog(`${attacker.name} used ${move.n}!`);
 
-            targets.forEach(t => {
-                if (!t || t.currentHp <= 0) return;
+            for (const t of targets) {
+                if (!t || t.currentHp <= 0) continue;
 
                 // Damage
-                if (move.p > 0 && move.effect?.type !== 'heal') {
+                if (move.p > 0 && !move.effect?.type.includes('heal')) {
                     const hitCount = move.hits || 1;
-                    const dmgMultiplier = 1.0 / hitCount;
 
                     for (let i = 0; i < hitCount; i++) {
                         if (t.currentHp <= 0) break;
                         
-                        // Pass dmgMultiplier to calculateDamage or multiply it here
                         let damage = calculateDamage(attacker, move, t);
-                        damage = Math.max(1, Math.floor(damage * dmgMultiplier));
+                        damage = Math.max(1, Math.floor(damage));
                         
-                        // Apply Guard reduction
-                        if (t.defMod < 1.0) {
-                            damage = Math.floor(damage * t.defMod);
-                            t.defMod = 1.0; // Guard is consumed on hit
+                        // Guard reduction is already applied in calculateDamage, but we need to consume it
+                        if (t.defMod > 0) {
+                            t.defMod = 0; // Guard is consumed on hit
                             if (t.buffs) {
-                                t.buffs = t.buffs.filter(b => b.type !== 'guard');
+                                t.buffs = t.buffs.filter(b => b.type !== 'guard' && b.type !== 'guard_pct');
                             }
                         }
 
@@ -503,36 +584,49 @@
                             t.sleep = 0;
                             combatLog(`${t.name} woke up!`);
                         }
+                        
+                        updateCombatUI();
+
+                        if (hitCount > 1 && i < hitCount - 1) {
+                            await new Promise(r => setTimeout(r, 400));
+                        }
                     }
                 }
 
                 // Effects
                 if (move.effect) {
                     const eff = move.effect;
-                    if (eff.type === 'atk_buff' || eff.type === 'spd_buff' || eff.type === 'guard' || eff.type === 'savage_stance' || eff.type === 'regen') {
+                    if (eff.type.includes('debuff')) {
+                        if (!t.debuffs) t.debuffs = [];
+                        t.debuffs.push({ ...eff });
+                        if (eff.type.includes('atk_debuff')) t.atkMod -= eff.value;
+                        combatLog(`${t.name}'s stats were lowered!`);
+                    } else if (eff.type.includes('buff') || eff.type.includes('guard') || eff.type.includes('savage_stance') || eff.type.includes('regen') || move.n === 'Ultimate Overcharge' || move.n === 'Overcharge') {
                         if (!t.buffs) t.buffs = [];
                         
-                        if (eff.type === 'savage_stance') {
-                            t.buffs.push({ type: 'atk_buff', value: eff.atk_value, turns: eff.atk_turns });
-                            t.buffs.push({ type: 'guard', value: eff.guard_value, turns: eff.guard_turns });
+                        if (eff.type === 'savage_stance' || eff.type === 'savage_stance_pct') {
+                            t.buffs.push({ type: 'atk_buff_pct', value: eff.atk_value, turns: eff.atk_turns });
+                            t.buffs.push({ type: 'guard_pct', value: eff.guard_value, turns: eff.guard_turns });
                             t.atkMod += eff.atk_value;
                             t.defMod = eff.guard_value;
                             combatLog(`${t.name} entered Savage Stance!`);
+                        } else if (eff.type === 'ultimate_overcharge' || move.n === 'Ultimate Overcharge') {
+                            t.buffs.push({ type: 'atk_buff_pct', value: 0.2, turns: 3 });
+                            t.buffs.push({ type: 'spd_buff_pct', value: 0.3, turns: 3 });
+                            t.atkMod += 0.2;
+                            t.spdMod += 0.3;
+                            combatLog(`${t.name} is Ultimately Overcharged!`);
                         } else {
-                            t.buffs.push({ ...eff });
-                            if (eff.type === 'atk_buff') t.atkMod += eff.value;
-                            if (eff.type === 'spd_buff') t.spdMod += eff.value;
-                            if (eff.type === 'guard') t.defMod = eff.value;
-                            if (eff.type === 'regen') combatLog(`${t.name} gained Health Regen!`);
+                            const turns = move.n === 'Overcharge' ? 3 : eff.turns;
+                            t.buffs.push({ ...eff, turns });
+                            if (eff.type.includes('atk_buff')) t.atkMod += eff.value;
+                            if (eff.type.includes('spd_buff')) t.spdMod += eff.value;
+                            if (eff.type.includes('guard')) t.defMod = eff.value;
+                            if (eff.type.includes('regen')) combatLog(`${t.name} gained Health Regen!`);
                             else combatLog(`${t.name} boosted stats!`);
                         }
-                    } else if (eff.type === 'atk_debuff') {
-                        if (!t.debuffs) t.debuffs = [];
-                        t.debuffs.push({ ...eff });
-                        t.atkMod -= eff.value;
-                        combatLog(`${t.name}'s attack was lowered!`);
-                    } else if (eff.type === 'heal') {
-                        const amount = Math.floor((attacker.atk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
+                    } else if (eff.type.includes('heal')) {
+                        const amount = eff.value || Math.floor((attacker.matk + attacker.ratk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
                         t.currentHp = Math.min(t.hp, t.currentHp + amount);
                         combatLog(`${t.name} was healed for ${amount}!`);
                     } else if (eff.type === 'stun' && Math.random() < eff.chance) {
@@ -541,8 +635,18 @@
                     } else if (eff.type === 'sleep' && Math.random() < eff.chance) {
                         t.sleep = eff.turns;
                         combatLog(`${t.name} fell asleep!`);
-                    } else if (eff.type === 'poison') {
-                        t.poison = eff.value;
+                    } else if (eff.type.includes('poison')) {
+                        let poisonDmg = 0;
+                        if (move.n === 'Poison Cloud') {
+                            poisonDmg = 4;
+                        } else if (move.n === 'Giant Poison Cloud') {
+                            poisonDmg = 8;
+                        } else if (eff.type === 'poison_pct') {
+                            poisonDmg = Math.floor(t.hp * eff.value);
+                        } else {
+                            poisonDmg = eff.value;
+                        }
+                        t.poison = poisonDmg;
                         t.poisonTurns = eff.turns;
                         combatLog(`${t.name} was poisoned!`);
                     }
@@ -553,11 +657,10 @@
                         combatState.firstKilledEnemy = t;
                     } else if (!t.isEnemy) {
                         combatLog(`${t.name} has fallen!`);
-                        currentRun.party = currentRun.party.map(p => p && p.currentHp > 0 ? p : null);
-                        calculateTurnOrder();
+                        calculateTurnOrder(true);
                     }
                 }
-            });
+            }
 
             updateCombatUI();
             
@@ -583,6 +686,7 @@
                     setTimeout(advanceTurn, 500);
                 }
             }
+            isExecutingMove = false;
         }
 
         function calculateDamage(attacker, move, target) {
@@ -603,8 +707,27 @@
                 if (currentMult > maxMult) maxMult = currentMult;
             });
 
-            let finalDamage = (attacker.atk + (attacker.atkMod || 0)) * maxMult * (move.p || 1.0) * (target.defMod || 1.0);
-            return Math.floor(finalDamage);
+            let atkStat = 0;
+            let defStat = 0;
+            if (move.melee) {
+                atkStat = attacker.matk || 0;
+                defStat = target.mdef || 0;
+            } else {
+                atkStat = attacker.ratk || 0;
+                defStat = target.rdef || 0;
+            }
+
+            // Apply atkMod (which is a percentage buff now, e.g. 0.4 for +40%)
+            let atkMod = attacker.atkMod || 0;
+            let rawAttack = (atkStat * (1 + atkMod)) * (move.p || 1.0) * maxMult;
+            
+            // Apply defMod (which is a percentage guard, e.g. 0.4 for -40% damage)
+            let defMod = target.defMod || 0; // 0 means no guard, 0.4 means 40% reduction
+            
+            let finalDamage = rawAttack * (100 / (100 + defStat));
+            finalDamage = finalDamage * (1 - defMod);
+
+            return Math.max(1, Math.floor(finalDamage));
         }
 
         function enemyAI(unit) {
@@ -650,6 +773,9 @@
         function endCombat(isWin) {
             if (combatState.ended) return;
             combatState.ended = true;
+
+            // Remove dead party members
+            currentRun.party = currentRun.party.map(p => p && p.currentHp > 0 ? p : null);
 
             if (isWin) {
                 // If it's the final boss, show You Win screen

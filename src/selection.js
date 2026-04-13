@@ -8,11 +8,7 @@
                 if (!slot) return;
                 if (s) {
                     slot.classList.add('filled');
-                    const types = (Array.isArray(s.type) ? s.type : [s.type]).filter(Boolean);
-                    const typeHtml = types.map(t => {
-                        const icon = getElementIcon(t);
-                        return icon ? `<img src="${icon}" style="width:24px; height:24px; pointer-events: none;" alt="${t}" title="${t}" />` : `<span style="font-size:10px; pointer-events: none;">${t}</span>`;
-                    }).join('');
+                    const typeHtml = getTypeIconHtml(s.type, 24);
                     slot.innerHTML = `
                         <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:5px; pointer-events: none;">${renderArt(s.art, 60)}</div>
                         <strong style="pointer-events: none;">${s.name}</strong>
@@ -50,11 +46,7 @@
                 btn.setAttribute('draggable', 'true');
                 btn.ondragstart = (e) => dragStartSelection(e, id, null);
 
-                const types = (Array.isArray(s.type) ? s.type : [s.type]).filter(Boolean);
-                const typeHtml = types.map(t => {
-                    const icon = getElementIcon(t);
-                    return icon ? `<img src="${icon}" style="width:28px; height:28px; pointer-events: none;" alt="${t}" title="${t}" />` : `<div class="type-tag type-${t.toLowerCase()}" style="font-size: 10px; padding: 2px 4px; pointer-events: none;">${t}</div>`;
-                }).join('');
+                const typeHtml = getTypeIconHtml(s.type, 28);
 
                 btn.innerHTML = `
                     <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:5px; pointer-events: none;">${renderArt(s.art, 60)}</div>
@@ -129,16 +121,12 @@
                 const btn = document.createElement('div');
                 btn.className = 'collection-square';
                 
-                const types = (Array.isArray(s.type) ? s.type : [s.type]).filter(Boolean);
-                const typeHtml = types.map(t => {
-                    const icon = getElementIcon(t);
-                    return icon ? `<img src="${icon}" style="width:28px; height:28px;" alt="${t}" title="${t}" />` : `<div class="type-tag type-${t.toLowerCase()}" style="font-size: 10px; padding: 2px 4px;">${t}</div>`;
-                }).join('');
+                const typeHtml = getTypeIconHtml(s.type, 28);
 
                 btn.innerHTML = `
                     <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">${renderArt(s.art, 60)}</div>
                     <strong>${s.name}</strong>
-                    <div style="display:flex; gap:2px; margin-top:5px;">${typeHtml}</div>
+                    <div style="display:flex; gap:2px; margin-top:5px; justify-content:center;">${typeHtml}</div>
                 `;
                 btn.onclick = () => {
                     selectionSlots[slotIndex] = JSON.parse(JSON.stringify(s));

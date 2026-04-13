@@ -206,7 +206,16 @@
         }
 
         function finishMerge() {
-            currentRun.nodeIndex++;
-            showScreen('screen-map');
-            renderMap();
+            const startersInParty = currentRun.party.filter(p => p && Object.keys(STARTERS).includes(p.id) && !p.name.includes('Alpha'));
+            if (startersInParty.length >= 2) {
+                showGameConfirm("Skip Merge?", "You have merge possibilities, are you sure you want to skip?", () => {
+                    currentRun.nodeIndex++;
+                    showScreen('screen-map');
+                    renderMap();
+                });
+            } else {
+                currentRun.nodeIndex++;
+                showScreen('screen-map');
+                renderMap();
+            }
         }
