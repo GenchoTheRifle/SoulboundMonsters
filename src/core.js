@@ -41,7 +41,7 @@
                 console.error("Failed to load game data", e);
             }
 
-            const saved = localStorage.getItem('labborn_save');
+            const saved = localStorage.getItem('soulbound_save') || localStorage.getItem('labborn_save');
             if (saved) {
                 gameState = JSON.parse(saved);
             }
@@ -49,7 +49,7 @@
         }
 
         function saveGame() {
-            localStorage.setItem('labborn_save', JSON.stringify(gameState));
+            localStorage.setItem('soulbound_save', JSON.stringify(gameState));
         }
 
         function showScreen(screenId) {
