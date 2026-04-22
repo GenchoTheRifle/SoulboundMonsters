@@ -37,7 +37,7 @@
           }
         }
       ],
-      "art": "Art/Wolf.png",
+      "art": "Art/Wolf.svg",
       "startingEnergy": 1
     },
     "bear": {
@@ -71,7 +71,7 @@
           }
         }
       ],
-      "art": "Art/Bear.png",
+      "art": "Art/Bear.svg",
       "startingEnergy": 1
     },
     "slime": {
@@ -104,7 +104,7 @@
           }
         }
       ],
-      "art": "Art/Slime.png",
+      "art": "Art/Slime.svg",
       "startingEnergy": 1
     },
     "mushroom": {
@@ -145,7 +145,7 @@
           }
         }
       ],
-      "art": "Art/Mushroom.png",
+      "art": "Art/Mushroom.svg",
       "startingEnergy": 1
     },
     "sentry": {
@@ -180,7 +180,7 @@
           }
         }
       ],
-      "art": "Art/Sentry.png",
+      "art": "Art/Sentry.svg",
       "startingEnergy": 1
     },
     "sparkbot": {
@@ -220,7 +220,7 @@
           }
         }
       ],
-      "art": "Art/Spark-bot.png",
+      "art": "Art/Spark-bot.svg",
       "startingEnergy": 1
     },
     "bat": {
@@ -368,7 +368,7 @@
           }
         }
       ],
-      "art": "Art/Alpha Wolf.png",
+      "art": "Art/Alpha Wolf.svg",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -416,7 +416,7 @@
           }
         }
       ],
-      "art": "Art/Elder Bear.png",
+      "art": "Art/Elder Bear.svg",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -463,7 +463,7 @@
           }
         }
       ],
-      "art": "Art/King Slime.png",
+      "art": "Art/King Slime.svg",
       "startingEnergy": 2,
       "parents": [
         "slime",
@@ -519,7 +519,7 @@
           }
         }
       ],
-      "art": "Art/Giant Mushroom.png",
+      "art": "Art/Giant Mushroom.svg",
       "startingEnergy": 1,
       "parents": [
         "mushroom",
@@ -564,7 +564,7 @@
           "ranged": true
         }
       ],
-      "art": "Art/Elite Sentry.png",
+      "art": "Art/Elite Sentry.svg",
       "startingEnergy": 1,
       "parents": [
         "sentry",
@@ -620,7 +620,7 @@
           }
         }
       ],
-      "art": "Art/Ultimate Spark-bot.png",
+      "art": "Art/Ultimate Spark-bot.svg",
       "startingEnergy": 1,
       "parents": [
         "sparkbot",
@@ -670,7 +670,7 @@
           }
         }
       ],
-      "art": "Art/Bearwolf.png",
+      "art": "Art/Bearwolf.svg",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -724,7 +724,7 @@
           }
         }
       ],
-      "art": "Art/Slimy Wolf.png",
+      "art": "Art/Slimy Wolf.svg",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -786,7 +786,7 @@
           }
         }
       ],
-      "art": "Art/Spore Wolf.png",
+      "art": "Art/Spore Wolf.svg",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -842,7 +842,7 @@
           }
         }
       ],
-      "art": "Art/Iron Wolf.png",
+      "art": "Art/Iron Wolf.svg",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -903,7 +903,7 @@
           }
         }
       ],
-      "art": "Art/Spark Wolf.png",
+      "art": "Art/Spark Wolf.svg",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -957,7 +957,7 @@
           }
         }
       ],
-      "art": "Art/Mossy Bear.png",
+      "art": "Art/Mossy Bear.svg",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -1019,7 +1019,7 @@
           }
         }
       ],
-      "art": "Art/Fungal Bear.png",
+      "art": "Art/Fungal Bear.svg",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -1075,7 +1075,7 @@
           }
         }
       ],
-      "art": "Art/Artillery Bear.png",
+      "art": "Art/Artillery Bear.svg",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -1136,7 +1136,7 @@
           }
         }
       ],
-      "art": "Art/Plasma Bear.png",
+      "art": "Art/Plasma Bear.svg",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -1191,7 +1191,7 @@
           }
         }
       ],
-      "art": "Art/Mycelium Ooze.png",
+      "art": "Art/Mycelium Ooze.svg",
       "startingEnergy": 2,
       "parents": [
         "slime",
@@ -1246,7 +1246,7 @@
           }
         }
       ],
-      "art": "Art/Bio-Tank.png",
+      "art": "Art/Bio-Tank.svg",
       "startingEnergy": 1,
       "parents": [
         "slime",
@@ -1306,7 +1306,7 @@
           }
         }
       ],
-      "art": "Art/Pulse Slime.png",
+      "art": "Art/Pulse Slime.svg",
       "startingEnergy": 1,
       "parents": [
         "slime",
@@ -1369,7 +1369,7 @@
           }
         }
       ],
-      "art": "Art/Rooted Cannon.png",
+      "art": "Art/Rooted Cannon.svg",
       "startingEnergy": 1,
       "parents": [
         "mushroom",
@@ -1437,7 +1437,7 @@
           }
         }
       ],
-      "art": "Art/Neon Shroom.png",
+      "art": "Art/Neon Shroom.svg",
       "startingEnergy": 1,
       "parents": [
         "mushroom",
@@ -1487,7 +1487,7 @@
           }
         }
       ],
-      "art": "Art/Assault Mech.png",
+      "art": "Art/Assault Mech.svg",
       "startingEnergy": 2,
       "parents": [
         "sentry",

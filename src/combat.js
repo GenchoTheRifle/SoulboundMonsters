@@ -269,7 +269,7 @@
             const types = (Array.isArray(u.type) ? u.type : [u.type]).filter(Boolean);
             
             let artHtml = '';
-            if (u.art.includes('.png') || u.art.includes('/')) {
+            if (u.art.includes('.svg') || u.art.includes('/')) {
                 artHtml = `<img src="${u.art}" alt="${u.name}" />`;
             } else {
                 artHtml = `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${u.art}</div>`;
@@ -290,27 +290,27 @@
                     return html;
                 };
 
-                if (u.poison > 0) statusHtml += renderIcon('Art/Poison.png', badStyle, 'Poisoned', u.poisonTurns);
-                if (u.sleep > 0) statusHtml += renderIcon('Art/Sleep.png', badStyle, 'Sleeping', u.sleep);
-                if (u.stunned > 0) statusHtml += renderIcon('Art/Stun.png', badStyle, 'Stunned', u.stunned);
+                if (u.poison > 0) statusHtml += renderIcon('Art/Poison.svg', badStyle, 'Poisoned', u.poisonTurns);
+                if (u.sleep > 0) statusHtml += renderIcon('Art/Sleep.svg', badStyle, 'Sleeping', u.sleep);
+                if (u.stunned > 0) statusHtml += renderIcon('Art/Stun.svg', badStyle, 'Stunned', u.stunned);
                 
                 if (u.buffs) {
                     const regenBuff = u.buffs.find(b => b.type === 'regen' || b.type === 'regen_flat');
-                    if (regenBuff) statusHtml += renderIcon('Art/Regen.png', goodStyle, 'Regen', regenBuff.turns);
+                    if (regenBuff) statusHtml += renderIcon('Art/Regen.svg', goodStyle, 'Regen', regenBuff.turns);
                     
                     const atkBuff = u.buffs.find(b => b.type === 'atk_buff' || b.type === 'atk_buff_pct');
-                    if (atkBuff) statusHtml += renderIcon('Art/Buff DMG.png', goodStyle, 'ATK Up', atkBuff.turns);
+                    if (atkBuff) statusHtml += renderIcon('Art/Buff DMG.svg', goodStyle, 'ATK Up', atkBuff.turns);
                     
                     const spdBuff = u.buffs.find(b => b.type === 'spd_buff' || b.type === 'spd_buff_pct');
-                    if (spdBuff) statusHtml += renderIcon('Art/Buff SPD.png', goodStyle, 'SPD Up', spdBuff.turns);
+                    if (spdBuff) statusHtml += renderIcon('Art/Buff SPD.svg', goodStyle, 'SPD Up', spdBuff.turns);
                 }
                 
                 if (u.debuffs) {
                     const atkDebuff = u.debuffs.find(b => b.type === 'atk_debuff' || b.type === 'atk_debuff_pct');
-                    if (atkDebuff) statusHtml += renderIcon('Art/Debuff DMG.png', badStyle, 'ATK Down', atkDebuff.turns);
+                    if (atkDebuff) statusHtml += renderIcon('Art/Debuff DMG.svg', badStyle, 'ATK Down', atkDebuff.turns);
                 }
 
-                if (u.defMod > 0) statusHtml += renderIcon('Art/Guard.png', goodStyle, 'Guarded');
+                if (u.defMod > 0) statusHtml += renderIcon('Art/Guard.svg', goodStyle, 'Guarded');
             }
 
             const typeIconHtml = getTypeIconHtml(types, 40);
