@@ -1,0 +1,37 @@
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Overlay Art/ from art-fixed
+        run: |
+          git fetch origin art-fixed:art-fixed
+          rm -rf Art
+          git checkout art-fixed -- Art
+          echo "Art/ now contains $(ls Art | wc -l) files from art-fixed"
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          force_orphan: true
+          exclude_assets: '.github,node_modules,fix_*.js,fix_*.cjs,update_*.js,update_*.cjs,reorder_*.cjs,split*.cjs'
