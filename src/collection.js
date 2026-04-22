@@ -13,7 +13,7 @@
         }
 
         function renderArt(art, size = 40) {
-            if (art.includes('.svg') || art.includes('/')) {
+            if (art.includes('.png') || art.includes('/')) {
                 return `<img src="${art}" style="max-width:100%; max-height:100%; object-fit:contain;" />`;
             }
             return `<div style="font-size:${size}px; line-height:1;">${art}</div>`;
@@ -28,9 +28,9 @@
             
             let typeIconHtml = '';
             if (types.length === 2) {
-                if (types.includes('Beast') && types.includes('Mech')) typeIconHtml = `<img src="Art/BeastMech.svg" style="width:48px; height:48px;" title="Beast/Mech" />`;
-                else if (types.includes('Mech') && types.includes('Nature')) typeIconHtml = `<img src="Art/MechNature.svg" style="width:48px; height:48px;" title="Mech/Nature" />`;
-                else if (types.includes('Nature') && types.includes('Beast')) typeIconHtml = `<img src="Art/NatureBeast.svg" style="width:48px; height:48px;" title="Nature/Beast" />`;
+                if (types.includes('Beast') && types.includes('Mech')) typeIconHtml = `<img src="Art/BeastMech.png" style="width:48px; height:48px;" title="Beast/Mech" />`;
+                else if (types.includes('Mech') && types.includes('Nature')) typeIconHtml = `<img src="Art/MechNature.png" style="width:48px; height:48px;" title="Mech/Nature" />`;
+                else if (types.includes('Nature') && types.includes('Beast')) typeIconHtml = `<img src="Art/NatureBeast.png" style="width:48px; height:48px;" title="Nature/Beast" />`;
             } else if (types.length === 1) {
                 const icon = getElementIcon(types[0]);
                 if (icon) typeIconHtml = `<img src="${icon}" style="width:48px; height:48px;" title="${types[0]}" />`;
