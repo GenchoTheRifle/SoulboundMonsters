@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Soulbound Monsters</title>
-        <link rel="stylesheet" href="/src/styles.css">
+        <link rel="stylesheet" href="src/styles.css">
 
 </head>
 <body>
@@ -18,8 +18,31 @@
         <!-- Main Menu -->
         <div id="screen-menu" class="screen" style="justify-content: center; align-items: center;">
             <h1 style="font-size: 80px; margin-bottom: 60px;">MAIN MENU</h1>
-            <button onclick="showScreen('screen-selection')" style="font-size: 40px; padding: 20px 60px; width: 500px; margin-bottom: 30px; border-radius: 15px;">START RUN</button>
+            <button onclick="showScreen('screen-arcs')" style="font-size: 40px; padding: 20px 60px; width: 500px; margin-bottom: 30px; border-radius: 15px;">START RUN</button>
             <button onclick="openCollection()" style="font-size: 40px; padding: 20px 60px; width: 500px; border-radius: 15px;">COLLECTION</button>
+        </div>
+
+        <!-- Arcs -->
+        <div id="screen-arcs" class="screen" style="justify-content: center; align-items: center; background: url('/Art/Background.png') center/cover; position: relative;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7);"></div>
+            <h1 style="position: relative; z-index: 10; font-size: 60px; margin-bottom: 40px; text-shadow: 2px 2px 4px #000;">SELECT ARC</h1>
+            
+            <div style="position: relative; z-index: 10; display: flex; gap: 30px; margin-bottom: 40px;">
+                <button onclick="startArc('arc1')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
+                    <span>ARC 1</span>
+                    <span style="font-size: 20px; color: #aaa;">The Cave</span>
+                </button>
+                <button onclick="startArc('arc2')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
+                    <span>ARC 2</span>
+                    <span style="font-size: 20px; color: #aaa;">The Forest</span>
+                </button>
+                <button onclick="startArc('arc3')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
+                    <span>ARC 3</span>
+                    <span style="font-size: 20px; color: #aaa;">The Laboratory</span>
+                </button>
+            </div>
+            
+            <button onclick="showScreen('screen-menu')" style="position: relative; z-index: 10; font-size: 30px; padding: 15px 50px; border-radius: 10px;">BACK</button>
         </div>
 
         <!-- Collection -->
@@ -86,9 +109,9 @@
                 <div class="element-triangle-top">
                     <div style="font-size: 10px; margin-bottom: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">Element Counters</div>
                     <div style="position: relative; width: 140px; height: 110px; margin: 0 auto;">
-                        <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%);"><img src="/Art/Beast.png" style="width:40px; height:40px;" alt="Beast" /></div>
-                        <div style="position: absolute; bottom: -5px; right: 0px;"><img src="/Art/Nature.png" style="width:40px; height:40px;" alt="Nature" /></div>
-                        <div style="position: absolute; bottom: -5px; left: 0px;"><img src="/Art/Mech.png" style="width:40px; height:40px;" alt="Mech" /></div>
+                        <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%);"><img src="Art/Beast.png" style="width:40px; height:40px;" alt="Beast" /></div>
+                        <div style="position: absolute; bottom: -5px; right: 0px;"><img src="Art/Nature.png" style="width:40px; height:40px;" alt="Nature" /></div>
+                        <div style="position: absolute; bottom: -5px; left: 0px;"><img src="Art/Mech.png" style="width:40px; height:40px;" alt="Mech" /></div>
                         
                         <div style="position: absolute; top: 35px; right: 25px; color: #888; font-size: 20px; font-weight: bold;">↘</div>
                         <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: #888; font-size: 20px; font-weight: bold;">←</div>
@@ -226,15 +249,15 @@
         </div>
     </div>
 
-        <script src="/src/data.js"></script>
-    <script src="/src/state.js"></script>
-    <script src="/src/core.js"></script>
-    <script src="/src/collection.js"></script>
-    <script src="/src/selection.js"></script>
-    <script src="/src/map.js"></script>
-    <script src="/src/combat.js"></script>
-    <script src="/src/merge.js"></script>
-    <script src="/src/pause.js"></script>
+    <script src="src/data.js"></script>
+    <script src="src/state.js"></script>
+    <script src="src/core.js"></script>
+    <script src="src/collection.js"></script>
+    <script src="src/selection.js"></script>
+    <script src="src/map.js"></script>
+    <script src="src/combat.js"></script>
+    <script src="src/merge.js"></script>
+    <script src="src/pause.js"></script>
 
 </body>
 </html>

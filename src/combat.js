@@ -39,7 +39,11 @@
             else if (currentRun.nodeIndex === 4) pool = advancedPool; // Node 5
 
             if (node.type === 'boss') {
-                const base = BOSSES['boss'];
+                let bossId = 'mega_bat';
+                if (currentRun.arcId === 'arc2') bossId = 'mega_treant';
+                if (currentRun.arcId === 'arc3') bossId = 'mega_mech';
+                
+                const base = BOSSES[bossId];
                 const enemyHp = base.hp;
                 const enemyAtk = base.atk;
                 combatState.enemies.push({
@@ -286,27 +290,27 @@
                     return html;
                 };
 
-                if (u.poison > 0) statusHtml += renderIcon('/Art/Poison.png', badStyle, 'Poisoned', u.poisonTurns);
-                if (u.sleep > 0) statusHtml += renderIcon('/Art/Sleep.png', badStyle, 'Sleeping', u.sleep);
-                if (u.stunned > 0) statusHtml += renderIcon('/Art/Stun.png', badStyle, 'Stunned', u.stunned);
+                if (u.poison > 0) statusHtml += renderIcon('Art/Poison.png', badStyle, 'Poisoned', u.poisonTurns);
+                if (u.sleep > 0) statusHtml += renderIcon('Art/Sleep.png', badStyle, 'Sleeping', u.sleep);
+                if (u.stunned > 0) statusHtml += renderIcon('Art/Stun.png', badStyle, 'Stunned', u.stunned);
                 
                 if (u.buffs) {
                     const regenBuff = u.buffs.find(b => b.type === 'regen' || b.type === 'regen_flat');
-                    if (regenBuff) statusHtml += renderIcon('/Art/Regen.png', goodStyle, 'Regen', regenBuff.turns);
+                    if (regenBuff) statusHtml += renderIcon('Art/Regen.png', goodStyle, 'Regen', regenBuff.turns);
                     
                     const atkBuff = u.buffs.find(b => b.type === 'atk_buff' || b.type === 'atk_buff_pct');
-                    if (atkBuff) statusHtml += renderIcon('/Art/Buff DMG.png', goodStyle, 'ATK Up', atkBuff.turns);
+                    if (atkBuff) statusHtml += renderIcon('Art/Buff DMG.png', goodStyle, 'ATK Up', atkBuff.turns);
                     
                     const spdBuff = u.buffs.find(b => b.type === 'spd_buff' || b.type === 'spd_buff_pct');
-                    if (spdBuff) statusHtml += renderIcon('/Art/Buff SPD.png', goodStyle, 'SPD Up', spdBuff.turns);
+                    if (spdBuff) statusHtml += renderIcon('Art/Buff SPD.png', goodStyle, 'SPD Up', spdBuff.turns);
                 }
                 
                 if (u.debuffs) {
                     const atkDebuff = u.debuffs.find(b => b.type === 'atk_debuff' || b.type === 'atk_debuff_pct');
-                    if (atkDebuff) statusHtml += renderIcon('/Art/Debuff DMG.png', badStyle, 'ATK Down', atkDebuff.turns);
+                    if (atkDebuff) statusHtml += renderIcon('Art/Debuff DMG.png', badStyle, 'ATK Down', atkDebuff.turns);
                 }
 
-                if (u.defMod > 0) statusHtml += renderIcon('/Art/Guard.png', goodStyle, 'Guarded');
+                if (u.defMod > 0) statusHtml += renderIcon('Art/Guard.png', goodStyle, 'Guarded');
             }
 
             const typeIconHtml = getTypeIconHtml(types, 40);
@@ -877,16 +881,23 @@
             currentRun.nodeIndex++;
             if (currentRun.nodeIndex >= currentRun.nodes.length) {
                 // Victory Run
-                const allStarterIds = Object.keys(STARTERS);
-                const locked = allStarterIds.filter(id => !gameState.unlockedStarters.includes(id));
                 let msg = "Congratulations! You have completed the run.";
-                if (locked.length > 0) {
-                    const newId = locked[Math.floor(Math.random() * locked.length)];
-                    gameState.unlockedStarters.push(newId);
-                    msg += `\nUnlocked new starter: ${STARTERS[newId].name}`;
-                } else {
-                    msg += `\nAll starters already unlocked.`;
+                
+                let bossId = 'mega_bat';
+                if (currentRun.arcId === 'arc2') bossId = 'mega_treant';
+                if (currentRun.arcId === 'arc3') bossId = 'mega_mech';
+                
+                const bossData = BOSSES[bossId];
+                if (bossData && bossData.unlocks) {
+                    const unlocksId = bossData.unlocks;
+                    if (!gameState.unlockedStarters.includes(unlocksId)) {
+                        gameState.unlockedStarters.push(unlocksId);
+                        msg += `\nUnlocked new starter: ${STARTERS[unlocksId].name}`;
+                    } else {
+                        msg += `\nYou already unlocked this Arc's starter.`;
+                    }
                 }
+                
                 saveGame();
                 showGameAlert("YOU WIN!", msg, () => {
                     showScreen('screen-menu');

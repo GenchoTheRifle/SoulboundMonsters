@@ -1,6 +1,7 @@
 // --- RUN ENGINE ---
         function startRun() {
             currentRun.party = selectionSlots.map(s => s ? { ...s, currentHp: s.hp } : null);
+            currentRun.arcId = selectedArcId;
             currentRun.nodeIndex = 0;
             currentRun.nodes = [
                 { type: 'combat', level: 0 }, // Node 1: 1 enemy (Simple)

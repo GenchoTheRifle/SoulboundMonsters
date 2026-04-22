@@ -1,6 +1,12 @@
 // --- RUN SELECTION ---
         let draggedStarterId = null;
         let draggedFromSlot = null;
+        let selectedArcId = null;
+
+        window.startArc = function(arcId) {
+            selectedArcId = arcId;
+            showScreen('screen-selection');
+        };
 
         function updateSelectionUI() {
             selectionSlots.forEach((s, i) => {

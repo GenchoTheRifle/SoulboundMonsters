@@ -37,7 +37,7 @@
           }
         }
       ],
-      "art": "/Art/Wolf.png",
+      "art": "Art/Wolf.png",
       "startingEnergy": 1
     },
     "bear": {
@@ -71,7 +71,7 @@
           }
         }
       ],
-      "art": "/Art/Bear.png",
+      "art": "Art/Bear.png",
       "startingEnergy": 1
     },
     "slime": {
@@ -104,7 +104,7 @@
           }
         }
       ],
-      "art": "/Art/Slime.png",
+      "art": "Art/Slime.png",
       "startingEnergy": 1
     },
     "mushroom": {
@@ -145,7 +145,7 @@
           }
         }
       ],
-      "art": "/Art/Mushroom.png",
+      "art": "Art/Mushroom.png",
       "startingEnergy": 1
     },
     "sentry": {
@@ -180,7 +180,7 @@
           }
         }
       ],
-      "art": "/Art/Sentry.png",
+      "art": "Art/Sentry.png",
       "startingEnergy": 1
     },
     "sparkbot": {
@@ -220,7 +220,109 @@
           }
         }
       ],
-      "art": "/Art/Spark-bot.png",
+      "art": "Art/Spark-bot.png",
+      "startingEnergy": 1
+    },
+    "bat": {
+      "id": "bat",
+      "name": "Bat",
+      "type": "Beast",
+      "hp": 16,
+      "spd": 15,
+      "matk": 12,
+      "mdef": 4,
+      "ratk": 0,
+      "rdef": 5,
+      "moves": [
+        {
+          "n": "Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "melee": true
+        },
+        {
+          "n": "Screech",
+          "c": 2,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "atk_debuff_pct",
+            "value": 0.3,
+            "turns": 2,
+            "target": "all_enemies"
+          }
+        }
+      ],
+      "art": "🦇",
+      "startingEnergy": 1
+    },
+    "tree": {
+      "id": "tree",
+      "name": "Tree",
+      "type": "Nature",
+      "hp": 26,
+      "spd": 3,
+      "matk": 8,
+      "mdef": 12,
+      "ratk": 0,
+      "rdef": 10,
+      "moves": [
+        {
+          "n": "Root Strike",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Photosynthesis",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "regen_flat",
+            "value": 5,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "🌳",
+      "startingEnergy": 1
+    },
+    "mech_melee": {
+      "id": "mech_melee",
+      "name": "Brawler Mech",
+      "type": "Mech",
+      "hp": 22,
+      "spd": 8,
+      "matk": 14,
+      "mdef": 8,
+      "ratk": 0,
+      "rdef": 6,
+      "moves": [
+        {
+          "n": "Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1,
+          "melee": true
+        },
+        {
+          "n": "Guard",
+          "c": 1,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "guard_pct",
+            "value": 0.5,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "🤖",
       "startingEnergy": 1
     }
   },
@@ -266,7 +368,7 @@
           }
         }
       ],
-      "art": "/Art/Alpha Wolf.png",
+      "art": "Art/Alpha Wolf.png",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -314,7 +416,7 @@
           }
         }
       ],
-      "art": "/Art/Elder Bear.png",
+      "art": "Art/Elder Bear.png",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -361,7 +463,7 @@
           }
         }
       ],
-      "art": "/Art/King Slime.png",
+      "art": "Art/King Slime.png",
       "startingEnergy": 2,
       "parents": [
         "slime",
@@ -417,7 +519,7 @@
           }
         }
       ],
-      "art": "/Art/Giant Mushroom.png",
+      "art": "Art/Giant Mushroom.png",
       "startingEnergy": 1,
       "parents": [
         "mushroom",
@@ -462,7 +564,7 @@
           "ranged": true
         }
       ],
-      "art": "/Art/Elite Sentry.png",
+      "art": "Art/Elite Sentry.png",
       "startingEnergy": 1,
       "parents": [
         "sentry",
@@ -518,7 +620,7 @@
           }
         }
       ],
-      "art": "/Art/Ultimate Spark-bot.png",
+      "art": "Art/Ultimate Spark-bot.png",
       "startingEnergy": 1,
       "parents": [
         "sparkbot",
@@ -568,7 +670,7 @@
           }
         }
       ],
-      "art": "/Art/Bearwolf.png",
+      "art": "Art/Bearwolf.png",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -622,7 +724,7 @@
           }
         }
       ],
-      "art": "/Art/Slimy Wolf.png",
+      "art": "Art/Slimy Wolf.png",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -684,7 +786,7 @@
           }
         }
       ],
-      "art": "/Art/Spore Wolf.png",
+      "art": "Art/Spore Wolf.png",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -740,7 +842,7 @@
           }
         }
       ],
-      "art": "/Art/Iron Wolf.png",
+      "art": "Art/Iron Wolf.png",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -801,7 +903,7 @@
           }
         }
       ],
-      "art": "/Art/Spark Wolf.png",
+      "art": "Art/Spark Wolf.png",
       "startingEnergy": 1,
       "parents": [
         "wolf",
@@ -855,7 +957,7 @@
           }
         }
       ],
-      "art": "/Art/Mossy Bear.png",
+      "art": "Art/Mossy Bear.png",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -917,7 +1019,7 @@
           }
         }
       ],
-      "art": "/Art/Fungal Bear.png",
+      "art": "Art/Fungal Bear.png",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -973,7 +1075,7 @@
           }
         }
       ],
-      "art": "/Art/Artillery Bear.png",
+      "art": "Art/Artillery Bear.png",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -1034,7 +1136,7 @@
           }
         }
       ],
-      "art": "/Art/Plasma Bear.png",
+      "art": "Art/Plasma Bear.png",
       "startingEnergy": 1,
       "parents": [
         "bear",
@@ -1089,7 +1191,7 @@
           }
         }
       ],
-      "art": "/Art/Mycelium Ooze.png",
+      "art": "Art/Mycelium Ooze.png",
       "startingEnergy": 2,
       "parents": [
         "slime",
@@ -1144,7 +1246,7 @@
           }
         }
       ],
-      "art": "/Art/Bio-Tank.png",
+      "art": "Art/Bio-Tank.png",
       "startingEnergy": 1,
       "parents": [
         "slime",
@@ -1204,7 +1306,7 @@
           }
         }
       ],
-      "art": "/Art/Pulse Slime.png",
+      "art": "Art/Pulse Slime.png",
       "startingEnergy": 1,
       "parents": [
         "slime",
@@ -1267,7 +1369,7 @@
           }
         }
       ],
-      "art": "/Art/Rooted Cannon.png",
+      "art": "Art/Rooted Cannon.png",
       "startingEnergy": 1,
       "parents": [
         "mushroom",
@@ -1335,7 +1437,7 @@
           }
         }
       ],
-      "art": "/Art/Neon Shroom.png",
+      "art": "Art/Neon Shroom.png",
       "startingEnergy": 1,
       "parents": [
         "mushroom",
@@ -1385,7 +1487,7 @@
           }
         }
       ],
-      "art": "/Art/Assault Mech.png",
+      "art": "Art/Assault Mech.png",
       "startingEnergy": 2,
       "parents": [
         "sentry",
@@ -1394,35 +1496,109 @@
     }
   ],
   "BOSSES": {
-    "boss": {
-      "id": "boss",
-      "name": "BOSS",
-      "type": "Neutral",
+    "mega_bat": {
+      "id": "mega_bat",
+      "unlocks": "bat",
+      "name": "MEGA BAT",
+      "type": "Beast",
       "hp": 200,
-      "spd": 6,
-      "matk": 25,
-      "mdef": 5,
-      "ratk": 25,
-      "rdef": 5,
+      "spd": 18,
+      "matk": 22,
+      "mdef": 6,
+      "ratk": 0,
+      "rdef": 8,
       "moves": [
         {
-          "n": "Blast",
+          "n": "Mega Bite",
           "c": 1,
-          "t": "Neutral",
-          "p": 1
+          "t": "Beast",
+          "p": 1.2,
+          "melee": true
         },
         {
-          "n": "Devastate",
-          "c": 3,
-          "t": "Neutral",
+          "n": "Vampiric Drain",
+          "c": 2,
+          "t": "Beast",
           "p": 1.5,
+          "melee": true,
           "effect": {
-            "type": "stun",
-            "chance": 0.5
+            "type": "heal_flat",
+            "value": 15,
+            "target": "self"
           }
         }
       ],
-      "art": "👹",
+      "art": "🦇",
+      "startingEnergy": 1
+    },
+    "mega_treant": {
+      "id": "mega_treant",
+      "unlocks": "tree",
+      "name": "MEGA TREANT",
+      "type": "Nature",
+      "hp": 300,
+      "spd": 4,
+      "matk": 20,
+      "mdef": 15,
+      "ratk": 0,
+      "rdef": 12,
+      "moves": [
+        {
+          "n": "Earthquake",
+          "c": 2,
+          "t": "Nature",
+          "p": 1.5,
+          "melee": true
+        },
+        {
+          "n": "Deep Roots",
+          "c": 1,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "regen_flat",
+            "value": 20,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "🌳",
+      "startingEnergy": 1
+    },
+    "mega_mech": {
+      "id": "mega_mech",
+      "unlocks": "mech_melee",
+      "name": "MEGA BRAWLER",
+      "type": "Mech",
+      "hp": 250,
+      "spd": 10,
+      "matk": 25,
+      "mdef": 12,
+      "ratk": 0,
+      "rdef": 10,
+      "moves": [
+        {
+          "n": "Giga Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.3,
+          "melee": true
+        },
+        {
+          "n": "Overdrive",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "atk_buff_pct",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "🤖",
       "startingEnergy": 1
     }
   }

@@ -10,7 +10,7 @@
         async function init() {
             scaleGame();
             try {
-                const response = await fetch('/data.json');
+                const response = await fetch('data.json');
                 const data = await response.json();
                 ELEMENTS = data.ELEMENTS;
                 STARTERS = data.STARTERS;
@@ -63,18 +63,18 @@
         }
 
         function getElementIcon(type) {
-            if (type === 'Nature') return '/Art/Nature.png';
-            if (type === 'Mech') return '/Art/Mech.png';
-            if (type === 'Beast') return '/Art/Beast.png';
+            if (type === 'Nature') return 'Art/Nature.png';
+            if (type === 'Mech') return 'Art/Mech.png';
+            if (type === 'Beast') return 'Art/Beast.png';
             return '';
         }
 
         function getTypeIconHtml(types, size = 32) {
             types = (Array.isArray(types) ? types : [types]).filter(Boolean);
             if (types.length === 2) {
-                if (types.includes('Beast') && types.includes('Mech')) return `<img src="/Art/BeastMech.png" style="width:${size}px; height:${size}px; vertical-align:middle; pointer-events:none;" title="Beast/Mech" />`;
-                if (types.includes('Mech') && types.includes('Nature')) return `<img src="/Art/MechNature.png" style="width:${size}px; height:${size}px; vertical-align:middle; pointer-events:none;" title="Mech/Nature" />`;
-                if (types.includes('Nature') && types.includes('Beast')) return `<img src="/Art/NatureBeast.png" style="width:${size}px; height:${size}px; vertical-align:middle; pointer-events:none;" title="Nature/Beast" />`;
+                if (types.includes('Beast') && types.includes('Mech')) return `<img src="Art/BeastMech.png" style="width:${size}px; height:${size}px; vertical-align:middle; pointer-events:none;" title="Beast/Mech" />`;
+                if (types.includes('Mech') && types.includes('Nature')) return `<img src="Art/MechNature.png" style="width:${size}px; height:${size}px; vertical-align:middle; pointer-events:none;" title="Mech/Nature" />`;
+                if (types.includes('Nature') && types.includes('Beast')) return `<img src="Art/NatureBeast.png" style="width:${size}px; height:${size}px; vertical-align:middle; pointer-events:none;" title="Nature/Beast" />`;
             } else if (types.length === 1) {
                 const icon = getElementIcon(types[0]);
                 if (icon) return `<img src="${icon}" style="width:${size}px; height:${size}px; vertical-align:middle; pointer-events:none;" title="${types[0]}" />`;
