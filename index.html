@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Soulbound Monsters</title>
+        <link rel="stylesheet" href="src/styles.css">
+
+</head>
+<body>
+    <div id="game-container">
+        <!-- Title Screen -->
+        <div id="screen-title" class="screen active" style="justify-content: center; align-items: center;">
+            <h1 style="font-size: 100px; margin-bottom: 80px; letter-spacing: 5px;">SOULBOUND MONSTERS</h1>
+            <button onclick="playClicked()" style="font-size: 50px; padding: 20px 80px; border-radius: 15px;">PLAY</button>
+        </div>
+
+        <!-- First Time Setup -->
+        <div id="screen-first-time" class="screen" style="justify-content: center; align-items: center; background: url('Art/Background.png') center/cover; position: relative;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);"></div>
+            <h1 style="position: relative; z-index: 10; font-size: 60px; margin-bottom: 20px; text-shadow: 2px 2px 4px #000;">SELECT 2 STARTERS</h1>
+            <p style="position: relative; z-index: 10; font-size: 24px; margin-bottom: 40px; text-align: center; max-width: 600px; color: #ddd;">
+                Choose two starting monsters to bond with. These will be permanently unlocked.
+            </p>
+            
+            <div id="first-time-list" style="position: relative; z-index: 10; display: flex; gap: 30px; margin-bottom: 40px;">
+                <!-- Filled dynamically -->
+            </div>
+            
+            <button id="btn-confirm-first-time" disabled onclick="confirmFirstTime()" style="position: relative; z-index: 10; font-size: 30px; padding: 15px 50px; border-radius: 10px;">CONFIRM</button>
+        </div>
+
+        <!-- Main Menu -->
+        <div id="screen-menu" class="screen" style="justify-content: center; align-items: center;">
+            <h1 style="font-size: 80px; margin-bottom: 60px;">MAIN MENU</h1>
+            <button onclick="showScreen('screen-arcs')" style="font-size: 40px; padding: 20px 60px; width: 500px; margin-bottom: 30px; border-radius: 15px;">START RUN</button>
+            <button onclick="openCollection()" style="font-size: 40px; padding: 20px 60px; width: 500px; border-radius: 15px; margin-bottom: 30px;">COLLECTION</button>
+            <button onclick="resetProgress()" style="font-size: 24px; padding: 10px 40px; width: 300px; border-radius: 15px; background-color: #522; color: #f99;">RESET PROGRESS</button>
+        </div>
+
+        <!-- Arcs -->
+        <div id="screen-arcs" class="screen" style="justify-content: center; align-items: center; background: url('Art/Background.png') center/cover; position: relative;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7);"></div>
+            <h1 style="position: relative; z-index: 10; font-size: 60px; margin-bottom: 40px; text-shadow: 2px 2px 4px #000;">SELECT ARC</h1>
+            
+            <div style="position: relative; z-index: 10; display: flex; gap: 30px; margin-bottom: 40px;">
+                <button onclick="startArc('arc1')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
+                    <span>ARC 1</span>
+                    <span style="font-size: 20px; color: #aaa;">The Cave</span>
+                </button>
+                <button onclick="startArc('arc2')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
+                    <span>ARC 2</span>
+                    <span style="font-size: 20px; color: #aaa;">The Forest</span>
+                </button>
+                <button onclick="startArc('arc3')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
+                    <span>ARC 3</span>
+                    <span style="font-size: 20px; color: #aaa;">The Laboratory</span>
+                </button>
+            </div>
+            
+            <button onclick="showScreen('screen-menu')" style="position: relative; z-index: 10; font-size: 30px; padding: 15px 50px; border-radius: 10px;">BACK</button>
+        </div>
+
+        <!-- Collection -->
+        <div id="screen-collection" class="screen">
+            <h2>COLLECTION</h2>
+            <div class="tabs">
+                <div id="tab-starters" class="tab active" onclick="switchCollectionTab('starters')">STARTERS</div>
+                <div id="tab-merges" class="tab" onclick="switchCollectionTab('merges')">MERGES</div>
+            </div>
+            <div id="collection-list" style="flex: 1; overflow-y: auto;"></div>
+            <button onclick="showScreen('screen-menu')">BACK</button>
+        </div>
+
+        <!-- Selection -->
+        <div id="screen-selection" class="screen" style="background: url('Art/Background.png') center/cover; position: relative; padding: 0;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);"></div>
+            
+            <h2 style="position: absolute; top: 20px; left: 20px; z-index: 10; margin: 0; text-shadow: 2px 2px 4px #000;">SELECT 2 STARTERS</h2>
+            
+            <button onclick="showScreen('screen-menu')" style="position: absolute; bottom: 20px; left: 20px; z-index: 10; width: 150px;">BACK</button>
+
+            <!-- Middle: 4 transparent boxes -->
+            <div style="position: absolute; top: 50%; left: calc(50% - 200px); transform: translate(-50%, -50%); z-index: 10;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px black;">
+                    <div style="text-align: center; width: 150px;">BACKLINE</div>
+                    <div style="text-align: center; width: 150px;">FRONTLINE</div>
+                </div>
+                <div style="position: relative; padding: 40px; background: url('Art/Map.png') center/cover; border-radius: 15px; border: 2px solid #444;">
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); border-radius: 15px;"></div>
+                    <div class="team" style="position: relative; z-index: 2; width: auto; padding: 0; direction: rtl;">
+                        <div id="slot-0" class="select-slot" data-slot="0" ondrop="drop(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                        <div id="slot-1" class="select-slot" data-slot="1" ondrop="drop(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                        <div id="slot-2" class="select-slot" data-slot="2" ondrop="drop(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                        <div id="slot-3" class="select-slot" data-slot="3" ondrop="drop(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Starters list -->
+            <div style="position: absolute; top: 0; right: 0; width: 400px; height: 100%; background: rgba(0,0,0,0.85); padding: 20px; z-index: 10; display: flex; flex-direction: column; border-left: 2px solid #444;">
+                <h3 style="margin-top: 0; text-align: center;">Available</h3>
+                <div id="selection-list" style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; overflow-y: auto; margin-bottom: 20px;" ondrop="dropList(event)" ondragover="allowDrop(event)"></div>
+                <button id="btn-start-run" disabled onclick="startRun()" style="width: 100%; padding: 15px; font-size: 18px;">ENTER MAP</button>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div id="screen-map" class="screen" style="flex-direction: column; align-items: center; justify-content: center; position: relative;">
+            <button id="btn-pause-map" onclick="openPauseModal()" style="position: absolute; top: 20px; left: 20px; z-index: 100; font-size: 24px; padding: 10px 15px; background: rgba(0,0,0,0.5); border: 2px solid #555; color: white; border-radius: 5px; cursor: pointer;">⏸</button>
+            <h2 style="margin-top: 20px;">THE RUN</h2>
+            <div id="map-nodes" class="map-nodes" style="flex: 1; display: flex; align-items: center; overflow-x: auto; overflow-y: hidden; width: 100%; max-width: 800px;"></div>
+            
+            <div style="display: flex; gap: 20px; width: 100%; max-width: 600px; margin-bottom: 20px;">
+                <button onclick="openMapTeamModal()" style="flex: 1; padding: 15px; font-size: 18px;">TEAM</button>
+                <button id="btn-continue-node" onclick="proceedToNode()" style="flex: 1; padding: 15px; font-size: 18px;">CONTINUE</button>
+            </div>
+        </div>
+
+        <!-- Combat -->
+        <div id="screen-combat" class="screen" style="padding: 0;">
+            <div class="combat-header">
+                <button id="btn-pause" onclick="openPauseModal()">⏸</button>
+                <div id="turn-order" class="turn-order"></div>
+                <div class="element-triangle-top">
+                    <div style="font-size: 10px; margin-bottom: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">Element Counters</div>
+                    <div style="position: relative; width: 140px; height: 110px; margin: 0 auto;">
+                        <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%);"><img src="Art/Beast.png" style="width:40px; height:40px;" alt="Beast" /></div>
+                        <div style="position: absolute; bottom: -5px; right: 0px;"><img src="Art/Nature.png" style="width:40px; height:40px;" alt="Nature" /></div>
+                        <div style="position: absolute; bottom: -5px; left: 0px;"><img src="Art/Mech.png" style="width:40px; height:40px;" alt="Mech" /></div>
+                        
+                        <div style="position: absolute; top: 35px; right: 25px; color: #888; font-size: 20px; font-weight: bold;">↘</div>
+                        <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: #888; font-size: 20px; font-weight: bold;">←</div>
+                        <div style="position: absolute; top: 35px; left: 25px; color: #888; font-size: 20px; font-weight: bold;">↗</div>
+                    </div>
+                </div>
+            </div>
+            <div class="combat-arena">
+                <div id="player-team" class="team"></div>
+                <div id="enemy-team" class="team"></div>
+            </div>
+            <div class="combat-controls">
+                <div id="combat-log" class="combat-log"></div>
+                <div class="moves-wrapper" style="flex: 1; display: flex; flex-direction: column; height: 100%;">
+                    <div id="active-unit-info" style="font-size:14px; font-weight:bold; margin-bottom: 10px; color: #fff;"></div>
+                    <div id="move-controls" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1;"></div>
+                </div>
+                <div class="controls-right" style="width: 150px; display: flex; flex-direction: column; gap: 10px; height: 100%;">
+                    <div id="energy-display" class="energy-display">EN: 0</div>
+                    <button id="btn-end-turn" onclick="advanceTurn()" style="flex: 1; background: #d97706; border: none; font-size: 20px; cursor: pointer; border-radius: 8px; font-weight: bold; color: white;">END TURN</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Merge -->
+        <div id="screen-merge" class="screen">
+            <h2>THE LAB MERGE</h2>
+            <div style="display: flex; height: calc(100% - 100px); width: 100%;">
+                <!-- Left: Frontline/Backline -->
+                <div style="flex: 1; position: relative; display: flex; justify-content: center; align-items: center;">
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px black;">
+                            <div style="text-align: center; width: 150px;">BACKLINE</div>
+                            <div style="text-align: center; width: 150px;">FRONTLINE</div>
+                        </div>
+                        <div style="position: relative; padding: 40px; background: url('Art/Map.png') center/cover; border-radius: 15px; border: 2px solid #444;">
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); border-radius: 15px;"></div>
+                            <div class="team" style="position: relative; z-index: 2; width: auto; padding: 0; direction: rtl;">
+                                <div id="merge-party-slot-0" class="select-slot" data-slot="0" ondrop="dropMergeParty(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                                <div id="merge-party-slot-1" class="select-slot" data-slot="1" ondrop="dropMergeParty(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                                <div id="merge-party-slot-2" class="select-slot" data-slot="2" ondrop="dropMergeParty(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                                <div id="merge-party-slot-3" class="select-slot" data-slot="3" ondrop="dropMergeParty(event)" ondragover="allowDrop(event)" style="direction: ltr;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Merge Slots -->
+                <div style="width: 400px; background: rgba(0,0,0,0.85); padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #444; align-items: center; justify-content: center;">
+                    <h3 style="margin-top: 0; text-align: center;">Merge Slots</h3>
+                    <div style="display: flex; justify-content: center; gap: 20px; margin: 40px 0;">
+                        <div id="merge-slot-0" class="merge-slot" data-slot="0" ondrop="dropMergeSlot(event)" ondragover="allowDrop(event)">+</div>
+                        <div id="merge-slot-1" class="merge-slot" data-slot="1" ondrop="dropMergeSlot(event)" ondragover="allowDrop(event)">+</div>
+                    </div>
+                    <button id="btn-do-merge" disabled onclick="executeMerge()" style="width: 100%; padding: 15px; font-size: 18px; margin-bottom: 10px;">MERGE</button>
+                    <button onclick="finishMerge()" style="width: 100%; padding: 15px; font-size: 18px;">DONE / SKIP</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div id="modal-pause" class="modal">
+            <div class="modal-content">
+                <h3 style="margin-top:0">PAUSE MENU</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button onclick="closeModal('modal-pause')">RESUME</button>
+                    <button onclick="abandonRun()" style="background: #d32f2f;">ABANDON RUN</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-selection" class="modal">
+            <div class="modal-content">
+                <h3 id="modal-title">Select Monster</h3>
+                <div id="modal-list"></div>
+                <button id="modal-selection-close-btn" onclick="closeModal('modal-selection')" style="width:100%">CLOSE</button>
+            </div>
+        </div>
+
+        <div id="modal-map-team" class="modal">
+            <div class="modal-content" style="max-width: 600px; width: 100%; padding: 20px;">
+                <h3 style="margin-top:0; text-align:center;">TEAM FORMATION</h3>
+                
+                <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+                    <div style="width: 100%; max-width: 350px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px black; padding: 0 20px;">
+                            <div style="text-align: center; width: 100px;">BACKLINE</div>
+                            <div style="text-align: center; width: 100px;">FRONTLINE</div>
+                        </div>
+                        <div style="position: relative; padding: 20px; background: url('Art/Map.png') center/cover; border-radius: 15px; border: 2px solid #444; width: 100%;">
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); border-radius: 15px;"></div>
+                            <div class="team" style="position: relative; z-index: 2; width: 100%; padding: 0; direction: rtl; gap: 10px;">
+                                <div id="map-party-slot-0" class="select-slot" data-slot="0" ondrop="dropMapParty(event)" ondragover="allowDrop(event)" style="direction: ltr; margin: 0 auto;"></div>
+                                <div id="map-party-slot-1" class="select-slot" data-slot="1" ondrop="dropMapParty(event)" ondragover="allowDrop(event)" style="direction: ltr; margin: 0 auto;"></div>
+                                <div id="map-party-slot-2" class="select-slot" data-slot="2" ondrop="dropMapParty(event)" ondragover="allowDrop(event)" style="direction: ltr; margin: 0 auto;"></div>
+                                <div id="map-party-slot-3" class="select-slot" data-slot="3" ondrop="dropMapParty(event)" ondragover="allowDrop(event)" style="direction: ltr; margin: 0 auto;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-map-team')" style="width: 100%; padding: 15px; font-size: 18px; margin-top: 20px;">CLOSE</button>
+            </div>
+        </div>
+
+        <div id="modal-notification" class="modal">
+            <div class="modal-content">
+                <h3 id="notif-title">Notice</h3>
+                <p id="notif-message"></p>
+                <button onclick="closeModal('modal-notification')" style="width:100%">OK</button>
+            </div>
+        </div>
+
+        <div id="modal-confirm" class="modal">
+            <div class="modal-content">
+                <h3 id="confirm-title">Confirm</h3>
+                <p id="confirm-message"></p>
+                <div class="confirm-btns">
+                    <button id="confirm-yes">YES</button>
+                    <button id="confirm-no">NO</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-collection-details" class="modal">
+            <div class="modal-content" style="text-align: center; max-width: 500px;">
+                <h2 id="col-detail-name" style="font-size: 36px; margin-bottom: 10px;">Name</h2>
+                <div id="col-detail-types" class="type-container" style="margin-bottom: 20px;"></div>
+                <div id="col-detail-art" class="monster-art" style="font-size: 150px; height: 180px; display: flex; justify-content: center; align-items: center; margin: 20px 0;"></div>
+                <div id="col-detail-stats" class="stats-row" style="font-size: 18px; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; padding-left: 40px;">
+                </div>
+                <div id="col-detail-moves" class="moves-list" style="font-size: 16px; margin-bottom: 20px; color: #ddd; text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;"></div>
+                <div id="col-detail-parents" style="font-size: 18px; color: #aaa; margin-bottom: 20px;"></div>
+                <button onclick="closeModal('modal-collection-details')" style="width:100%; font-size: 24px; padding: 15px;">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/data.js"></script>
+    <script src="src/state.js"></script>
+    <script src="src/core.js"></script>
+    <script src="src/collection.js"></script>
+    <script src="src/selection.js"></script>
+    <script src="src/map.js"></script>
+    <script src="src/combat.js"></script>
+    <script src="src/merge.js"></script>
+    <script src="src/pause.js"></script>
+
+</body>
+</html>
