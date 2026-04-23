@@ -41,6 +41,14 @@
                 console.error("Failed to load game data", e);
             }
 
+            // Temporary check to reset your progress so you can test the first-time choice
+            if (!localStorage.getItem('firstTimeChoiceReset')) {
+                localStorage.removeItem('soulbound_save');
+                localStorage.removeItem('labborn_save');
+                localStorage.setItem('firstTimeChoiceReset', 'true');
+                console.log("Wiped save data for testing choice start!");
+            }
+
             const saved = localStorage.getItem('soulbound_save') || localStorage.getItem('labborn_save');
             if (saved) {
                 gameState = JSON.parse(saved);

@@ -186,3 +186,77 @@
             };
             modal.style.display = 'flex';
         }
+
+        let firstTimeSelection = [];
+
+        window.playClicked = function() {
+            if (gameState.unlockedStarters.length < 2) {
+                showScreen('screen-first-time');
+                renderFirstTimeStarters();
+            } else {
+                showScreen('screen-menu');
+            }
+        }
+
+        window.renderFirstTimeStarters = function() {
+            const list = document.getElementById('first-time-list');
+            list.innerHTML = '';
+            const options = ['wolf', 'slime', 'sentry'];
+            
+            options.forEach(id => {
+                const s = STARTERS[id];
+                const btn = document.createElement('div');
+                btn.className = 'collection-square';
+                btn.style.width = '180px';
+                btn.style.height = '180px';
+                btn.style.cursor = 'pointer';
+                btn.style.transition = 'all 0.2s';
+                
+                const isSelected = firstTimeSelection.includes(id);
+                if (isSelected) {
+                    btn.style.borderColor = '#ffcc00';
+                    btn.style.boxShadow = '0 0 15px #ffcc00';
+                    btn.style.transform = 'scale(1.05)';
+                }
+                
+                const typeHtml = getTypeIconHtml(s.type, 32);
+
+                btn.innerHTML = `
+                    <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:10px; pointer-events:none;">${renderArt(s.art, 60)}</div>
+                    <strong style="font-size: 20px; pointer-events:none;">${s.name}</strong>
+                    <div style="display:flex; gap:5px; margin-top:10px; justify-content:center; pointer-events:none;">${typeHtml}</div>
+                `;
+                
+                btn.onclick = () => toggleFirstTimeStarter(id);
+                list.appendChild(btn);
+            });
+            
+            document.getElementById('btn-confirm-first-time').disabled = firstTimeSelection.length !== 2;
+        }
+
+        window.toggleFirstTimeStarter = function(id) {
+            if (firstTimeSelection.includes(id)) {
+                firstTimeSelection = firstTimeSelection.filter(s => s !== id);
+            } else {
+                if (firstTimeSelection.length < 2) {
+                    firstTimeSelection.push(id);
+                }
+            }
+            renderFirstTimeStarters();
+        }
+
+        window.confirmFirstTime = function() {
+            if (firstTimeSelection.length === 2) {
+                gameState.unlockedStarters = [...firstTimeSelection];
+                saveGame();
+                showScreen('screen-menu');
+            }
+        }
+
+        window.resetProgress = function() {
+            if (confirm("Are you sure you want to reset all your progress?")) {
+                localStorage.removeItem('soulbound_save');
+                localStorage.removeItem('labborn_save');
+                location.reload();
+            }
+        }

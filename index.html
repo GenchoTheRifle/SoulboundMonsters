@@ -12,14 +12,30 @@
         <!-- Title Screen -->
         <div id="screen-title" class="screen active" style="justify-content: center; align-items: center;">
             <h1 style="font-size: 100px; margin-bottom: 80px; letter-spacing: 5px;">SOULBOUND MONSTERS</h1>
-            <button onclick="showScreen('screen-menu')" style="font-size: 50px; padding: 20px 80px; border-radius: 15px;">PLAY</button>
+            <button onclick="playClicked()" style="font-size: 50px; padding: 20px 80px; border-radius: 15px;">PLAY</button>
+        </div>
+
+        <!-- First Time Setup -->
+        <div id="screen-first-time" class="screen" style="justify-content: center; align-items: center; background: url('Art/Background.png') center/cover; position: relative;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);"></div>
+            <h1 style="position: relative; z-index: 10; font-size: 60px; margin-bottom: 20px; text-shadow: 2px 2px 4px #000;">SELECT 2 STARTERS</h1>
+            <p style="position: relative; z-index: 10; font-size: 24px; margin-bottom: 40px; text-align: center; max-width: 600px; color: #ddd;">
+                Choose two starting monsters to bond with. These will be permanently unlocked.
+            </p>
+            
+            <div id="first-time-list" style="position: relative; z-index: 10; display: flex; gap: 30px; margin-bottom: 40px;">
+                <!-- Filled dynamically -->
+            </div>
+            
+            <button id="btn-confirm-first-time" disabled onclick="confirmFirstTime()" style="position: relative; z-index: 10; font-size: 30px; padding: 15px 50px; border-radius: 10px;">CONFIRM</button>
         </div>
 
         <!-- Main Menu -->
         <div id="screen-menu" class="screen" style="justify-content: center; align-items: center;">
             <h1 style="font-size: 80px; margin-bottom: 60px;">MAIN MENU</h1>
             <button onclick="showScreen('screen-arcs')" style="font-size: 40px; padding: 20px 60px; width: 500px; margin-bottom: 30px; border-radius: 15px;">START RUN</button>
-            <button onclick="openCollection()" style="font-size: 40px; padding: 20px 60px; width: 500px; border-radius: 15px;">COLLECTION</button>
+            <button onclick="openCollection()" style="font-size: 40px; padding: 20px 60px; width: 500px; border-radius: 15px; margin-bottom: 30px;">COLLECTION</button>
+            <button onclick="resetProgress()" style="font-size: 24px; padding: 10px 40px; width: 300px; border-radius: 15px; background-color: #522; color: #f99;">RESET PROGRESS</button>
         </div>
 
         <!-- Arcs -->

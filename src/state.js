@@ -1,6 +1,6 @@
 // --- STATE ---
         let gameState = {
-            unlockedStarters: ['wolf', 'slime'],
+            unlockedStarters: [],
             discoveredMerges: []
         };
 
