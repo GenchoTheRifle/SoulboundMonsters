@@ -192,7 +192,7 @@
       "matk": 0,
       "mdef": 4,
       "ratk": 12,
-      "rdef": 7,
+      "rdef": 5,
       "moves": [
         {
           "n": "Zap",
@@ -227,35 +227,35 @@
       "id": "bat",
       "name": "Bat",
       "type": "Beast",
-      "hp": 16,
-      "spd": 15,
-      "matk": 12,
-      "mdef": 4,
-      "ratk": 0,
-      "rdef": 5,
+      "hp": 18,
+      "matk": 0,
+      "mdef": 5,
+      "ratk": 10,
+      "rdef": 7,
+      "spd": 11,
+      "startingEnergy": 1,
+      "art": "Art/Bat.png",
       "moves": [
         {
-          "n": "Bite",
+          "n": "Echo",
           "c": 1,
           "t": "Beast",
           "p": 1,
-          "melee": true
+          "ranged": true
         },
         {
-          "n": "Screech",
-          "c": 2,
+          "n": "Lifesteal",
+          "c": 1,
           "t": "Beast",
           "p": 0,
           "effect": {
-            "type": "atk_debuff_pct",
-            "value": 0.3,
-            "turns": 2,
-            "target": "all_enemies"
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
           }
         }
-      ],
-      "art": "🦇",
-      "startingEnergy": 1
+      ]
     },
     "tree": {
       "id": "tree",
@@ -1493,6 +1493,476 @@
         "sentry",
         "sparkbot"
       ]
+    },
+    {
+      "name": "Mega Bat",
+      "type": "Beast",
+      "hp": 22,
+      "matk": 0,
+      "mdef": 6,
+      "ratk": 13,
+      "rdef": 9,
+      "spd": 14,
+      "startingEnergy": 1,
+      "art": "Art/Mega Bat.png",
+      "parents": [
+        "bat",
+        "bat"
+      ],
+      "moves": [
+        {
+          "n": "Crimson Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1.2,
+          "ranged": true
+        },
+        {
+          "n": "Crimson Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.75,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Hemorrhage",
+          "c": 2,
+          "t": "Beast",
+          "p": 0.9,
+          "ranged": true,
+          "effect": {
+            "type": "atk_debuff_pct",
+            "value": 0.25,
+            "turns": 2,
+            "target": "enemy"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Batwolf",
+      "type": "Beast",
+      "hp": 20,
+      "matk": 9,
+      "mdef": 6,
+      "ratk": 9,
+      "rdef": 6,
+      "spd": 11,
+      "startingEnergy": 1,
+      "art": "Art/Batwolf.png",
+      "parents": [
+        "bat",
+        "wolf"
+      ],
+      "moves": [
+        {
+          "n": "Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "melee": true
+        },
+        {
+          "n": "Howl",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "atk_buff_pct",
+            "value": 0.4,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vampiric Slime",
+      "type": [
+        "Beast",
+        "Nature"
+      ],
+      "hp": 25,
+      "matk": 0,
+      "mdef": 8,
+      "ratk": 10,
+      "rdef": 8,
+      "spd": 8,
+      "startingEnergy": 1,
+      "art": "Art/Vampiric Slime.png",
+      "parents": [
+        "bat",
+        "slime"
+      ],
+      "moves": [
+        {
+          "n": "Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "heal_flat",
+            "value": 6,
+            "target": "ally"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Doom Bat",
+      "type": [
+        "Beast",
+        "Mech"
+      ],
+      "hp": 24,
+      "matk": 0,
+      "mdef": 9,
+      "ratk": 11,
+      "rdef": 9,
+      "spd": 9,
+      "startingEnergy": 1,
+      "art": "Art/Doom Bat.png",
+      "parents": [
+        "bat",
+        "sentry"
+      ],
+      "moves": [
+        {
+          "n": "Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Snipe",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "ranged": true
+        },
+        {
+          "n": "Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "ranged": true,
+          "effect": {
+            "type": "stun",
+            "chance": 1,
+            "turns": 1,
+            "target": "enemy"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Nocturne Bear",
+      "type": "Beast",
+      "hp": 23,
+      "matk": 11,
+      "mdef": 8,
+      "ratk": 7,
+      "rdef": 7,
+      "spd": 7,
+      "startingEnergy": 1,
+      "art": "Art/Nocturne Bear.png",
+      "parents": [
+        "bat",
+        "bear"
+      ],
+      "moves": [
+        {
+          "n": "Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "guard_pct",
+            "value": 0.4,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bloodcap",
+      "type": [
+        "Beast",
+        "Nature"
+      ],
+      "hp": 22,
+      "matk": 0,
+      "mdef": 6,
+      "ratk": 12,
+      "rdef": 10,
+      "spd": 9,
+      "startingEnergy": 1,
+      "art": "Art/Bloodcap.png",
+      "parents": [
+        "bat",
+        "mushroom"
+      ],
+      "moves": [
+        {
+          "n": "Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 0.7,
+          "ranged": true,
+          "effect": {
+            "type": "sleep",
+            "chance": 0.2,
+            "turns": 2,
+            "target": "enemy"
+          }
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "ranged": true,
+          "effect": {
+            "type": "poison_flat",
+            "value": 4,
+            "turns": 3,
+            "target": "all_enemies"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Skyreaver Bat",
+      "type": [
+        "Beast",
+        "Mech"
+      ],
+      "hp": 20,
+      "matk": 0,
+      "mdef": 6,
+      "ratk": 16,
+      "rdef": 6,
+      "spd": 15,
+      "startingEnergy": 1,
+      "art": "Art/Skyreaver Bat.png",
+      "parents": [
+        "bat",
+        "sparkbot"
+      ],
+      "moves": [
+        {
+          "n": "Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Zap",
+          "c": 1,
+          "t": "Mech",
+          "p": 1,
+          "ranged": true,
+          "effect": {
+            "type": "stun",
+            "chance": 0.15,
+            "turns": 1,
+            "target": "enemy"
+          }
+        },
+        {
+          "n": "Overcharge",
+          "c": 1,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "spd_buff_pct",
+            "value": 0.2,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bloodwood",
+      "type": [
+        "Beast",
+        "Nature"
+      ],
+      "hp": 20,
+      "matk": 5,
+      "mdef": 5,
+      "ratk": 10,
+      "rdef": 8,
+      "spd": 13,
+      "startingEnergy": 1,
+      "art": "🦇",
+      "parents": [
+        "bat",
+        "tree"
+      ],
+      "moves": [
+        {
+          "n": "Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Root Strike",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Photosynthesis",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "regen_flat",
+            "value": 5,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ]
     }
   ],
   "BOSSES": {
@@ -1502,34 +1972,47 @@
       "name": "MEGA BAT",
       "type": "Beast",
       "hp": 200,
-      "spd": 18,
-      "matk": 22,
+      "matk": 0,
       "mdef": 6,
-      "ratk": 0,
-      "rdef": 8,
+      "ratk": 13,
+      "rdef": 9,
+      "spd": 14,
+      "startingEnergy": 1,
+      "art": "Art/Mega Bat.png",
       "moves": [
         {
-          "n": "Mega Bite",
+          "n": "Crimson Echo",
           "c": 1,
           "t": "Beast",
           "p": 1.2,
-          "melee": true
+          "ranged": true
         },
         {
-          "n": "Vampiric Drain",
-          "c": 2,
+          "n": "Crimson Lifesteal",
+          "c": 1,
           "t": "Beast",
-          "p": 1.5,
-          "melee": true,
+          "p": 0,
           "effect": {
-            "type": "heal_flat",
-            "value": 15,
+            "type": "lifesteal_buff",
+            "value": 0.75,
+            "turns": 3,
             "target": "self"
           }
+        },
+        {
+          "n": "Hemorrhage",
+          "c": 2,
+          "t": "Beast",
+          "p": 0.9,
+          "ranged": true,
+          "effect": {
+            "type": "atk_debuff_pct",
+            "value": 0.25,
+            "turns": 2,
+            "target": "enemy"
+          }
         }
-      ],
-      "art": "🦇",
-      "startingEnergy": 1
+      ]
     },
     "mega_treant": {
       "id": "mega_treant",

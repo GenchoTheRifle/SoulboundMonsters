@@ -254,9 +254,29 @@
         }
 
         window.resetProgress = function() {
-            if (confirm("Are you sure you want to reset all your progress?")) {
+            showGameConfirm("RESET PROGRESS", "Are you sure you want to reset all your progress?", () => {
                 localStorage.removeItem('soulbound_save');
                 localStorage.removeItem('labborn_save');
-                location.reload();
-            }
+                gameState = {
+                    unlockedStarters: [],
+                    discoveredMerges: [],
+                    maxActReached: 1
+                };
+                firstTimeSelection = [];
+                playClicked();
+            });
+        }
+
+        window.unlockAllProgress = function() {
+            showGameConfirm("UNLOCK ALL PROGRESS", "Are you sure you want to unlock all starters, merges, and acts?", () => {
+                const allStarters = Object.keys(STARTERS);
+                const allMerges = MERGES.map(m => m.name);
+                gameState = {
+                    unlockedStarters: allStarters,
+                    discoveredMerges: allMerges,
+                    maxActReached: 3
+                };
+                saveGame();
+                showScreen('screen-menu');
+            });
         }

@@ -35,7 +35,10 @@
             <h1 style="font-size: 80px; margin-bottom: 60px;">MAIN MENU</h1>
             <button onclick="showScreen('screen-arcs')" style="font-size: 40px; padding: 20px 60px; width: 500px; margin-bottom: 30px; border-radius: 15px;">START RUN</button>
             <button onclick="openCollection()" style="font-size: 40px; padding: 20px 60px; width: 500px; border-radius: 15px; margin-bottom: 30px;">COLLECTION</button>
-            <button onclick="resetProgress()" style="font-size: 24px; padding: 10px 40px; width: 300px; border-radius: 15px; background-color: #522; color: #f99;">RESET PROGRESS</button>
+            <div style="display: flex; gap: 20px;">
+                <button onclick="resetProgress()" style="font-size: 24px; padding: 10px 40px; width: 300px; border-radius: 15px; background-color: #522; color: #f99;">RESET PROGRESS</button>
+                <button onclick="unlockAllProgress()" style="font-size: 24px; padding: 10px 40px; width: 300px; border-radius: 15px; background-color: #252; color: #9f9;">UNLOCK ALL</button>
+            </div>
         </div>
 
         <!-- Arcs -->
@@ -44,17 +47,17 @@
             <h1 style="position: relative; z-index: 10; font-size: 60px; margin-bottom: 40px; text-shadow: 2px 2px 4px #000;">SELECT ARC</h1>
             
             <div style="position: relative; z-index: 10; display: flex; gap: 30px; margin-bottom: 40px;">
-                <button onclick="startArc('arc1')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
-                    <span>ARC 1</span>
+                <button id="btn-arc1" onclick="startArc('arc1')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
+                    <span>ACT 1</span>
                     <span style="font-size: 20px; color: #aaa;">The Cave</span>
                 </button>
-                <button onclick="startArc('arc2')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
-                    <span>ARC 2</span>
-                    <span style="font-size: 20px; color: #aaa;">The Forest</span>
+                <button id="btn-arc2" onclick="startArc('arc2')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
+                    <span id="text-arc2">ACT 2</span>
+                    <span id="desc-arc2" style="font-size: 20px; color: #aaa;">The Forest</span>
                 </button>
-                <button onclick="startArc('arc3')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
-                    <span>ARC 3</span>
-                    <span style="font-size: 20px; color: #aaa;">The Laboratory</span>
+                <button id="btn-arc3" onclick="startArc('arc3')" style="font-size: 30px; padding: 30px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 250px;">
+                    <span id="text-arc3">ACT 3</span>
+                    <span id="desc-arc3" style="font-size: 20px; color: #aaa;">The Laboratory</span>
                 </button>
             </div>
             
@@ -142,7 +145,6 @@
             <div class="combat-controls">
                 <div id="combat-log" class="combat-log"></div>
                 <div class="moves-wrapper" style="flex: 1; display: flex; flex-direction: column; height: 100%;">
-                    <div id="active-unit-info" style="font-size:14px; font-weight:bold; margin-bottom: 10px; color: #fff;"></div>
                     <div id="move-controls" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1;"></div>
                 </div>
                 <div class="controls-right" style="width: 150px; display: flex; flex-direction: column; gap: 10px; height: 100%;">

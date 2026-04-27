@@ -1,7 +1,8 @@
 // --- STATE ---
         let gameState = {
             unlockedStarters: [],
-            discoveredMerges: []
+            discoveredMerges: [],
+            maxActReached: 1
         };
 
         let currentRun = {

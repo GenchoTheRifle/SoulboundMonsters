@@ -55,7 +55,7 @@
             `;
             
             const moves = monster.moves || [];
-            const utilityMoves = ['Poison Cloud', 'Guard', 'Howl', 'Heal', 'Stun Bolt', 'Overcharge', 'Intimidate', 'King Heal', 'Renewal Spores', 'Toxin', 'Giant Poison Cloud', 'Elder Guard', 'Alpha Howl', 'Elite Stun Bolt', 'Ultimate Overcharge', 'Savage Stance', 'Full Throttle'];
+            const utilityMoves = ['Poison Cloud', 'Guard', 'Howl', 'Heal', 'Stun Bolt', 'Overcharge', 'Intimidate', 'King Heal', 'Renewal Spores', 'Toxin', 'Giant Poison Cloud', 'Elder Guard', 'Alpha Howl', 'Elite Stun Bolt', 'Ultimate Overcharge', 'Savage Stance', 'Full Throttle', 'Lifesteal', 'Crimson Lifesteal'];
             
             document.getElementById('col-detail-moves').innerHTML = moves.map(m => {
                 const typeIcon = getTypeIconHtml(m.t, 16);
@@ -68,57 +68,7 @@
                     moveCategory = '<span style="color:#339af0; font-size:12px;">[Ranged]</span>';
                 }
                 
-                let description = '';
-                let effectDesc = '';
-                
-                if (m.effect) {
-                    const eff = m.effect;
-                    const targetStr = eff.target === 'all_enemies' ? 'all enemies' : (eff.target === 'all_allies' ? 'all allies' : (eff.target === 'self' ? 'this monster' : 'the target'));
-                    
-                    if (eff.type === 'atk_buff_pct') {
-                        effectDesc = `increases the damage of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
-                    } else if (eff.type === 'guard_pct') {
-                        effectDesc = `reduces incoming damage to ${targetStr} by ${eff.value * 100}% until hit`;
-                    } else if (eff.type === 'heal_flat') {
-                        effectDesc = `heals ${targetStr} for ${eff.value} HP`;
-                    } else if (eff.type === 'sleep') {
-                        effectDesc = `has a ${eff.chance * 100}% chance to put ${targetStr} to sleep for up to ${eff.turns} turns`;
-                    } else if (eff.type === 'poison_flat') {
-                        effectDesc = `poisons ${targetStr}, dealing ${eff.value} flat damage per turn for ${eff.turns} turns`;
-                    } else if (eff.type === 'poison_pct') {
-                        effectDesc = `poisons ${targetStr}, dealing ${eff.value * 100}% of their max HP as damage per turn for ${eff.turns} turns`;
-                    } else if (eff.type === 'stun') {
-                        effectDesc = `has a ${eff.chance * 100}% chance to stun ${targetStr} for ${eff.turns} turn(s)`;
-                    } else if (eff.type === 'spd_buff_pct') {
-                        effectDesc = `increases the speed of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
-                    } else if (eff.type === 'atk_debuff_pct') {
-                        effectDesc = `decreases the damage of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
-                    } else if (eff.type === 'regen_flat') {
-                        effectDesc = `applies health regeneration to ${targetStr}, healing ${eff.value} HP per turn for ${eff.turns} turns`;
-                    } else if (eff.type === 'savage_stance_pct') {
-                        effectDesc = `enters Savage Stance, gaining a ${eff.guard_value * 100}% shield until hit and increasing damage by ${eff.atk_value * 100}% for ${eff.turns} turns`;
-                    } else if (eff.type === 'ultimate_overcharge') {
-                        effectDesc = `increases the speed of ${targetStr} by ${eff.spd_value * 100}% and damage by ${eff.atk_value * 100}% for ${eff.turns} turns`;
-                    }
-                }
-                
-                if (m.p > 0) {
-                    if (m.hits > 1) {
-                        description = `Deals damage to an enemy ${m.hits} times.`;
-                        if (effectDesc) {
-                            description = `Deals damage to an enemy ${m.hits} times and ${effectDesc}.`;
-                        }
-                    } else {
-                        description = `Deals damage to an enemy.`;
-                        if (effectDesc) {
-                            description = `Deals damage to an enemy and ${effectDesc}.`;
-                        }
-                    }
-                } else if (effectDesc) {
-                    description = effectDesc.charAt(0).toUpperCase() + effectDesc.slice(1) + '.';
-                } else {
-                    description = "Deals damage.";
-                }
+                let description = getMoveDescription(m);
 
                 return `<div style="margin-bottom: 10px;">
                     <strong>${m.n}</strong> ${typeIcon} (${m.c} EN) ${moveCategory}

@@ -29,14 +29,23 @@
 
             combatState.enemies = [];
             
-            // Define pools
-            const simplePool = ['wolf', 'slime', 'sentry'];
+            // Define pools per Act
+            let simplePool = ['wolf', 'slime', 'sentry'];
             const advancedPool = ['bear', 'mushroom', 'sparkbot'];
-            const allPool = [...simplePool, ...advancedPool];
+            let allPool = [...simplePool, ...advancedPool];
+            
+            if (currentRun.arcId === 'arc2') {
+                allPool.push('bat');
+            } else if (currentRun.arcId === 'arc3') {
+                allPool.push('bat', 'tree');
+            }
 
             let pool = allPool;
-            if (currentRun.nodeIndex <= 3) pool = simplePool; // Nodes 1, 2, 4
-            else if (currentRun.nodeIndex === 4) pool = advancedPool; // Node 5
+            if (currentRun.nodeIndex <= 3) pool = [...simplePool]; // Nodes 1, 2, 4
+            else if (currentRun.nodeIndex === 4) pool = [...advancedPool]; // Node 5
+
+            if (currentRun.arcId === 'arc2' && currentRun.nodeIndex <= 3) pool.push('bat');
+            if (currentRun.arcId === 'arc3' && currentRun.nodeIndex <= 3) pool.push('bat', 'tree');
 
             if (node.type === 'boss') {
                 let bossId = 'mega_bat';
@@ -198,17 +207,6 @@
             document.getElementById('energy-display').innerText = `EN: ${energy}`;
             document.getElementById('combat-log').innerHTML = combatState.log.slice(-5).join('<br>');
             
-            const infoEl = document.getElementById('active-unit-info');
-            if (combatState.activeUnit && !combatState.activeUnit.isEnemy) {
-                const types = (Array.isArray(combatState.activeUnit.type) ? combatState.activeUnit.type : [combatState.activeUnit.type]).filter(Boolean);
-                
-                const typeIconHtml = getTypeIconHtml(types, 32);
-
-                infoEl.innerHTML = `<span style="vertical-align:middle;">${combatState.activeUnit.name}</span> <span style="display:inline-flex; gap:2px; vertical-align:middle;">${typeIconHtml}</span>`;
-            } else {
-                infoEl.innerHTML = '';
-            }
-
             const endTurnBtn = document.getElementById('btn-end-turn');
             if (endTurnBtn) {
                 const canEndTurn = combatState.isPlayerTurn && !combatState.ended;
@@ -290,6 +288,16 @@
                     return html;
                 };
 
+                const renderEmojiIcon = (emoji, style, title, turns) => {
+                    let html = `<div style="position:relative; display:inline-flex; align-items:center; justify-content:center; background:#333; border-radius:5px; border: 1px solid #777; width:40px; height:40px; ${style}" title="${title}">
+                        <span style="font-size:24px;">${emoji}</span>`;
+                    if (turns !== undefined && turns > 0) {
+                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:12px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:2;">${turns}</div>`;
+                    }
+                    html += `</div>`;
+                    return html;
+                };
+
                 if (u.poison > 0) statusHtml += renderIcon('Art/Poison.png', badStyle, 'Poisoned', u.poisonTurns);
                 if (u.sleep > 0) statusHtml += renderIcon('Art/Sleep.png', badStyle, 'Sleeping', u.sleep);
                 if (u.stunned > 0) statusHtml += renderIcon('Art/Stun.png', badStyle, 'Stunned', u.stunned);
@@ -303,6 +311,9 @@
                     
                     const spdBuff = u.buffs.find(b => b.type === 'spd_buff' || b.type === 'spd_buff_pct');
                     if (spdBuff) statusHtml += renderIcon('Art/Buff SPD.png', goodStyle, 'SPD Up', spdBuff.turns);
+
+                    const lifestealBuff = u.buffs.find(b => b.type === 'lifesteal_buff');
+                    if (lifestealBuff) statusHtml += renderEmojiIcon('❤️‍🩹', goodStyle, 'Lifesteal', lifestealBuff.turns);
                 }
                 
                 if (u.debuffs) {
@@ -490,16 +501,28 @@
                 const btn = document.createElement('button');
                 const moveType = m.t || '';
                 btn.className = `move-btn ${moveType.toLowerCase()}`;
+                
+                // Override flex column to stack header (name/cost) and description
+                btn.style.flexDirection = 'column';
+                btn.style.alignItems = 'stretch';
+                btn.style.justifyContent = 'center';
+                btn.style.gap = '5px';
+
                 const isTargetingThis = combatState.targetingMove === m;
                 if (isTargetingThis) btn.style.background = 'gold';
                 
                 btn.disabled = currentEnergy < m.c;
                 btn.innerHTML = `
-                    <div style="display:flex; flex-direction:row; align-items:center; gap: 5px;">
-                        <span style="font-weight:bold; font-size:16px;">${m.n}</span>
-                        <span style="display:flex; align-items:center;">${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="width:20px; height:20px;" alt="${moveType}" />` : moveType}</span>
+                    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                        <div style="display:flex; flex-direction:row; align-items:center; gap: 5px;">
+                            <span style="font-weight:bold; font-size:16px;">${m.n}</span>
+                            <span style="display:flex; align-items:center;">${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="width:20px; height:20px;" alt="${moveType}" />` : moveType}</span>
+                        </div>
+                        <span class="move-cost" style="position:static;">${m.c} EN</span>
                     </div>
-                    <span class="move-cost">${m.c} EN</span>
+                    <div style="font-size:12px; color:rgba(255,255,255,0.7); text-align:left; line-height:1.2;">
+                        ${getMoveDescription(m)}
+                    </div>
                 `;
                 btn.onclick = () => {
                     const targetType = m.effect?.target || "enemy";
@@ -583,6 +606,18 @@
                         t.currentHp -= damage;
                         combatLog(`${t.name} took ${damage} damage!`);
 
+                        if (attacker.buffs) {
+                            const lifestealBuffs = attacker.buffs.filter(b => b.type === 'lifesteal_buff');
+                            if (lifestealBuffs.length > 0) {
+                                const lifestealAmt = lifestealBuffs[0].value;
+                                const healAmt = Math.floor(damage * lifestealAmt);
+                                if (healAmt > 0) {
+                                    attacker.currentHp = Math.min(attacker.hp, attacker.currentHp + healAmt);
+                                    combatLog(`${attacker.name} lifestealed ${healAmt} HP!`);
+                                }
+                            }
+                        }
+
                         // Wake up if sleeping
                         if (t.sleep > 0) {
                             t.sleep = 0;
@@ -627,6 +662,7 @@
                             if (eff.type.includes('spd_buff')) t.spdMod += eff.value;
                             if (eff.type.includes('guard')) t.defMod = eff.value;
                             if (eff.type.includes('regen')) combatLog(`${t.name} gained Health Regen!`);
+                            else if (eff.type === 'lifesteal_buff') combatLog(`${t.name} gained Lifesteal!`);
                             else combatLog(`${t.name} boosted stats!`);
                         }
                     } else if (eff.type.includes('heal')) {
@@ -723,7 +759,9 @@
 
             // Apply atkMod (which is a percentage buff now, e.g. 0.4 for +40%)
             let atkMod = attacker.atkMod || 0;
-            let rawAttack = (atkStat * (1 + atkMod)) * (move.p || 1.0) * maxMult;
+            let movePower = move.p !== undefined ? move.p : 1.0;
+            if (movePower === 0) return 0;
+            let rawAttack = (atkStat * (1 + atkMod)) * movePower * maxMult;
             
             // Apply defMod (which is a percentage guard, e.g. 0.4 for -40% damage)
             let defMod = target.defMod || 0; // 0 means no guard, 0.4 means 40% reduction
@@ -892,10 +930,19 @@
                     const unlocksId = bossData.unlocks;
                     if (!gameState.unlockedStarters.includes(unlocksId)) {
                         gameState.unlockedStarters.push(unlocksId);
-                        msg += `\nUnlocked new starter: ${STARTERS[unlocksId].name}`;
+                        msg += `\nUnlocked new starter: ${STARTERS[unlocksId].name}!`;
                     } else {
                         msg += `\nYou already unlocked this Arc's starter.`;
                     }
+                }
+                
+                // Act unlocks
+                if (currentRun.arcId === 'arc1' && gameState.maxActReached < 2) {
+                    gameState.maxActReached = 2;
+                    msg += `\n\nUNLOCKED ACT 2: The Forest!`;
+                } else if (currentRun.arcId === 'arc2' && gameState.maxActReached < 3) {
+                    gameState.maxActReached = 3;
+                    msg += `\n\nUNLOCKED ACT 3: The Laboratory!`;
                 }
                 
                 saveGame();
