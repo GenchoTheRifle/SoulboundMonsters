@@ -145,10 +145,14 @@
                     effectDesc = `has a ${eff.chance * 100}% chance to stun ${targetStr} for ${eff.turns} turn(s)`;
                 } else if (eff.type === 'spd_buff_pct') {
                     effectDesc = `increases the speed of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
+                } else if (eff.type === 'spd_debuff_pct') {
+                    effectDesc = `decreases the speed of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
                 } else if (eff.type === 'atk_debuff_pct') {
                     effectDesc = `decreases the damage of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
                 } else if (eff.type === 'regen_flat') {
                     effectDesc = `applies health regeneration to ${targetStr}, healing ${eff.value} HP per turn for ${eff.turns} turns`;
+                } else if (eff.type === 'brambles') {
+                    effectDesc = `gains Thorns, reflecting ${eff.value} flat damage back to the attacker when hit by direct attacks for ${eff.turns} turns`;
                 } else if (eff.type === 'savage_stance_pct') {
                     effectDesc = `enters Savage Stance, gaining a ${eff.guard_value * 100}% shield until hit and increasing damage by ${eff.atk_value * 100}% for ${eff.turns} turns`;
                 } else if (eff.type === 'ultimate_overcharge') {

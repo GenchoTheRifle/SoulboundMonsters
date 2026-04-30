@@ -169,9 +169,18 @@
             modal.style.display = 'flex';
         }
 
-        function showGameConfirm(title, message, onYes, onNo) {
+        function showGameConfirm(title, message, onYes, onNo, htmlContent = '') {
             document.getElementById('confirm-title').innerText = title;
             document.getElementById('confirm-message').innerText = message;
+            
+            let htmlContainer = document.getElementById('confirm-html');
+            if (!htmlContainer) {
+                htmlContainer = document.createElement('div');
+                htmlContainer.id = 'confirm-html';
+                document.getElementById('confirm-message').after(htmlContainer);
+            }
+            htmlContainer.innerHTML = htmlContent;
+
             const modal = document.getElementById('modal-confirm');
             const yesBtn = document.getElementById('confirm-yes');
             const noBtn = document.getElementById('confirm-no');

@@ -314,11 +314,17 @@
 
                     const lifestealBuff = u.buffs.find(b => b.type === 'lifesteal_buff');
                     if (lifestealBuff) statusHtml += renderEmojiIcon('❤️‍🩹', goodStyle, 'Lifesteal', lifestealBuff.turns);
+
+                    const bramblesBuff = u.buffs.find(b => b.type === 'brambles');
+                    if (bramblesBuff) statusHtml += renderEmojiIcon('🌵', goodStyle, 'Thorns', bramblesBuff.turns);
                 }
                 
                 if (u.debuffs) {
                     const atkDebuff = u.debuffs.find(b => b.type === 'atk_debuff' || b.type === 'atk_debuff_pct');
                     if (atkDebuff) statusHtml += renderIcon('Art/Debuff DMG.png', badStyle, 'ATK Down', atkDebuff.turns);
+
+                    const spdDebuff = u.debuffs.find(b => b.type === 'spd_debuff' || b.type === 'spd_debuff_pct');
+                    if (spdDebuff) statusHtml += renderIcon('Art/Debuff SPD.png', badStyle, 'SPD Down', spdDebuff.turns);
                 }
 
                 if (u.defMod > 0) statusHtml += renderIcon('Art/Guard.png', goodStyle, 'Guarded');
@@ -401,6 +407,58 @@
                 return;
             }
 
+            // Decay buffs
+            if (unit.buffs) {
+                unit.buffs.forEach(b => {
+                    if (b.type !== 'guard' && b.type !== 'guard_pct') {
+                        b.turns--;
+                    }
+                });
+                unit.buffs = unit.buffs.filter(b => b.turns > 0 || b.type === 'guard' || b.type === 'guard_pct');
+                
+                // Recalculate mods
+                unit.atkMod = 0;
+                unit.spdMod = 0;
+                unit.defMod = 0;
+                unit.buffs.forEach(b => {
+                    if (b.type === 'atk_buff' || b.type === 'atk_buff_pct') unit.atkMod += b.value;
+                    if (b.type === 'spd_buff' || b.type === 'spd_buff_pct') unit.spdMod += b.value;
+                    if (b.type === 'guard' || b.type === 'guard_pct') unit.defMod = b.value;
+                    if (b.type === 'regen' || b.type === 'regen_flat') {
+                        const healAmount = b.value;
+                        unit.currentHp = Math.min(unit.hp, unit.currentHp + healAmount);
+                        combatLog(`${unit.name} regenerated ${healAmount} HP!`);
+                    }
+                });
+            }
+
+            // Decay debuffs
+            if (unit.debuffs) {
+                unit.debuffs.forEach(d => d.turns--);
+                unit.debuffs = unit.debuffs.filter(d => d.turns > 0);
+                
+                unit.debuffs.forEach(d => {
+                    if (d.type === 'atk_debuff' || d.type === 'atk_debuff_pct') unit.atkMod -= d.value;
+                    if (d.type === 'spd_debuff' || d.type === 'spd_debuff_pct') unit.spdMod -= d.value;
+                });
+            }
+
+            // Poison
+            if (unit.poison > 0 && unit.poisonTurns > 0) {
+                const dmg = unit.poison;
+                unit.currentHp -= dmg;
+                unit.poisonTurns--;
+                if (unit.poisonTurns <= 0) unit.poison = 0;
+                
+                combatLog(`${unit.name} took ${dmg} poison damage!`);
+                if (unit.currentHp <= 0) {
+                    combatLog(`${unit.name} fainted from poison!`);
+                    calculateTurnOrder(true); // Refresh order if someone died
+                    setTimeout(nextTurn, 1000);
+                    return;
+                }
+            }
+
             if (unit.stunned > 0) {
                 combatLog(`${unit.name} is stunned and skips their turn!`);
                 unit.stunned--;
@@ -436,58 +494,8 @@
             const unit = currentRun.turnOrder[currentRun.activeTurnIndex];
             if (unit && unit.currentHp > 0) {
                 unit.energy = Math.min(3, unit.energy + 1);
-                
-                // Decay buffs
-                if (unit.buffs) {
-                    unit.buffs.forEach(b => {
-                        if (b.type !== 'guard' && b.type !== 'guard_pct') {
-                            b.turns--;
-                        }
-                    });
-                    unit.buffs = unit.buffs.filter(b => b.turns > 0 || b.type === 'guard' || b.type === 'guard_pct');
-                    
-                    // Recalculate mods
-                    unit.atkMod = 0;
-                    unit.spdMod = 0;
-                    unit.defMod = 0;
-                    unit.buffs.forEach(b => {
-                        if (b.type === 'atk_buff' || b.type === 'atk_buff_pct') unit.atkMod += b.value;
-                        if (b.type === 'spd_buff' || b.type === 'spd_buff_pct') unit.spdMod += b.value;
-                        if (b.type === 'guard' || b.type === 'guard_pct') unit.defMod = b.value;
-                        if (b.type === 'regen' || b.type === 'regen_flat') {
-                            const healAmount = b.value;
-                            unit.currentHp = Math.min(unit.hp, unit.currentHp + healAmount);
-                            combatLog(`${unit.name} regenerated ${healAmount} HP!`);
-                        }
-                    });
-                }
-
-                // Decay debuffs
-                if (unit.debuffs) {
-                    unit.debuffs.forEach(d => d.turns--);
-                    unit.debuffs = unit.debuffs.filter(d => d.turns > 0);
-                    
-                    unit.debuffs.forEach(d => {
-                        if (d.type === 'atk_debuff' || d.type === 'atk_debuff_pct') unit.atkMod -= d.value;
-                    });
-                }
-
-                // Poison
-                if (unit.poison > 0 && unit.poisonTurns > 0) {
-                    const dmg = unit.poison;
-                    unit.currentHp -= dmg;
-                    unit.poisonTurns--;
-                    if (unit.poisonTurns <= 0) unit.poison = 0;
-                    
-                    combatLog(`${unit.name} took ${dmg} poison damage!`);
-                    if (unit.currentHp <= 0) {
-                        combatLog(`${unit.name} fainted from poison!`);
-                        calculateTurnOrder(true); // Refresh order if someone died
-                    }
-                }
             }
             currentRun.activeTurnIndex = (currentRun.activeTurnIndex + 1) % currentRun.turnOrder.length;
-            combatState.turnJustStarted = true;
             nextTurn();
         }
 
@@ -606,6 +614,17 @@
                         t.currentHp -= damage;
                         combatLog(`${t.name} took ${damage} damage!`);
 
+                        if (t.buffs) {
+                            const bramblesBuffs = t.buffs.filter(b => b.type === 'brambles');
+                            if (bramblesBuffs.length > 0) {
+                                const reflectAmt = bramblesBuffs[0].value;
+                                if (reflectAmt > 0) {
+                                    attacker.currentHp -= reflectAmt;
+                                    combatLog(`${attacker.name} took ${reflectAmt} damage from Thorns!`);
+                                }
+                            }
+                        }
+
                         if (attacker.buffs) {
                             const lifestealBuffs = attacker.buffs.filter(b => b.type === 'lifesteal_buff');
                             if (lifestealBuffs.length > 0) {
@@ -635,36 +654,50 @@
                 // Effects
                 if (move.effect) {
                     const eff = move.effect;
+                    function applyStatus(isDebuff, bType, bValue, bTurns) {
+                        const list = isDebuff ? (t.debuffs = t.debuffs || []) : (t.buffs = t.buffs || []);
+                        const existing = list.find(b => b.type === bType);
+                        if (existing) {
+                            existing.turns += bTurns;
+                            if (bValue !== undefined) existing.value = Math.max(existing.value || 0, bValue);
+                        } else {
+                            list.push({ type: bType, value: bValue, turns: bTurns });
+                        }
+                    }
+                    function recalcMods(unit) {
+                        unit.atkMod = 0; unit.spdMod = 0; unit.defMod = 0;
+                        if (unit.buffs) unit.buffs.forEach(b => {
+                            if (b.type.includes('atk_buff')) unit.atkMod += b.value;
+                            if (b.type.includes('spd_buff')) unit.spdMod += b.value;
+                            if (b.type.includes('guard')) unit.defMod = b.value;
+                        });
+                        if (unit.debuffs) unit.debuffs.forEach(d => {
+                            if (d.type.includes('atk_debuff')) unit.atkMod -= d.value;
+                            if (d.type.includes('spd_debuff')) unit.spdMod -= d.value;
+                        });
+                    }
+
                     if (eff.type.includes('debuff')) {
-                        if (!t.debuffs) t.debuffs = [];
-                        t.debuffs.push({ ...eff });
-                        if (eff.type.includes('atk_debuff')) t.atkMod -= eff.value;
+                        applyStatus(true, eff.type, eff.value, eff.turns);
+                        recalcMods(t);
                         combatLog(`${t.name}'s stats were lowered!`);
-                    } else if (eff.type.includes('buff') || eff.type.includes('guard') || eff.type.includes('savage_stance') || eff.type.includes('regen') || move.n === 'Ultimate Overcharge' || move.n === 'Overcharge') {
-                        if (!t.buffs) t.buffs = [];
-                        
+                    } else if (eff.type.includes('buff') || eff.type.includes('guard') || eff.type.includes('savage_stance') || eff.type.includes('regen') || eff.type === 'brambles' || move.n === 'Ultimate Overcharge' || move.n === 'Overcharge') {
                         if (eff.type === 'savage_stance' || eff.type === 'savage_stance_pct') {
-                            t.buffs.push({ type: 'atk_buff_pct', value: eff.atk_value, turns: eff.atk_turns });
-                            t.buffs.push({ type: 'guard_pct', value: eff.guard_value, turns: eff.guard_turns });
-                            t.atkMod += eff.atk_value;
-                            t.defMod = eff.guard_value;
+                            applyStatus(false, 'atk_buff_pct', eff.atk_value, eff.atk_turns);
+                            applyStatus(false, 'guard_pct', eff.guard_value, eff.guard_turns);
                             combatLog(`${t.name} entered Savage Stance!`);
                         } else if (eff.type === 'ultimate_overcharge' || move.n === 'Ultimate Overcharge') {
-                            t.buffs.push({ type: 'atk_buff_pct', value: 0.2, turns: 3 });
-                            t.buffs.push({ type: 'spd_buff_pct', value: 0.3, turns: 3 });
-                            t.atkMod += 0.2;
-                            t.spdMod += 0.3;
+                            applyStatus(false, 'atk_buff_pct', 0.2, 3);
+                            applyStatus(false, 'spd_buff_pct', 0.3, 3);
                             combatLog(`${t.name} is Ultimately Overcharged!`);
                         } else {
                             const turns = move.n === 'Overcharge' ? 3 : eff.turns;
-                            t.buffs.push({ ...eff, turns });
-                            if (eff.type.includes('atk_buff')) t.atkMod += eff.value;
-                            if (eff.type.includes('spd_buff')) t.spdMod += eff.value;
-                            if (eff.type.includes('guard')) t.defMod = eff.value;
+                            applyStatus(false, eff.type, eff.value, turns);
                             if (eff.type.includes('regen')) combatLog(`${t.name} gained Health Regen!`);
                             else if (eff.type === 'lifesteal_buff') combatLog(`${t.name} gained Lifesteal!`);
                             else combatLog(`${t.name} boosted stats!`);
                         }
+                        recalcMods(t);
                     } else if (eff.type.includes('heal')) {
                         const amount = eff.value || Math.floor((attacker.matk + attacker.ratk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
                         t.currentHp = Math.min(t.hp, t.currentHp + amount);
@@ -843,19 +876,89 @@
                         };
                         
                         const emptyIndex = currentRun.party.findIndex(p => p === null);
+                        const artHtml = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; height:200px;">${renderArt(recruit.art, 200)}</div>`;
+
                         if (emptyIndex !== -1) {
                             currentRun.party[emptyIndex] = recruit;
                             // Unlock in collection
+                            let text = '';
                             if (!gameState.unlockedStarters.includes(recruit.id)) {
                                 gameState.unlockedStarters.push(recruit.id);
                                 saveGame();
+                                text = `Defeated ${recruit.name} joined your party and is now unlocked in your Collection!`;
+                            } else {
+                                text = `Defeated ${recruit.name} joined your party!`;
                             }
-                            showGameAlert("Recruitment", `Defeated ${recruit.name} joined your party and is now unlocked in your Collection!`, advanceRun);
+                            showGameAlert("Recruitment", text, advanceRun, artHtml);
                             return;
                         } else {
-                            showGameConfirm("Recruitment", `Your party is full. Replace a monster with ${recruit.name}? (This will also unlock it in your Collection)`, 
+                            const mergesInParty = currentRun.party.filter(p => p && p.parents).length;
+                            const nonMerges = currentRun.party.filter(p => p && !p.parents);
+
+                            if (mergesInParty === 3 && nonMerges.length === 1) {
+                                const p1 = nonMerges[0];
+                                const p2 = recruit;
+                                const outcome = MERGES.find(m => 
+                                    (m.parents[0] === p1.id && m.parents[1] === p2.id) ||
+                                    (m.parents[0] === p2.id && m.parents[1] === p1.id)
+                                );
+
+                                if (outcome) {
+                                    const mergeArt = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; gap: 10px; height:150px;">
+                                        <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p1.art, 100)}</div>
+                                        <span style="font-size: 24px;">+</span> 
+                                        <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p2.art, 100)}</div>
+                                        <span style="font-size: 24px;">=</span> 
+                                        <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(outcome.art, 150)}</div>
+                                    </div>`;
+                                    
+                                    showGameConfirm(
+                                        "Auto Merge Opportunity", 
+                                        `You have 3 Merged monsters and 1 base monster (${p1.name}). Do you want to fuse ${p1.name} with ${p2.name} to create ${outcome.name}?`,
+                                        () => {
+                                            if (!gameState.unlockedStarters.includes(recruit.id)) {
+                                                gameState.unlockedStarters.push(recruit.id);
+                                            }
+                                            if (!gameState.discoveredMerges.includes(outcome.name)) {
+                                                gameState.discoveredMerges.push(outcome.name);
+                                            }
+                                            saveGame();
+                                            
+                                            const destIdx = currentRun.party.indexOf(p1);
+                                            currentRun.party[destIdx] = {
+                                                ...outcome,
+                                                isEnemy: false,
+                                                currentHp: outcome.hp,
+                                                energy: outcome.startingEnergy || 0
+                                            };
+                                            
+                                            showGameAlert("Merge Successful!", `Created ${outcome.name}!`, advanceRun, mergeArt);
+                                        },
+                                        () => {
+                                            let replaceText = `Replace a monster with ${recruit.name}?`;
+                                            if (!gameState.unlockedStarters.includes(recruit.id)) {
+                                                replaceText += ` (This will also unlock it in your Collection)`;
+                                            }
+                                            showGameConfirm("Recruitment", replaceText, 
+                                                () => openReplacementModal(recruit), 
+                                                advanceRun,
+                                                artHtml
+                                            );
+                                        },
+                                        mergeArt
+                                    );
+                                    return;
+                                }
+                            }
+
+                            let replaceText = `Your party is full. Replace a monster with ${recruit.name}?`;
+                            if (!gameState.unlockedStarters.includes(recruit.id)) {
+                                replaceText += ` (This will also unlock it in your Collection)`;
+                            }
+                            showGameConfirm("Recruitment", replaceText, 
                                 () => openReplacementModal(recruit), 
-                                advanceRun
+                                advanceRun,
+                                artHtml
                             );
                             return;
                         }

@@ -14,7 +14,7 @@
 
         function renderArt(art, size = 40) {
             if (art.includes('.png') || art.includes('/')) {
-                return `<img src="${art}" style="max-width:100%; max-height:100%; object-fit:contain;" />`;
+                return `<img src="${art}" style="max-width:100%; max-height:100%; object-fit:contain; image-rendering: pixelated;" />`;
             }
             return `<div style="font-size:${size}px; line-height:1;">${art}</div>`;
         }
@@ -55,12 +55,15 @@
             `;
             
             const moves = monster.moves || [];
-            const utilityMoves = ['Poison Cloud', 'Guard', 'Howl', 'Heal', 'Stun Bolt', 'Overcharge', 'Intimidate', 'King Heal', 'Renewal Spores', 'Toxin', 'Giant Poison Cloud', 'Elder Guard', 'Alpha Howl', 'Elite Stun Bolt', 'Ultimate Overcharge', 'Savage Stance', 'Full Throttle', 'Lifesteal', 'Crimson Lifesteal'];
             
             document.getElementById('col-detail-moves').innerHTML = moves.map(m => {
                 const typeIcon = getTypeIconHtml(m.t, 16);
                 let moveCategory = '';
-                if (utilityMoves.includes(m.n)) {
+                const isAoE = m.effect && (m.effect.target === 'all_enemies' || m.effect.target === 'all_allies');
+                
+                if (isAoE) {
+                    moveCategory = '<span style="color:#b19cd9; font-size:12px;">[AoE]</span>';
+                } else if (!m.p) {
                     moveCategory = '<span style="color:#ff9ff3; font-size:12px;">[Utility]</span>';
                 } else if (m.melee) {
                     moveCategory = '<span style="color:#ff6b6b; font-size:12px;">[Melee]</span>';

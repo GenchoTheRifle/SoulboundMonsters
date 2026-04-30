@@ -78,7 +78,7 @@
       "id": "slime",
       "name": "Slime",
       "type": "Nature",
-      "hp": 18,
+      "hp": 19,
       "spd": 7,
       "matk": 0,
       "mdef": 8,
@@ -259,36 +259,36 @@
     },
     "tree": {
       "id": "tree",
-      "name": "Tree",
+      "name": "Treant",
       "type": "Nature",
-      "hp": 26,
-      "spd": 3,
-      "matk": 8,
-      "mdef": 12,
+      "hp": 22,
+      "spd": 5,
+      "matk": 9,
+      "mdef": 8,
       "ratk": 0,
-      "rdef": 10,
+      "rdef": 8,
       "moves": [
         {
-          "n": "Root Strike",
+          "n": "Slam",
           "c": 1,
           "t": "Nature",
-          "p": 1.2,
+          "p": 1,
           "melee": true
         },
         {
-          "n": "Photosynthesis",
-          "c": 2,
+          "n": "Thorns",
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "regen_flat",
+            "type": "brambles",
             "value": 5,
             "turns": 3,
             "target": "self"
           }
         }
       ],
-      "art": "🌳",
+      "art": "Art/Treant.png",
       "startingEnergy": 1
     },
     "mech_melee": {
@@ -1906,62 +1906,53 @@
       ]
     },
     {
-      "name": "Bloodwood",
-      "type": [
-        "Beast",
-        "Nature"
-      ],
-      "hp": 20,
-      "matk": 5,
-      "mdef": 5,
-      "ratk": 10,
-      "rdef": 8,
-      "spd": 13,
-      "startingEnergy": 1,
-      "art": "🦇",
-      "parents": [
-        "bat",
-        "tree"
-      ],
+      "name": "Colossal Treant",
+      "hp": 28,
+      "spd": 4,
+      "matk": 12,
+      "mdef": 11,
+      "ratk": 5,
+      "rdef": 10,
       "moves": [
         {
-          "n": "Echo",
-          "c": 1,
-          "t": "Beast",
-          "p": 1,
-          "ranged": true
-        },
-        {
-          "n": "Lifesteal",
-          "c": 1,
-          "t": "Beast",
-          "p": 0,
-          "effect": {
-            "type": "lifesteal_buff",
-            "value": 0.5,
-            "turns": 3,
-            "target": "self"
-          }
-        },
-        {
-          "n": "Root Strike",
+          "n": "Colossal Slam",
           "c": 1,
           "t": "Nature",
           "p": 1.2,
           "melee": true
         },
         {
-          "n": "Photosynthesis",
-          "c": 2,
+          "n": "Colossal Thorns",
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "regen_flat",
+            "type": "brambles",
             "value": 5,
             "turns": 3,
             "target": "self"
           }
+        },
+        {
+          "n": "Root Crush",
+          "c": 2,
+          "t": "Nature",
+          "p": 1,
+          "melee": false,
+          "hits": 1,
+          "effect": {
+            "type": "spd_debuff_pct",
+            "value": 0.25,
+            "turns": 2,
+            "target": "all_enemies"
+          }
         }
+      ],
+      "art": "Art/Colossal Treant.png",
+      "startingEnergy": 1,
+      "parents": [
+        "tree",
+        "tree"
       ]
     }
   ],
