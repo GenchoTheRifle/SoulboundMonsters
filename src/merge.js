@@ -13,10 +13,10 @@
                 if (m && !mergeSlots.includes(m)) {
                     slot.innerHTML = `
                         <div draggable="true" ondragstart="dragStart(event, 'party', ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
-                            <div style="width:80px; height:80px; margin-bottom:5px;">
-                                ${renderArt(m.art, 60)}
+                            <div style="width:140px; height:140px; margin-bottom:5px; pointer-events:none;">
+                                ${renderArt(m.art, 120)}
                             </div>
-                            <strong style="font-size:12px; text-align:center;">${m.name}</strong>
+                            <strong style="font-size:18px; text-align:center; pointer-events:none;">${m.name}</strong>
                         </div>
                     `;
                     slot.classList.add('filled');
@@ -33,10 +33,10 @@
                     slot.classList.add('filled');
                     slot.innerHTML = `
                         <div draggable="true" ondragstart="dragStart(event, 'merge', ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
-                            <div style="width:80px; height:80px; margin-bottom:5px;">
-                                ${renderArt(s.art, 60)}
+                            <div style="width:140px; height:140px; margin-bottom:5px; pointer-events:none;">
+                                ${renderArt(s.art, 120)}
                             </div>
-                            <strong style="font-size:12px; text-align:center;">${s.name}</strong>
+                            <strong style="font-size:18px; text-align:center; pointer-events:none;">${s.name}</strong>
                         </div>
                     `;
                 } else {
@@ -136,7 +136,7 @@
                 }).join('');
 
                 btn.innerHTML = `
-                    <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">${renderArt(m.art, 60)}</div>
+                    <div style="height:140px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">${renderArt(m.art, 120)}</div>
                     <strong>${m.name}</strong>
                     <div style="font-size:10px; color:#ccc; margin-top:2px;">HP: ${m.currentHp}/${m.hp}</div>
                     <div style="display:flex; gap:2px; margin-top:5px;">${typeHtml}</div>
@@ -189,8 +189,8 @@
 
                 const htmlContent = `
                     <div style="display:flex; flex-direction:column; align-items:center; margin: 15px 0;">
-                        <div style="width:150px; height:150px; margin-bottom:10px;">
-                            ${renderArt(outcome.art, 100)}
+                        <div style="width:200px; height:200px; margin-bottom:10px;">
+                            ${renderArt(outcome.art, 200)}
                         </div>
                         <strong style="font-size:24px; color: var(--accent);">${outcome.name}</strong>
                     </div>

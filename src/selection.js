@@ -14,11 +14,10 @@
                 if (!slot) return;
                 if (s) {
                     slot.classList.add('filled');
-                    const typeHtml = getTypeIconHtml(s.type, 24);
+                    
                     slot.innerHTML = `
-                        <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:5px; pointer-events: none;">${renderArt(s.art, 60)}</div>
+                        <div class="monster-art" style="pointer-events: none;">${renderArt(s.art, 140)}</div>
                         <strong style="pointer-events: none;">${s.name}</strong>
-                        <div style="display:flex; gap:2px; margin-top:2px; pointer-events: none; justify-content:center;">${typeHtml}</div>
                     `;
                     slot.setAttribute('draggable', 'true');
                     slot.ondragstart = (e) => dragStartSelection(e, s.id, i);
@@ -39,7 +38,11 @@
             if (!list) return;
             list.innerHTML = '';
             
-            gameState.unlockedStarters.forEach(id => {
+            const sortedStartersList = [...gameState.unlockedStarters].sort((a, b) => {
+                return Object.keys(STARTERS).indexOf(a) - Object.keys(STARTERS).indexOf(b);
+            });
+            
+            sortedStartersList.forEach(id => {
                 // If it's already in a slot, don't show in list
                 if (selectionSlots.some(s => s && s.id === id)) return;
 
@@ -52,12 +55,9 @@
                 btn.setAttribute('draggable', 'true');
                 btn.ondragstart = (e) => dragStartSelection(e, id, null);
 
-                const typeHtml = getTypeIconHtml(s.type, 28);
-
                 btn.innerHTML = `
-                    <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:5px; pointer-events: none;">${renderArt(s.art, 60)}</div>
+                    <div class="monster-art" style="pointer-events: none;">${renderArt(s.art, 140)}</div>
                     <strong style="pointer-events: none;">${s.name}</strong>
-                    <div style="display:flex; gap:2px; margin-top:2px; justify-content:center; pointer-events: none;">${typeHtml}</div>
                 `;
                 list.appendChild(btn);
             });
@@ -122,17 +122,18 @@
             
             list.className = 'collection-grid';
             
-            gameState.unlockedStarters.forEach(id => {
+            const sortedStartersModal = [...gameState.unlockedStarters].sort((a, b) => {
+                return Object.keys(STARTERS).indexOf(a) - Object.keys(STARTERS).indexOf(b);
+            });
+            
+            sortedStartersModal.forEach(id => {
                 const s = STARTERS[id];
                 const btn = document.createElement('div');
                 btn.className = 'collection-square';
                 
-                const typeHtml = getTypeIconHtml(s.type, 28);
-
                 btn.innerHTML = `
-                    <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">${renderArt(s.art, 60)}</div>
+                    <div class="monster-art">${renderArt(s.art, 140)}</div>
                     <strong>${s.name}</strong>
-                    <div style="display:flex; gap:2px; margin-top:5px; justify-content:center;">${typeHtml}</div>
                 `;
                 btn.onclick = () => {
                     selectionSlots[slotIndex] = JSON.parse(JSON.stringify(s));
@@ -216,8 +217,7 @@
                 const s = STARTERS[id];
                 const btn = document.createElement('div');
                 btn.className = 'collection-square';
-                btn.style.width = '180px';
-                btn.style.height = '180px';
+                btn.style.width = '200px';
                 btn.style.cursor = 'pointer';
                 btn.style.transition = 'all 0.2s';
                 
@@ -228,12 +228,22 @@
                     btn.style.transform = 'scale(1.05)';
                 }
                 
-                const typeHtml = getTypeIconHtml(s.type, 32);
-
+                let extraLabels = '';
+                if (s.id === 'wolf') {
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid #ff5252; z-index: 10;">Attacker</div>`;
+                } else if (s.id === 'slime') {
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid #42a5f5; z-index: 10;">Defender</div>`;
+                } else if (s.id === 'sentry') {
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #e6c200; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: black; border: 1px solid #ffee58; z-index: 10;">Balanced</div>`;
+                }
+                
+                let elementIcon = `<img src="Art/${s.type}.png" style="width: 24px; height: 24px; position: absolute; top: 5px; right: 5px; filter: drop-shadow(0px 0px 2px #000);" alt="${s.type}" />`;
+                
                 btn.innerHTML = `
-                    <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:10px; pointer-events:none;">${renderArt(s.art, 60)}</div>
+                    ${extraLabels}
+                    ${elementIcon}
+                    <div class="monster-art" style="pointer-events:none;">${renderArt(s.art, 160)}</div>
                     <strong style="font-size: 20px; pointer-events:none;">${s.name}</strong>
-                    <div style="display:flex; gap:5px; margin-top:10px; justify-content:center; pointer-events:none;">${typeHtml}</div>
                 `;
                 
                 btn.onclick = () => toggleFirstTimeStarter(id);

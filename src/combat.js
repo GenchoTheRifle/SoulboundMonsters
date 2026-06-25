@@ -32,20 +32,17 @@
             // Define pools per Act
             let simplePool = ['wolf', 'slime', 'sentry'];
             const advancedPool = ['bear', 'mushroom', 'sparkbot'];
-            let allPool = [...simplePool, ...advancedPool];
-            
-            if (currentRun.arcId === 'arc2') {
-                allPool.push('bat');
-            } else if (currentRun.arcId === 'arc3') {
-                allPool.push('bat', 'tree');
-            }
+            let extraEnemies = [];
+            if (gameState.unlockedStarters.includes('bat') || gameState.maxActReached >= 2) extraEnemies.push('bat');
+            if (gameState.unlockedStarters.includes('tree') || gameState.maxActReached >= 3) extraEnemies.push('tree');
+            if (gameState.unlockedStarters.includes('mech_melee') || gameState.maxActReached >= 4) extraEnemies.push('mech_melee');
+            extraEnemies = [...new Set(extraEnemies)];
+
+            let allPool = [...simplePool, ...advancedPool, ...extraEnemies];
 
             let pool = allPool;
-            if (currentRun.nodeIndex <= 3) pool = [...simplePool]; // Nodes 1, 2, 4
-            else if (currentRun.nodeIndex === 4) pool = [...advancedPool]; // Node 5
-
-            if (currentRun.arcId === 'arc2' && currentRun.nodeIndex <= 3) pool.push('bat');
-            if (currentRun.arcId === 'arc3' && currentRun.nodeIndex <= 3) pool.push('bat', 'tree');
+            if (currentRun.nodeIndex <= 3) pool = [...simplePool, ...extraEnemies]; // Nodes 1, 2, 4
+            else if (currentRun.nodeIndex === 4) pool = [...advancedPool, ...extraEnemies]; // Node 5
 
             if (node.type === 'boss') {
                 let bossId = 'mega_bat';
@@ -78,14 +75,13 @@
                     const key = pool[Math.floor(Math.random() * pool.length)];
                     const base = STARTERS[key];
                     
-                    // Base multiplier for node level
-                    const levelMult = 0.8 + (node.level * 0.2);
-                    
-                    // User wants enemies to be 20% WEAKER than player monsters.
-                    // We'll use the base stats * levelMult * 0.8 to ensure they are always 20% weaker than a "standard" version of themselves at that level.
-                    const enemyHp = Math.floor(base.hp * levelMult * 0.8);
-                    const enemyMatk = Math.floor(base.matk * levelMult * 0.8);
-                    const enemyRatk = Math.floor(base.ratk * levelMult * 0.8);
+                    // Enemies do not scale, they start with full base stats.
+                    const enemyHp = base.hp;
+                    const enemyMatk = base.matk;
+                    const enemyRatk = base.ratk;
+                    const enemyMdef = base.mdef;
+                    const enemyRdef = base.rdef;
+                    const enemySpd = base.spd;
 
                     combatState.enemies.push({
                         ...base,
@@ -94,6 +90,9 @@
                         currentHp: enemyHp,
                         matk: enemyMatk,
                         ratk: enemyRatk,
+                        mdef: enemyMdef,
+                        rdef: enemyRdef,
+                        spd: enemySpd,
                         isEnemy: true,
                         id: `enemy-${Date.now()}-${i}`,
                         energy: base.startingEnergy !== undefined ? base.startingEnergy : 1,
@@ -149,6 +148,35 @@
                 currentRun.turnOrder = all;
                 currentRun.activeTurnIndex = 0;
             }
+        }
+
+        
+        function showFloatingText(unit, text, color) {
+            const teamPrefix = unit.isEnemy ? 'enemy' : 'player';
+            let index = -1;
+            if (unit.isEnemy) {
+                index = combatState.enemies.indexOf(unit);
+            } else {
+                index = currentRun.party.indexOf(unit);
+            }
+            if (index === -1) return;
+            
+            const teamContainer = document.getElementById(teamPrefix + '-team');
+            if (!teamContainer || !teamContainer.children[index]) return;
+            const unitEl = teamContainer.children[index];
+            
+            const textEl = document.createElement('div');
+            textEl.className = 'floating-damage';
+            textEl.style.color = color;
+            textEl.innerHTML = text;
+            
+            unitEl.appendChild(textEl);
+            
+            setTimeout(() => {
+                if (textEl && textEl.parentNode) {
+                    textEl.parentNode.removeChild(textEl);
+                }
+            }, 1200);
         }
 
         function updateCombatUI() {
@@ -246,8 +274,16 @@
                 }
 
                 if (isCorrectSide) {
-                    if (combatState.targetingMove.melee) {
-                        const targetTeam = u.isEnemy ? combatState.enemies : currentRun.party;
+                    const targetTeam = u.isEnemy ? combatState.enemies : currentRun.party;
+                    const tauntingTargets = targetTeam.filter(e => e && e.currentHp > 0 && e.buffs && e.buffs.some(b => b.type === 'taunt'));
+                    
+                    if (tauntingTargets.length > 0) {
+                        if (u.buffs && u.buffs.some(b => b.type === 'taunt')) {
+                            isTargetable = true;
+                        } else {
+                            isTargetable = false;
+                        }
+                    } else if (combatState.targetingMove.melee) {
                         const frontlineDead = (!targetTeam[0] || targetTeam[0].currentHp <= 0) && (!targetTeam[1] || targetTeam[1].currentHp <= 0);
                         if (index < 2 || frontlineDead) {
                             isTargetable = true;
@@ -303,7 +339,7 @@
                 if (u.stunned > 0) statusHtml += renderIcon('Art/Stun.png', badStyle, 'Stunned', u.stunned);
                 
                 if (u.buffs) {
-                    const regenBuff = u.buffs.find(b => b.type === 'regen' || b.type === 'regen_flat');
+                    const regenBuff = u.buffs.find(b => b.type === 'regen' || b.type === 'regen_flat' || b.type === 'regen_pct');
                     if (regenBuff) statusHtml += renderIcon('Art/Regen.png', goodStyle, 'Regen', regenBuff.turns);
                     
                     const atkBuff = u.buffs.find(b => b.type === 'atk_buff' || b.type === 'atk_buff_pct');
@@ -317,8 +353,14 @@
 
                     const bramblesBuff = u.buffs.find(b => b.type === 'brambles');
                     if (bramblesBuff) statusHtml += renderEmojiIcon('🌵', goodStyle, 'Thorns', bramblesBuff.turns);
+
+                    const counterBuff = u.buffs.find(b => b.type === 'counter');
+                    if (counterBuff) statusHtml += renderEmojiIcon('⚔️', goodStyle, 'Counter', counterBuff.turns);
+
+                    const tauntBuff = u.buffs.find(b => b.type === 'taunt');
+                    if (tauntBuff) statusHtml += renderEmojiIcon('🎯', goodStyle, 'Taunt', tauntBuff.turns);
                 }
-                
+
                 if (u.debuffs) {
                     const atkDebuff = u.debuffs.find(b => b.type === 'atk_debuff' || b.type === 'atk_debuff_pct');
                     if (atkDebuff) statusHtml += renderIcon('Art/Debuff DMG.png', badStyle, 'ATK Down', atkDebuff.turns);
@@ -383,8 +425,62 @@
             
             if (isTargetable) {
                 div.onclick = () => executeMove(combatState.activeUnit, combatState.targetingMove, u);
+                div.onmouseover = () => {
+                    if (combatState.targetingMove && combatState.activeUnit && u) {
+                        const dmg = calculateDamage(combatState.activeUnit, combatState.targetingMove, u);
+                        // Make sure the move does damage and it targets an enemy
+                        if (dmg > 0 && !(combatState.targetingMove.effect && combatState.targetingMove.effect.target === "ally")) {
+                            let dmgEl = div.querySelector('.projected-damage');
+                            if (!dmgEl) {
+                                dmgEl = document.createElement('div');
+                                dmgEl.className = 'projected-damage';
+                                dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight:bold; color:#ff4444; z-index:50; text-shadow:2px 2px 4px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black; pointer-events:none;';
+                                div.appendChild(dmgEl);
+                            }
+                            // Calculate hit count for total damage preview if it's a multi-hit move
+                            const hitCount = combatState.targetingMove.hits || 1;
+                            const totalDmg = dmg * hitCount;
+                            
+                            const targetTypes = Array.isArray(u.type) ? u.type : [u.type];
+                            const mult = getElementMultiplier(combatState.targetingMove.t, targetTypes);
+                            let arrow = '';
+                            if (mult > 1) {
+                                arrow = ' <span style="color:#ffcc00;">↑</span>';
+                            } else if (mult < 1) {
+                                arrow = ' <span style="color:#aaa;">↓</span>';
+                            }
+                            
+                            dmgEl.innerHTML = `-${totalDmg}${arrow}`;
+                        } else if (combatState.targetingMove.effect && combatState.targetingMove.effect.type.includes('heal')) {
+                            let dmgEl = div.querySelector('.projected-damage');
+                            if (!dmgEl) {
+                                dmgEl = document.createElement('div');
+                                dmgEl.className = 'projected-damage';
+                                dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight:bold; color:#51cf66; z-index:50; text-shadow:2px 2px 4px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black; pointer-events:none;';
+                                div.appendChild(dmgEl);
+                            }
+                            
+                            const eff = combatState.targetingMove.effect;
+                            let amount = 0;
+                            if (eff.type === 'heal_pct') {
+                                amount = Math.floor(combatState.activeUnit.hp * eff.value);
+                            } else {
+                                amount = eff.value || Math.floor((combatState.activeUnit.matk + combatState.activeUnit.ratk + (combatState.activeUnit.atkMod || 0)) * 1.5 * (combatState.targetingMove.p || 1.0));
+                            }
+                            dmgEl.innerHTML = `+${amount}`;
+                        }
+                    }
+                };
+                div.onmouseout = () => {
+                    const dmgEl = div.querySelector('.projected-damage');
+                    if (dmgEl) dmgEl.remove();
+                };
             } else {
                 div.onclick = null;
+                div.onmouseover = null;
+                div.onmouseout = null;
+                const dmgEl = div.querySelector('.projected-damage');
+                if (dmgEl) dmgEl.remove();
             }
         }
 
@@ -424,9 +520,10 @@
                     if (b.type === 'atk_buff' || b.type === 'atk_buff_pct') unit.atkMod += b.value;
                     if (b.type === 'spd_buff' || b.type === 'spd_buff_pct') unit.spdMod += b.value;
                     if (b.type === 'guard' || b.type === 'guard_pct') unit.defMod = b.value;
-                    if (b.type === 'regen' || b.type === 'regen_flat') {
-                        const healAmount = b.value;
+                    if (b.type === 'regen' || b.type === 'regen_flat' || b.type === 'regen_pct') {
+                        const healAmount = b.type === 'regen_pct' ? Math.floor(unit.hp * b.value) : b.value;
                         unit.currentHp = Math.min(unit.hp, unit.currentHp + healAmount);
+                        showFloatingText(unit, "+" + healAmount, "#51cf66");
                         combatLog(`${unit.name} regenerated ${healAmount} HP!`);
                     }
                 });
@@ -447,6 +544,7 @@
             if (unit.poison > 0 && unit.poisonTurns > 0) {
                 const dmg = unit.poison;
                 unit.currentHp -= dmg;
+                showFloatingText(unit, "-" + dmg, "#a200ff");
                 unit.poisonTurns--;
                 if (unit.poisonTurns <= 0) unit.poison = 0;
                 
@@ -577,8 +675,9 @@
                     const enemies = attacker.isEnemy ? currentRun.party : combatState.enemies;
                     const aliveEnemies = enemies.filter(e => e && e.currentHp > 0);
                     if (aliveEnemies.length > 0) {
-                        let validTargets = aliveEnemies;
-                        if (move.melee) {
+                        let tauntingEnemies = aliveEnemies.filter(e => e.buffs && e.buffs.some(b => b.type === 'taunt'));
+                        let validTargets = tauntingEnemies.length > 0 ? tauntingEnemies : aliveEnemies;
+                        if (move.melee && tauntingEnemies.length === 0) {
                             const frontline = enemies.slice(0, 2).filter(e => e && e.currentHp > 0);
                             if (frontline.length > 0) validTargets = frontline;
                         }
@@ -611,8 +710,31 @@
                             }
                         }
 
-                        t.currentHp -= damage;
-                        combatLog(`${t.name} took ${damage} damage!`);
+                        let countered = false;
+                        if (t.buffs) {
+                            const counterBuffIdx = t.buffs.findIndex(b => b.type === 'counter');
+                            if (counterBuffIdx !== -1) {
+                                countered = true;
+                                const counterBuff = t.buffs[counterBuffIdx];
+                                const counterDamage = Math.floor(damage * counterBuff.value);
+                                t.buffs.splice(counterBuffIdx, 1); // remove counter after hit
+                                attacker.currentHp -= counterDamage;
+                                showFloatingText(attacker, "-" + counterDamage, "#ff4444");
+                                combatLog(`${t.name} countered! ${attacker.name} took ${counterDamage} damage!`);
+                                damage = 0;
+                            }
+                        }
+
+                        if (!countered) {
+                            t.currentHp -= damage;
+                            const targetTypesList = Array.isArray(t.type) ? t.type : [t.type];
+                            const dmgMult = getElementMultiplier(move.t, targetTypesList);
+                            let arrow = '';
+                            if (dmgMult > 1) arrow = ' <span style="color:#ffcc00; text-shadow: 2px 2px 2px #000;">↑</span>';
+                            else if (dmgMult < 1) arrow = ' <span style="color:#aaa; text-shadow: 2px 2px 2px #000;">↓</span>';
+                            showFloatingText(t, "-" + damage + arrow, "#ff4444");
+                            combatLog(`${t.name} took ${damage} damage!`);
+                        }
 
                         if (t.buffs) {
                             const bramblesBuffs = t.buffs.filter(b => b.type === 'brambles');
@@ -620,6 +742,7 @@
                                 const reflectAmt = bramblesBuffs[0].value;
                                 if (reflectAmt > 0) {
                                     attacker.currentHp -= reflectAmt;
+                                    showFloatingText(attacker, "-" + reflectAmt, "#ff4444");
                                     combatLog(`${attacker.name} took ${reflectAmt} damage from Thorns!`);
                                 }
                             }
@@ -632,6 +755,7 @@
                                 const healAmt = Math.floor(damage * lifestealAmt);
                                 if (healAmt > 0) {
                                     attacker.currentHp = Math.min(attacker.hp, attacker.currentHp + healAmt);
+                                    showFloatingText(attacker, "+" + healAmt, "#51cf66");
                                     combatLog(`${attacker.name} lifestealed ${healAmt} HP!`);
                                 }
                             }
@@ -681,7 +805,7 @@
                         applyStatus(true, eff.type, eff.value, eff.turns);
                         recalcMods(t);
                         combatLog(`${t.name}'s stats were lowered!`);
-                    } else if (eff.type.includes('buff') || eff.type.includes('guard') || eff.type.includes('savage_stance') || eff.type.includes('regen') || eff.type === 'brambles' || move.n === 'Ultimate Overcharge' || move.n === 'Overcharge') {
+                    } else if (eff.type.includes('buff') || eff.type.includes('guard') || eff.type.includes('savage_stance') || eff.type.includes('regen') || eff.type === 'brambles' || eff.type === 'counter' || eff.type === 'taunt' || move.n === 'Ultimate Overcharge' || move.n === 'Overcharge') {
                         if (eff.type === 'savage_stance' || eff.type === 'savage_stance_pct') {
                             applyStatus(false, 'atk_buff_pct', eff.atk_value, eff.atk_turns);
                             applyStatus(false, 'guard_pct', eff.guard_value, eff.guard_turns);
@@ -692,15 +816,30 @@
                             combatLog(`${t.name} is Ultimately Overcharged!`);
                         } else {
                             const turns = move.n === 'Overcharge' ? 3 : eff.turns;
-                            applyStatus(false, eff.type, eff.value, turns);
+                            let appliedType = eff.type;
+                            let appliedValue = eff.value;
+                            if (eff.type === 'regen_pct') {
+                                appliedType = 'regen';
+                                appliedValue = Math.floor(attacker.hp * eff.value);
+                            }
+                            applyStatus(false, appliedType, appliedValue, turns);
                             if (eff.type.includes('regen')) combatLog(`${t.name} gained Health Regen!`);
                             else if (eff.type === 'lifesteal_buff') combatLog(`${t.name} gained Lifesteal!`);
+                            else if (eff.type === 'brambles') combatLog(`${t.name} gained Thorns!`);
+                            else if (eff.type === 'counter') combatLog(`${t.name} prepared to Counter!`);
+                            else if (eff.type === 'taunt') combatLog(`${t.name} is Taunting enemies!`);
                             else combatLog(`${t.name} boosted stats!`);
                         }
                         recalcMods(t);
                     } else if (eff.type.includes('heal')) {
-                        const amount = eff.value || Math.floor((attacker.matk + attacker.ratk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
+                        let amount = 0;
+                        if (eff.type === 'heal_pct') {
+                            amount = Math.floor(attacker.hp * eff.value);
+                        } else {
+                            amount = eff.value || Math.floor((attacker.matk + attacker.ratk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
+                        }
                         t.currentHp = Math.min(t.hp, t.currentHp + amount);
+                        showFloatingText(t, "+" + amount, "#51cf66");
                         combatLog(`${t.name} was healed for ${amount}!`);
                     } else if (eff.type === 'stun' && Math.random() < eff.chance) {
                         t.stunned = eff.turns;
@@ -710,16 +849,12 @@
                         combatLog(`${t.name} fell asleep!`);
                     } else if (eff.type.includes('poison')) {
                         let poisonDmg = 0;
-                        if (move.n === 'Poison Cloud') {
-                            poisonDmg = 4;
-                        } else if (move.n === 'Giant Poison Cloud') {
-                            poisonDmg = 8;
-                        } else if (eff.type === 'poison_pct') {
+                        if (eff.type === 'poison_pct') {
                             poisonDmg = Math.floor(t.hp * eff.value);
                         } else {
-                            poisonDmg = eff.value;
+                            poisonDmg = eff.value || 8;
                         }
-                        t.poison = poisonDmg;
+                        t.poison = Math.max(t.poison || 0, poisonDmg);
                         t.poisonTurns = eff.turns;
                         combatLog(`${t.name} was poisoned!`);
                     }
@@ -762,23 +897,28 @@
             isExecutingMove = false;
         }
 
+        function getElementMultiplier(moveType, targetTypes) {
+            let totalMult = 1;
+            targetTypes.forEach(bt => {
+                let currentMult = 1;
+                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.NATURE) currentMult = 1.5;
+                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.MECH) currentMult = 1.5;
+                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.BEAST) currentMult = 1.5;
+
+                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.BEAST) currentMult = 0.75;
+                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.NATURE) currentMult = 0.75;
+                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.MECH) currentMult = 0.75;
+                
+                totalMult *= currentMult;
+            });
+            return totalMult;
+        }
+
         function calculateDamage(attacker, move, target) {
             const moveType = move.t;
             const targetTypes = Array.isArray(target.type) ? target.type : [target.type];
 
-            let maxMult = 1;
-            targetTypes.forEach(bt => {
-                let currentMult = 1;
-                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.NATURE) currentMult = 2;
-                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.MECH) currentMult = 2;
-                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.BEAST) currentMult = 2;
-
-                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.BEAST) currentMult = 0.5;
-                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.NATURE) currentMult = 0.5;
-                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.MECH) currentMult = 0.5;
-                
-                if (currentMult > maxMult) maxMult = currentMult;
-            });
+            let maxMult = getElementMultiplier(moveType, targetTypes);
 
             let atkStat = 0;
             let defStat = 0;
@@ -799,10 +939,11 @@
             // Apply defMod (which is a percentage guard, e.g. 0.4 for -40% damage)
             let defMod = target.defMod || 0; // 0 means no guard, 0.4 means 40% reduction
             
-            let finalDamage = rawAttack * (100 / (100 + defStat));
+            let defMultiplier = Math.max(0, 1 - (defStat / 100));
+            let finalDamage = rawAttack * defMultiplier;
             finalDamage = finalDamage * (1 - defMod);
 
-            return Math.max(1, Math.floor(finalDamage));
+            return Math.max(1, Math.round(finalDamage));
         }
 
         function enemyAI(unit) {
@@ -976,7 +1117,24 @@
             const modal = document.getElementById('modal-selection');
             const list = document.getElementById('modal-list');
             document.getElementById('modal-title').innerText = "Select to Replace";
-            list.innerHTML = '';
+            list.className = '';
+            list.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+                    <div style="transform: scale(0.9); transform-origin: top center; margin-bottom: -40px;">
+                        <div style="display: grid; grid-template-columns: 200px 200px; gap: 40px; justify-content: center; margin-bottom: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px black;">
+                            <div style="text-align: center;">BACKLINE</div>
+                            <div style="text-align: center;">FRONTLINE</div>
+                        </div>
+                        <div style="position: relative; padding: 20px 40px; background: url('Art/Map.png') center/cover; border-radius: 15px; border: 2px solid #444;">
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); border-radius: 15px;"></div>
+                            <div class="team" style="position: relative; z-index: 2; width: auto; padding: 0; direction: rtl;" id="replace-list-team">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const teamContainer = document.getElementById('replace-list-team');
             
             const closeBtn = document.getElementById('modal-selection-close-btn');
             closeBtn.onclick = () => {
@@ -984,24 +1142,26 @@
                 advanceRun();
             };
             
-            list.className = 'collection-grid';
-            
-            currentRun.party.forEach((m, idx) => {
-                if (!m) return;
+            for(let idx = 0; idx < 4; idx++) {
+                const m = currentRun.party[idx];
                 const btn = document.createElement('div');
-                btn.className = 'collection-square';
+                btn.className = 'select-slot';
+                btn.style.direction = 'ltr';
+                btn.style.width = '180px';
+                btn.style.height = '180px';
                 
-                const types = (Array.isArray(m.type) ? m.type : [m.type]).filter(Boolean);
-                const typeHtml = types.map(t => {
-                    const icon = getElementIcon(t);
-                    return icon ? `<img src="${icon}" style="width:28px; height:28px;" alt="${t}" title="${t}" />` : `<div class="type-tag type-${t.toLowerCase()}" style="font-size: 10px; padding: 2px 4px;">${t}</div>`;
-                }).join('');
-
+                if (!m) {
+                    teamContainer.appendChild(btn);
+                    continue;
+                }
+                
                 btn.innerHTML = `
-                    <div style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:5px;">${renderArt(m.art, 60)}</div>
+                    <div style="width:100px; height:100px; margin-bottom:5px;">
+                        ${renderArt(m.art, 90)}
+                    </div>
                     <strong>${m.name}</strong>
-                    <div style="display:flex; gap:2px; margin-top:2px; justify-content:center;">${typeHtml}</div>
-                    <button style="margin-top: 10px; width: 100%;">Replace</button>
+                    <div style="font-size: 0.9em; margin-top: 5px; color: #ffeb3b;">HP: ${m.currentHp} / ${m.hp}</div>
+                    <button style="margin-top: 5px; width: 100%;">Replace</button>
                 `;
                 btn.querySelector('button').onclick = () => {
                     currentRun.party[idx] = recruit;
@@ -1009,12 +1169,18 @@
                     if (!gameState.unlockedStarters.includes(recruit.id)) {
                         gameState.unlockedStarters.push(recruit.id);
                         saveGame();
+                        setTimeout(() => {
+                            showGameAlert("Recruitment", `You replaced ${m.name} with ${recruit.name}. It is now unlocked in your Collection!`, advanceRun, `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; height:200px;">${renderArt(recruit.art, 200)}</div>`);
+                        }, 500);
+                    } else {
+                        setTimeout(() => {
+                            showGameAlert("Recruitment", `You replaced ${m.name} with ${recruit.name}!`, advanceRun, `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; height:200px;">${renderArt(recruit.art, 200)}</div>`);
+                        }, 500);
                     }
                     closeModal('modal-selection');
-                    advanceRun();
                 };
-                list.appendChild(btn);
-            });
+                teamContainer.appendChild(btn);
+            }
             modal.style.display = 'flex';
         }
 

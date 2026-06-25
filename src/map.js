@@ -88,10 +88,10 @@
                 if (m) {
                     slot.innerHTML = `
                         <div draggable="true" ondragstart="dragStartMap(event, ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
-                            <div style="width:80px; height:80px; margin-bottom:5px;">
-                                ${renderArt(m.art, 60)}
+                            <div style="width:140px; height:140px; margin-bottom:5px; pointer-events:none;">
+                                ${renderArt(m.art, 120)}
                             </div>
-                            <strong style="font-size:12px; text-align:center;">${m.name}</strong>
+                            <strong style="font-size:18px; text-align:center; pointer-events:none;">${m.name}</strong>
                         </div>
                     `;
                     slot.classList.add('filled');

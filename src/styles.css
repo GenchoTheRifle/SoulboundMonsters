@@ -58,6 +58,8 @@
             font-size: 40px;
             margin: 10px 0;
             filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
 
         .type-container {
@@ -134,9 +136,10 @@
 
         .collection-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            grid-template-columns: repeat(6, 1fr);
             gap: 15px;
             padding: 10px;
+            align-content: start;
         }
 
         .collection-square {
@@ -152,11 +155,14 @@
             transition: transform 0.1s, border-color 0.2s;
             aspect-ratio: 1 / 1;
             text-align: center;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            position: relative;
         }
 
         .collection-square:hover {
             border-color: var(--accent);
-            transform: scale(1.05);
+            transform: scale(1.05) translateZ(0);
         }
 
         .collection-square.locked {
@@ -221,8 +227,8 @@
         }
 
         .select-slot {
-            width: 150px;
-            height: 150px;
+            width: 200px;
+            height: 200px;
             border: 2px dashed #888;
             border-radius: 10px;
             display: flex;
@@ -232,6 +238,7 @@
             background: rgba(0,0,0,0.3);
             cursor: pointer;
             transition: all 0.2s;
+            position: relative;
         }
 
         .select-slot:hover {
@@ -409,9 +416,15 @@
         }
 
         .combatant.boss {
+            /* Keep container normal scale, push it down slightly */
+            margin-top: 60px;
+            margin-bottom: 20px;
+        }
+
+        .combatant.boss .monster-art-container {
             transform: scale(2.0);
             transform-origin: bottom center;
-            margin-bottom: 40px;
+            margin-bottom: 40px; /* Make room since transform doesn't affect flow */
         }
 
         #player-team {
@@ -643,8 +656,8 @@
         }
 
         .merge-slot {
-            width: 120px;
-            height: 120px;
+            width: 180px;
+            height: 180px;
             border: 2px dashed #444;
             border-radius: 15px;
             display: flex;
@@ -692,10 +705,11 @@
 
         #modal-selection .modal-content {
             max-width: 800px;
+            width: fit-content;
         }
 
         #modal-list {
-            max-height: 60vh;
+            max-height: 90vh;
             overflow-y: auto;
             margin-bottom: 15px;
         }
@@ -717,3 +731,20 @@
         .confirm-btns button {
             flex: 1;
         }
+
+@keyframes floatUp {
+    0% { transform: translate(-50%, 0); opacity: 1; }
+    100% { transform: translate(-50%, -60px); opacity: 0; }
+}
+.floating-damage {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 36px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black;
+    pointer-events: none;
+    z-index: 100;
+    animation: floatUp 1.2s ease-out forwards;
+}

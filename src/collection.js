@@ -14,7 +14,7 @@
 
         function renderArt(art, size = 40) {
             if (art.includes('.png') || art.includes('/')) {
-                return `<img src="${art}" style="max-width:100%; max-height:100%; object-fit:contain; image-rendering: pixelated;" />`;
+                return `<img src="${art}" style="width:${size}px; height:${size}px; object-fit:contain; image-rendering: pixelated;" draggable="false" />`;
             }
             return `<div style="font-size:${size}px; line-height:1;">${art}</div>`;
         }
@@ -38,7 +38,7 @@
             
             document.getElementById('col-detail-types').innerHTML = typeIconHtml;
             
-            document.getElementById('col-detail-art').innerHTML = renderArt(monster.art, 150);
+            document.getElementById('col-detail-art').innerHTML = renderArt(monster.art, 380);
             
             const matk = monster.matk !== undefined ? monster.matk : (monster.atk || 10);
             const mdef = monster.mdef !== undefined ? monster.mdef : 5;
@@ -49,9 +49,9 @@
                 <div><span style="color:#51cf66; display:inline-block; width:60px;">HP:</span> ${monster.hp}</div>
                 <div><span style="color:#fcc419; display:inline-block; width:60px;">SPD:</span> ${monster.spd}</div>
                 <div><span style="color:#ff6b6b; display:inline-block; width:60px;">MATK:</span> ${matk}</div>
-                <div><span style="color:#ff6b6b; display:inline-block; width:60px;">MDEF:</span> ${mdef}</div>
+                <div><span style="color:#ff6b6b; display:inline-block; width:60px;">MDEF:</span> ${mdef}%</div>
                 <div><span style="color:#339af0; display:inline-block; width:60px;">RATK:</span> ${ratk}</div>
-                <div><span style="color:#339af0; display:inline-block; width:60px;">RDEF:</span> ${rdef}</div>
+                <div><span style="color:#339af0; display:inline-block; width:60px;">RDEF:</span> ${rdef}%</div>
             `;
             
             const moves = monster.moves || [];
@@ -101,10 +101,18 @@
                     const card = document.createElement('div');
                     card.className = `collection-square ${unlocked ? '' : 'locked'}`;
                     card.onclick = () => openCollectionDetails(s, unlocked, false);
-                    card.innerHTML = `
-                        <div class="monster-art">${renderArt(s.art, 80)}</div>
-                        <strong>${unlocked ? s.name : '???'}</strong>
-                    `;
+                    
+                    if (unlocked) {
+                        card.innerHTML = `
+                            <div class="monster-art">${renderArt(s.art, 200)}</div>
+                            <strong>${s.name}</strong>
+                        `;
+                    } else {
+                        card.innerHTML = `
+                            <div class="monster-art" style="font-size: 200px; line-height: 200px;">?</div>
+                            <strong>???</strong>
+                        `;
+                    }
                     list.appendChild(card);
                 });
             } else {
@@ -116,12 +124,12 @@
                     
                     if (discovered) {
                         card.innerHTML = `
-                            <div class="monster-art">${renderArt(m.art, 80)}</div>
+                            <div class="monster-art">${renderArt(m.art, 200)}</div>
                             <strong>${m.name}</strong>
                         `;
                     } else {
                         card.innerHTML = `
-                            <div class="monster-art" style="font-size: 80px;">?</div>
+                            <div class="monster-art" style="font-size: 200px; line-height: 200px;">?</div>
                             <strong>???</strong>
                         `;
                     }

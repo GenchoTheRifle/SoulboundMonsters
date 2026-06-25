@@ -10,12 +10,12 @@
       "id": "wolf",
       "name": "Wolf",
       "type": "Beast",
-      "hp": 20,
-      "spd": 10,
-      "matk": 10,
-      "mdef": 5,
+      "hp": 55,
+      "spd": 9,
+      "matk": 24,
+      "mdef": 10,
       "ratk": 0,
-      "rdef": 5,
+      "rdef": 10,
       "moves": [
         {
           "n": "Bite",
@@ -31,7 +31,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.4,
+            "value": 0.3,
             "turns": 3,
             "target": "self"
           }
@@ -40,50 +40,16 @@
       "art": "Art/Wolf.png",
       "startingEnergy": 1
     },
-    "bear": {
-      "id": "bear",
-      "name": "Bear",
-      "type": "Beast",
-      "hp": 22,
-      "spd": 6,
-      "matk": 12,
-      "mdef": 8,
-      "ratk": 0,
-      "rdef": 6,
-      "moves": [
-        {
-          "n": "Maul",
-          "c": 1,
-          "t": "Beast",
-          "p": 1.2,
-          "melee": true
-        },
-        {
-          "n": "Guard",
-          "c": 1,
-          "t": "Beast",
-          "p": 0,
-          "effect": {
-            "type": "guard_pct",
-            "value": 0.4,
-            "turns": 1,
-            "target": "self"
-          }
-        }
-      ],
-      "art": "Art/Bear.png",
-      "startingEnergy": 1
-    },
     "slime": {
       "id": "slime",
       "name": "Slime",
       "type": "Nature",
-      "hp": 19,
-      "spd": 7,
+      "hp": 65,
+      "spd": 6,
       "matk": 0,
-      "mdef": 8,
-      "ratk": 8,
-      "rdef": 8,
+      "mdef": 18,
+      "ratk": 16,
+      "rdef": 18,
       "moves": [
         {
           "n": "Spit",
@@ -98,8 +64,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_flat",
-            "value": 6,
+            "type": "heal_pct",
+            "value": 0.15,
             "target": "ally"
           }
         }
@@ -107,63 +73,22 @@
       "art": "Art/Slime.png",
       "startingEnergy": 1
     },
-    "mushroom": {
-      "id": "mushroom",
-      "name": "Mushroom",
-      "type": "Nature",
-      "hp": 20,
-      "spd": 8,
-      "matk": 0,
-      "mdef": 6,
-      "ratk": 10,
-      "rdef": 7,
-      "moves": [
-        {
-          "n": "Spore",
-          "c": 1,
-          "t": "Nature",
-          "p": 0.7,
-          "ranged": true,
-          "effect": {
-            "type": "sleep",
-            "chance": 0.2,
-            "turns": 2,
-            "target": "enemy"
-          }
-        },
-        {
-          "n": "Poison Cloud",
-          "c": 2,
-          "t": "Nature",
-          "p": 0,
-          "ranged": true,
-          "effect": {
-            "type": "poison_flat",
-            "value": 4,
-            "turns": 3,
-            "target": "all_enemies"
-          }
-        }
-      ],
-      "art": "Art/Mushroom.png",
-      "startingEnergy": 1
-    },
     "sentry": {
       "id": "sentry",
       "name": "Sentry",
       "type": "Mech",
-      "hp": 20,
+      "hp": 60,
       "spd": 7,
       "matk": 0,
-      "mdef": 6,
-      "ratk": 8,
-      "rdef": 9,
+      "mdef": 12,
+      "ratk": 20,
+      "rdef": 16,
       "moves": [
         {
           "n": "Snipe",
           "c": 1,
           "t": "Mech",
-          "p": 1.2,
+          "p": 1,
           "ranged": true
         },
         {
@@ -183,16 +108,91 @@
       "art": "Art/Sentry.png",
       "startingEnergy": 1
     },
+    "bear": {
+      "id": "bear",
+      "name": "Bear",
+      "type": "Beast",
+      "hp": 75,
+      "spd": 5,
+      "matk": 22,
+      "mdef": 16,
+      "ratk": 0,
+      "rdef": 12,
+      "moves": [
+        {
+          "n": "Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "melee": true
+        },
+        {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "guard_pct",
+            "value": 0.4,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "Art/Bear.png",
+      "startingEnergy": 1
+    },
+    "mushroom": {
+      "id": "mushroom",
+      "name": "Mushroom",
+      "type": "Nature",
+      "hp": 65,
+      "spd": 8,
+      "matk": 0,
+      "mdef": 12,
+      "ratk": 24,
+      "rdef": 12,
+      "moves": [
+        {
+          "n": "Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 1,
+          "ranged": true,
+          "effect": {
+            "type": "sleep",
+            "chance": 0.2,
+            "turns": 2,
+            "target": "enemy"
+          }
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "ranged": true,
+          "effect": {
+            "type": "poison_flat",
+            "value": 8,
+            "turns": 3,
+            "target": "all_enemies"
+          }
+        }
+      ],
+      "art": "Art/Mushroom.png",
+      "startingEnergy": 1
+    },
     "sparkbot": {
       "id": "sparkbot",
-      "name": "Spark-Bot",
+      "name": "Drone",
       "type": "Mech",
-      "hp": 18,
-      "spd": 12,
+      "hp": 55,
+      "spd": 10,
       "matk": 0,
-      "mdef": 4,
-      "ratk": 12,
-      "rdef": 5,
+      "mdef": 10,
+      "ratk": 26,
+      "rdef": 15,
       "moves": [
         {
           "n": "Zap",
@@ -220,18 +220,18 @@
           }
         }
       ],
-      "art": "Art/Spark-bot.png",
+      "art": "Art/Drone.png",
       "startingEnergy": 1
     },
     "bat": {
       "id": "bat",
       "name": "Bat",
       "type": "Beast",
-      "hp": 18,
+      "hp": 60,
       "matk": 0,
-      "mdef": 5,
-      "ratk": 10,
-      "rdef": 7,
+      "mdef": 18,
+      "ratk": 23,
+      "rdef": 18,
       "spd": 11,
       "startingEnergy": 1,
       "art": "Art/Bat.png",
@@ -261,12 +261,12 @@
       "id": "tree",
       "name": "Treant",
       "type": "Nature",
-      "hp": 22,
-      "spd": 5,
-      "matk": 9,
-      "mdef": 8,
+      "hp": 80,
+      "spd": 4,
+      "matk": 20,
+      "mdef": 20,
       "ratk": 0,
-      "rdef": 8,
+      "rdef": 20,
       "moves": [
         {
           "n": "Slam",
@@ -282,7 +282,7 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 5,
+            "value": 10,
             "turns": 3,
             "target": "self"
           }
@@ -293,14 +293,14 @@
     },
     "mech_melee": {
       "id": "mech_melee",
-      "name": "Brawler Mech",
+      "name": "Robot",
       "type": "Mech",
-      "hp": 22,
+      "hp": 70,
       "spd": 8,
-      "matk": 14,
-      "mdef": 8,
+      "matk": 23,
+      "mdef": 20,
       "ratk": 0,
-      "rdef": 6,
+      "rdef": 15,
       "moves": [
         {
           "n": "Punch",
@@ -310,31 +310,31 @@
           "melee": true
         },
         {
-          "n": "Guard",
-          "c": 1,
+          "n": "Counter",
+          "c": 2,
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "guard_pct",
-            "value": 0.5,
+            "type": "counter",
+            "value": 1,
             "turns": 1,
             "target": "self"
           }
         }
       ],
-      "art": "🤖",
+      "art": "Art/Robot.png",
       "startingEnergy": 1
     }
   },
   "MERGES": [
     {
       "name": "Alpha Wolf",
-      "hp": 24,
-      "spd": 13,
-      "matk": 14,
-      "mdef": 8,
+      "hp": 65,
+      "spd": 11,
+      "matk": 26,
+      "mdef": 14,
       "ratk": 0,
-      "rdef": 7,
+      "rdef": 14,
       "moves": [
         {
           "n": "Alpha Bite",
@@ -377,12 +377,12 @@
     },
     {
       "name": "Elder Bear",
-      "hp": 26,
+      "hp": 85,
       "spd": 5,
-      "matk": 15,
-      "mdef": 13,
+      "matk": 24,
+      "mdef": 20,
       "ratk": 0,
-      "rdef": 8,
+      "rdef": 15,
       "moves": [
         {
           "n": "Elder Maul",
@@ -425,18 +425,18 @@
     },
     {
       "name": "King Slime",
-      "hp": 22,
-      "spd": 6,
+      "hp": 75,
+      "spd": 7,
       "matk": 0,
-      "mdef": 12,
-      "ratk": 10,
-      "rdef": 8,
+      "mdef": 20,
+      "ratk": 18,
+      "rdef": 20,
       "moves": [
         {
           "n": "King Spit",
           "c": 1,
           "t": "Nature",
-          "p": 1.1,
+          "p": 1.4,
           "ranged": true
         },
         {
@@ -445,8 +445,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_flat",
-            "value": 10,
+            "type": "heal_pct",
+            "value": 0.3,
             "target": "ally"
           }
         },
@@ -456,8 +456,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "regen_flat",
-            "value": 4,
+            "type": "regen_pct",
+            "value": 0.15,
             "turns": 3,
             "target": "all_allies"
           }
@@ -472,12 +472,12 @@
     },
     {
       "name": "Giant Mushroom",
-      "hp": 24,
+      "hp": 75,
       "spd": 9,
       "matk": 0,
-      "mdef": 8,
-      "ratk": 13,
-      "rdef": 9,
+      "mdef": 16,
+      "ratk": 25,
+      "rdef": 16,
       "moves": [
         {
           "n": "Giant Spore",
@@ -494,14 +494,14 @@
         },
         {
           "n": "Giant Poison Cloud",
-          "c": 3,
+          "c": 2,
           "t": "Nature",
           "p": 0,
           "ranged": true,
           "effect": {
             "type": "poison_flat",
             "value": 8,
-            "turns": 4,
+            "turns": 3,
             "target": "all_enemies"
           }
         },
@@ -514,7 +514,7 @@
           "effect": {
             "type": "poison_pct",
             "value": 0.15,
-            "turns": 3,
+            "turns": 4,
             "target": "enemy"
           }
         }
@@ -528,12 +528,12 @@
     },
     {
       "name": "Elite Sentry",
-      "hp": 23,
-      "spd": 9,
+      "hp": 70,
+      "spd": 8,
       "matk": 0,
-      "mdef": 9,
-      "ratk": 11,
-      "rdef": 12,
+      "mdef": 16,
+      "ratk": 22,
+      "rdef": 22,
       "moves": [
         {
           "n": "Elite Snipe",
@@ -572,13 +572,13 @@
       ]
     },
     {
-      "name": "Ultimate Spark-Bot",
-      "hp": 20,
-      "spd": 15,
+      "name": "Ultimate Drone",
+      "hp": 60,
+      "spd": 12,
       "matk": 0,
-      "mdef": 6,
-      "ratk": 15,
-      "rdef": 10,
+      "mdef": 12,
+      "ratk": 28,
+      "rdef": 18,
       "moves": [
         {
           "n": "Ultimate Zap",
@@ -629,12 +629,12 @@
     },
     {
       "name": "Bearwolf",
-      "hp": 24,
+      "hp": 78,
       "spd": 8,
-      "matk": 14,
-      "mdef": 10,
+      "matk": 26,
+      "mdef": 18,
       "ratk": 0,
-      "rdef": 6,
+      "rdef": 14,
       "moves": [
         {
           "n": "Devour",
@@ -679,25 +679,25 @@
     },
     {
       "name": "Slimy Wolf",
-      "hp": 22,
+      "hp": 75,
       "spd": 9,
-      "matk": 12,
-      "mdef": 7,
-      "ratk": 8,
-      "rdef": 6,
+      "matk": 22,
+      "mdef": 18,
+      "ratk": 18,
+      "rdef": 18,
       "moves": [
         {
           "n": "Bite",
           "c": 1,
           "t": "Beast",
-          "p": 1,
+          "p": 1.2,
           "melee": true
         },
         {
           "n": "Spit",
           "c": 1,
           "t": "Nature",
-          "p": 1,
+          "p": 1.2,
           "ranged": true
         },
         {
@@ -707,7 +707,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.4,
+            "value": 0.3,
             "turns": 3,
             "target": "self"
           }
@@ -718,8 +718,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_flat",
-            "value": 6,
+            "type": "heal_pct",
+            "value": 0.15,
             "target": "ally"
           }
         }
@@ -733,25 +733,25 @@
     },
     {
       "name": "Spore Wolf",
-      "hp": 24,
+      "hp": 68,
       "spd": 9,
-      "matk": 9,
-      "mdef": 6,
-      "ratk": 10,
-      "rdef": 6,
+      "matk": 24,
+      "mdef": 16,
+      "ratk": 24,
+      "rdef": 22,
       "moves": [
         {
           "n": "Bite",
           "c": 1,
           "t": "Beast",
-          "p": 1,
+          "p": 1.2,
           "melee": true
         },
         {
           "n": "Spore",
           "c": 1,
           "t": "Nature",
-          "p": 0.7,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "sleep",
@@ -767,7 +767,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.4,
+            "value": 0.3,
             "turns": 3,
             "target": "self"
           }
@@ -780,7 +780,7 @@
           "ranged": true,
           "effect": {
             "type": "poison_flat",
-            "value": 4,
+            "value": 8,
             "turns": 3,
             "target": "all_enemies"
           }
@@ -795,18 +795,18 @@
     },
     {
       "name": "Iron Wolf",
-      "hp": 26,
-      "spd": 9,
-      "matk": 8,
-      "mdef": 6,
-      "ratk": 8,
-      "rdef": 7,
+      "hp": 70,
+      "spd": 10,
+      "matk": 20,
+      "mdef": 16,
+      "ratk": 20,
+      "rdef": 22,
       "moves": [
         {
           "n": "Bite",
           "c": 1,
           "t": "Beast",
-          "p": 1,
+          "p": 1.2,
           "melee": true
         },
         {
@@ -823,7 +823,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.4,
+            "value": 0.3,
             "turns": 3,
             "target": "self"
           }
@@ -851,25 +851,25 @@
     },
     {
       "name": "Spark Wolf",
-      "hp": 20,
+      "hp": 70,
       "spd": 11,
-      "matk": 10,
-      "mdef": 5,
-      "ratk": 12,
-      "rdef": 8,
+      "matk": 22,
+      "mdef": 20,
+      "ratk": 25,
+      "rdef": 15,
       "moves": [
         {
           "n": "Bite",
           "c": 1,
           "t": "Beast",
-          "p": 1,
+          "p": 1.2,
           "melee": true
         },
         {
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "stun",
@@ -885,7 +885,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.4,
+            "value": 0.3,
             "turns": 3,
             "target": "self"
           }
@@ -912,12 +912,12 @@
     },
     {
       "name": "Mossy Bear",
-      "hp": 24,
+      "hp": 88,
       "spd": 6,
-      "matk": 10,
-      "mdef": 9,
-      "ratk": 7,
-      "rdef": 9,
+      "matk": 20,
+      "mdef": 20,
+      "ratk": 18,
+      "rdef": 20,
       "moves": [
         {
           "n": "Maul",
@@ -930,7 +930,7 @@
           "n": "Spit",
           "c": 1,
           "t": "Nature",
-          "p": 1,
+          "p": 1.2,
           "ranged": true
         },
         {
@@ -951,8 +951,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_flat",
-            "value": 6,
+            "type": "heal_pct",
+            "value": 0.15,
             "target": "ally"
           }
         }
@@ -966,12 +966,12 @@
     },
     {
       "name": "Fungal Bear",
-      "hp": 25,
+      "hp": 80,
       "spd": 7,
-      "matk": 10,
-      "mdef": 8,
-      "ratk": 8,
-      "rdef": 7,
+      "matk": 21,
+      "mdef": 16,
+      "ratk": 25,
+      "rdef": 20,
       "moves": [
         {
           "n": "Maul",
@@ -984,7 +984,7 @@
           "n": "Spore",
           "c": 1,
           "t": "Nature",
-          "p": 0.7,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "sleep",
@@ -1013,7 +1013,7 @@
           "ranged": true,
           "effect": {
             "type": "poison_flat",
-            "value": 4,
+            "value": 8,
             "turns": 3,
             "target": "all_enemies"
           }
@@ -1028,12 +1028,12 @@
     },
     {
       "name": "Artillery Bear",
-      "hp": 22,
+      "hp": 78,
       "spd": 7,
-      "matk": 8,
-      "mdef": 7,
-      "ratk": 12,
-      "rdef": 8,
+      "matk": 20,
+      "mdef": 18,
+      "ratk": 27,
+      "rdef": 18,
       "moves": [
         {
           "n": "Maul",
@@ -1084,12 +1084,12 @@
     },
     {
       "name": "Plasma Bear",
-      "hp": 20,
+      "hp": 75,
       "spd": 9,
-      "matk": 7,
-      "mdef": 7,
-      "ratk": 14,
-      "rdef": 8,
+      "matk": 25,
+      "mdef": 15,
+      "ratk": 22,
+      "rdef": 20,
       "moves": [
         {
           "n": "Maul",
@@ -1102,7 +1102,7 @@
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "stun",
@@ -1145,18 +1145,18 @@
     },
     {
       "name": "Mycelium Ooze",
-      "hp": 20,
+      "hp": 75,
       "spd": 7,
       "matk": 0,
-      "mdef": 10,
-      "ratk": 10,
-      "rdef": 10,
+      "mdef": 20,
+      "ratk": 21,
+      "rdef": 20,
       "moves": [
         {
           "n": "Slumber Sludge",
           "c": 1,
           "t": "Nature",
-          "p": 0.8,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "sleep",
@@ -1184,8 +1184,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "regen_flat",
-            "value": 4,
+            "type": "regen_pct",
+            "value": 0.15,
             "turns": 3,
             "target": "all_allies"
           }
@@ -1200,18 +1200,18 @@
     },
     {
       "name": "Bio-Tank",
-      "hp": 28,
+      "hp": 85,
       "spd": 6,
       "matk": 0,
-      "mdef": 10,
-      "ratk": 8,
-      "rdef": 10,
+      "mdef": 20,
+      "ratk": 18,
+      "rdef": 20,
       "moves": [
         {
           "n": "Spit",
           "c": 1,
           "t": "Nature",
-          "p": 1,
+          "p": 1.2,
           "ranged": true
         },
         {
@@ -1227,8 +1227,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_flat",
-            "value": 6,
+            "type": "heal_pct",
+            "value": 0.15,
             "target": "ally"
           }
         },
@@ -1255,25 +1255,25 @@
     },
     {
       "name": "Pulse Slime",
-      "hp": 20,
+      "hp": 65,
       "spd": 10,
       "matk": 0,
-      "mdef": 8,
-      "ratk": 14,
-      "rdef": 8,
+      "mdef": 20,
+      "ratk": 22,
+      "rdef": 22,
       "moves": [
         {
           "n": "Spit",
           "c": 1,
           "t": "Nature",
-          "p": 1,
+          "p": 1.2,
           "ranged": true
         },
         {
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "stun",
@@ -1288,8 +1288,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_flat",
-            "value": 6,
+            "type": "heal_pct",
+            "value": 0.15,
             "target": "ally"
           }
         },
@@ -1315,18 +1315,18 @@
     },
     {
       "name": "Rooted Cannon",
-      "hp": 20,
+      "hp": 70,
       "spd": 8,
       "matk": 0,
-      "mdef": 7,
-      "ratk": 16,
-      "rdef": 7,
+      "mdef": 14,
+      "ratk": 28,
+      "rdef": 18,
       "moves": [
         {
           "n": "Spore",
           "c": 1,
           "t": "Nature",
-          "p": 0.7,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "sleep",
@@ -1350,7 +1350,7 @@
           "ranged": true,
           "effect": {
             "type": "poison_flat",
-            "value": 4,
+            "value": 8,
             "turns": 3,
             "target": "all_enemies"
           }
@@ -1378,18 +1378,18 @@
     },
     {
       "name": "Neon Shroom",
-      "hp": 23,
-      "spd": 10,
+      "hp": 65,
+      "spd": 11,
       "matk": 0,
-      "mdef": 6,
-      "ratk": 14,
-      "rdef": 6,
+      "mdef": 18,
+      "ratk": 26,
+      "rdef": 16,
       "moves": [
         {
           "n": "Spore",
           "c": 1,
           "t": "Nature",
-          "p": 0.7,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "sleep",
@@ -1402,7 +1402,7 @@
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "stun",
@@ -1419,7 +1419,7 @@
           "ranged": true,
           "effect": {
             "type": "poison_flat",
-            "value": 4,
+            "value": 8,
             "turns": 3,
             "target": "all_enemies"
           }
@@ -1446,12 +1446,12 @@
     },
     {
       "name": "Assault Mech",
-      "hp": 20,
+      "hp": 65,
       "spd": 10,
       "matk": 0,
-      "mdef": 6,
-      "ratk": 12,
-      "rdef": 9,
+      "mdef": 16,
+      "ratk": 26,
+      "rdef": 16,
       "moves": [
         {
           "n": "Bulletstorm",
@@ -1495,14 +1495,14 @@
       ]
     },
     {
-      "name": "Mega Bat",
+      "name": "Crimson Bat",
       "type": "Beast",
-      "hp": 22,
+      "hp": 70,
       "matk": 0,
-      "mdef": 6,
-      "ratk": 13,
-      "rdef": 9,
-      "spd": 14,
+      "mdef": 20,
+      "ratk": 25,
+      "rdef": 20,
+      "spd": 12,
       "startingEnergy": 1,
       "art": "Art/Mega Bat.png",
       "parents": [
@@ -1547,11 +1547,11 @@
     {
       "name": "Batwolf",
       "type": "Beast",
-      "hp": 20,
-      "matk": 9,
-      "mdef": 6,
-      "ratk": 9,
-      "rdef": 6,
+      "hp": 65,
+      "matk": 26,
+      "mdef": 20,
+      "ratk": 26,
+      "rdef": 20,
       "spd": 11,
       "startingEnergy": 1,
       "art": "Art/Batwolf.png",
@@ -1583,7 +1583,7 @@
           "n": "Bite",
           "c": 1,
           "t": "Beast",
-          "p": 1,
+          "p": 1.2,
           "melee": true
         },
         {
@@ -1593,7 +1593,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.4,
+            "value": 0.3,
             "turns": 3,
             "target": "self"
           }
@@ -1606,11 +1606,11 @@
         "Beast",
         "Nature"
       ],
-      "hp": 25,
+      "hp": 80,
       "matk": 0,
-      "mdef": 8,
-      "ratk": 10,
-      "rdef": 8,
+      "mdef": 24,
+      "ratk": 21,
+      "rdef": 24,
       "spd": 8,
       "startingEnergy": 1,
       "art": "Art/Vampiric Slime.png",
@@ -1642,7 +1642,7 @@
           "n": "Spit",
           "c": 1,
           "t": "Nature",
-          "p": 1,
+          "p": 1.2,
           "ranged": true
         },
         {
@@ -1651,8 +1651,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_flat",
-            "value": 6,
+            "type": "heal_pct",
+            "value": 0.15,
             "target": "ally"
           }
         }
@@ -1664,11 +1664,11 @@
         "Beast",
         "Mech"
       ],
-      "hp": 24,
+      "hp": 77,
       "matk": 0,
-      "mdef": 9,
-      "ratk": 11,
-      "rdef": 9,
+      "mdef": 20,
+      "ratk": 24,
+      "rdef": 22,
       "spd": 9,
       "startingEnergy": 1,
       "art": "Art/Doom Bat.png",
@@ -1721,11 +1721,11 @@
     {
       "name": "Nocturne Bear",
       "type": "Beast",
-      "hp": 23,
-      "matk": 11,
-      "mdef": 8,
-      "ratk": 7,
-      "rdef": 7,
+      "hp": 75,
+      "matk": 25,
+      "mdef": 22,
+      "ratk": 24,
+      "rdef": 22,
       "spd": 7,
       "startingEnergy": 1,
       "art": "Art/Nocturne Bear.png",
@@ -1780,11 +1780,11 @@
         "Beast",
         "Nature"
       ],
-      "hp": 22,
+      "hp": 66,
       "matk": 0,
-      "mdef": 6,
-      "ratk": 12,
-      "rdef": 10,
+      "mdef": 18,
+      "ratk": 30,
+      "rdef": 20,
       "spd": 9,
       "startingEnergy": 1,
       "art": "Art/Bloodcap.png",
@@ -1816,7 +1816,7 @@
           "n": "Spore",
           "c": 1,
           "t": "Nature",
-          "p": 0.7,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "sleep",
@@ -1833,7 +1833,7 @@
           "ranged": true,
           "effect": {
             "type": "poison_flat",
-            "value": 4,
+            "value": 8,
             "turns": 3,
             "target": "all_enemies"
           }
@@ -1846,12 +1846,12 @@
         "Beast",
         "Mech"
       ],
-      "hp": 20,
+      "hp": 65,
       "matk": 0,
-      "mdef": 6,
-      "ratk": 16,
-      "rdef": 6,
-      "spd": 15,
+      "mdef": 18,
+      "ratk": 27,
+      "rdef": 20,
+      "spd": 13,
       "startingEnergy": 1,
       "art": "Art/Skyreaver Bat.png",
       "parents": [
@@ -1882,7 +1882,7 @@
           "n": "Zap",
           "c": 1,
           "t": "Mech",
-          "p": 1,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "stun",
@@ -1907,12 +1907,12 @@
     },
     {
       "name": "Colossal Treant",
-      "hp": 28,
-      "spd": 4,
-      "matk": 12,
-      "mdef": 11,
-      "ratk": 5,
-      "rdef": 10,
+      "hp": 90,
+      "spd": 5,
+      "matk": 25,
+      "mdef": 25,
+      "ratk": 15,
+      "rdef": 25,
       "moves": [
         {
           "n": "Colossal Slam",
@@ -1954,13 +1954,941 @@
         "tree",
         "tree"
       ]
+    },
+    {
+      "name": "Timber Wolf",
+      "hp": 76,
+      "spd": 8,
+      "matk": 26,
+      "mdef": 18,
+      "ratk": 0,
+      "rdef": 18,
+      "moves": [
+        {
+          "n": "Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Howl",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "atk_buff_pct",
+            "value": 0.3,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Slam",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Thorns",
+          "c": 1,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "brambles",
+            "value": 10,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "Art/Timber Wolf.png",
+      "startingEnergy": 2,
+      "parents": [
+        "wolf",
+        "tree"
+      ]
+    },
+    {
+      "name": "Thorn Bear",
+      "hp": 82,
+      "spd": 5,
+      "matk": 24,
+      "mdef": 24,
+      "ratk": 0,
+      "rdef": 22,
+      "moves": [
+        {
+          "n": "Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "guard_pct",
+            "value": 0.4,
+            "turns": 1,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Slam",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Thorns",
+          "c": 1,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "brambles",
+            "value": 10,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "Art/Thorn Bear.png",
+      "startingEnergy": 1,
+      "parents": [
+        "bear",
+        "tree"
+      ]
+    },
+    {
+      "name": "Blight Wood",
+      "hp": 95,
+      "spd": 2,
+      "matk": 16,
+      "mdef": 30,
+      "ratk": 16,
+      "rdef": 30,
+      "moves": [
+        {
+          "n": "Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "ranged": true
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "heal_pct",
+            "value": 0.15,
+            "target": "ally"
+          }
+        },
+        {
+          "n": "Slam",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Thorns",
+          "c": 1,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "brambles",
+            "value": 10,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "Art/Blight Wood.png",
+      "startingEnergy": 1,
+      "parents": [
+        "slime",
+        "tree"
+      ]
+    },
+    {
+      "name": "Deathcap Wood",
+      "hp": 84,
+      "spd": 6,
+      "matk": 22,
+      "mdef": 22,
+      "ratk": 26,
+      "rdef": 22,
+      "moves": [
+        {
+          "n": "Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "ranged": true,
+          "effect": {
+            "type": "sleep",
+            "chance": 0.2,
+            "turns": 2,
+            "target": "enemy"
+          }
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "ranged": true,
+          "effect": {
+            "type": "poison_flat",
+            "value": 8,
+            "turns": 3,
+            "target": "all_enemies"
+          }
+        },
+        {
+          "n": "Slam",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Thorns",
+          "c": 1,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "brambles",
+            "value": 10,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "Art/Deathcap Wood.png",
+      "startingEnergy": 1,
+      "parents": [
+        "mushroom",
+        "tree"
+      ]
+    },
+    {
+      "name": "Root Cyborg",
+      "hp": 80,
+      "spd": 9,
+      "matk": 22,
+      "mdef": 18,
+      "ratk": 24,
+      "rdef": 26,
+      "moves": [
+        {
+          "n": "Zap",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "ranged": true,
+          "effect": {
+            "type": "stun",
+            "chance": 0.15,
+            "turns": 1,
+            "target": "enemy"
+          }
+        },
+        {
+          "n": "Overcharge",
+          "c": 1,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "spd_buff_pct",
+            "value": 0.2,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Slam",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Thorns",
+          "c": 1,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "brambles",
+            "value": 10,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "Art/Root Cyborg.png",
+      "startingEnergy": 1,
+      "parents": [
+        "sparkbot",
+        "tree"
+      ]
+    },
+    {
+      "name": "Bark Hunter",
+      "hp": 70,
+      "spd": 9,
+      "matk": 18,
+      "mdef": 18,
+      "ratk": 32,
+      "rdef": 30,
+      "moves": [
+        {
+          "n": "Snipe",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "ranged": true
+        },
+        {
+          "n": "Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "ranged": true,
+          "effect": {
+            "type": "stun",
+            "chance": 1,
+            "turns": 1,
+            "target": "enemy"
+          }
+        },
+        {
+          "n": "Slam",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Thorns",
+          "c": 1,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "brambles",
+            "value": 10,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "Art/Bark Hunter.png",
+      "startingEnergy": 1,
+      "parents": [
+        "sentry",
+        "tree"
+      ]
+    },
+    {
+      "name": "Forest Stalker",
+      "hp": 90,
+      "spd": 9,
+      "matk": 32,
+      "mdef": 22,
+      "ratk": 20,
+      "rdef": 22,
+      "moves": [
+        {
+          "n": "Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Slam",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Thorns",
+          "c": 1,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "brambles",
+            "value": 10,
+            "turns": 3,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "Art/Forest Stalker.png",
+      "startingEnergy": 1,
+      "parents": [
+        "bat",
+        "tree"
+      ]
+    },
+    {
+      "name": "Heavy Robot",
+      "hp": 80,
+      "spd": 7,
+      "matk": 26,
+      "mdef": 25,
+      "ratk": 0,
+      "rdef": 20,
+      "moves": [
+        {
+          "n": "Heavy Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Heavy Counter",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "counter",
+            "value": 2,
+            "turns": 1,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Taunt",
+          "c": 1,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "taunt",
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "art": "Art/Heavy Robot.png",
+      "startingEnergy": 1,
+      "parents": [
+        "mech_melee",
+        "mech_melee"
+      ]
+    },
+    {
+      "name": "Fighter Wolf",
+      "hp": 78,
+      "matk": 28,
+      "mdef": 18,
+      "ratk": 0,
+      "rdef": 18,
+      "spd": 11,
+      "startingEnergy": 1,
+      "art": "Art/Fighter Wolf.png",
+      "type": [
+        "Beast",
+        "Mech"
+      ],
+      "moves": [
+        {
+          "n": "Bite",
+          "c": 1,
+          "t": "Beast",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Howl",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "atk_buff_pct",
+            "value": 0.3,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Counter",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "counter",
+            "value": 1,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "parents": [
+        "wolf",
+        "mech_melee"
+      ]
+    },
+    {
+      "name": "Wrestler Bear",
+      "hp": 88,
+      "matk": 26,
+      "mdef": 20,
+      "ratk": 0,
+      "rdef": 20,
+      "spd": 7,
+      "startingEnergy": 1,
+      "art": "Art/Wrestler Bear.png",
+      "type": [
+        "Beast",
+        "Mech"
+      ],
+      "moves": [
+        {
+          "n": "Maul",
+          "c": 1,
+          "t": "Beast",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Guard",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "guard_pct",
+            "value": 0.4,
+            "turns": 1,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Counter",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "counter",
+            "value": 1,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "parents": [
+        "bear",
+        "mech_melee"
+      ]
+    },
+    {
+      "name": "Grappler Slime",
+      "hp": 74,
+      "matk": 24,
+      "mdef": 24,
+      "ratk": 24,
+      "rdef": 24,
+      "spd": 10,
+      "startingEnergy": 1,
+      "art": "Art/Grappler Slime.png",
+      "type": [
+        "Nature",
+        "Mech"
+      ],
+      "moves": [
+        {
+          "n": "Spit",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "ranged": true
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "heal_pct",
+            "value": 0.15,
+            "target": "ally"
+          }
+        },
+        {
+          "n": "Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Counter",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "counter",
+            "value": 1,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "parents": [
+        "slime",
+        "mech_melee"
+      ]
+    },
+    {
+      "name": "Punk Mushroom",
+      "hp": 80,
+      "matk": 27,
+      "mdef": 26,
+      "ratk": 22,
+      "rdef": 20,
+      "spd": 8,
+      "startingEnergy": 1,
+      "art": "Art/Punk Mushroom.png",
+      "type": [
+        "Nature",
+        "Mech"
+      ],
+      "moves": [
+        {
+          "n": "Spore",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "ranged": true,
+          "effect": {
+            "type": "sleep",
+            "chance": 0.2,
+            "turns": 2,
+            "target": "enemy"
+          }
+        },
+        {
+          "n": "Poison Cloud",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "ranged": true,
+          "effect": {
+            "type": "poison_flat",
+            "value": 8,
+            "turns": 3,
+            "target": "all_enemies"
+          }
+        },
+        {
+          "n": "Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Counter",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "counter",
+            "value": 1,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "parents": [
+        "mushroom",
+        "mech_melee"
+      ]
+    },
+    {
+      "name": "Enforcer Robot",
+      "hp": 80,
+      "matk": 30,
+      "mdef": 24,
+      "ratk": 20,
+      "rdef": 18,
+      "spd": 10,
+      "startingEnergy": 1,
+      "art": "Art/Enforcer Robot.png",
+      "type": [
+        "Mech"
+      ],
+      "moves": [
+        {
+          "n": "Zap",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "ranged": true,
+          "effect": {
+            "type": "stun",
+            "chance": 0.15,
+            "turns": 1,
+            "target": "enemy"
+          }
+        },
+        {
+          "n": "Overcharge",
+          "c": 1,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "spd_buff_pct",
+            "value": 0.2,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Counter",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "counter",
+            "value": 1,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "parents": [
+        "sparkbot",
+        "mech_melee"
+      ]
+    },
+    {
+      "name": "Hitman Robot",
+      "hp": 80,
+      "matk": 20,
+      "mdef": 18,
+      "ratk": 30,
+      "rdef": 24,
+      "spd": 10,
+      "startingEnergy": 1,
+      "art": "Art/Hitman Robot.png",
+      "type": [
+        "Mech"
+      ],
+      "moves": [
+        {
+          "n": "Snipe",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "ranged": true
+        },
+        {
+          "n": "Stun Bolt",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "ranged": true,
+          "effect": {
+            "type": "stun",
+            "chance": 1,
+            "turns": 1,
+            "target": "enemy"
+          }
+        },
+        {
+          "n": "Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Counter",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "counter",
+            "value": 1,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "parents": [
+        "sentry",
+        "mech_melee"
+      ]
+    },
+    {
+      "name": "Berserker Bat",
+      "hp": 75,
+      "matk": 25,
+      "mdef": 25,
+      "ratk": 25,
+      "rdef": 25,
+      "spd": 13,
+      "startingEnergy": 1,
+      "art": "Art/Berserker Bat.png",
+      "type": [
+        "Beast",
+        "Mech"
+      ],
+      "moves": [
+        {
+          "n": "Echo",
+          "c": 1,
+          "t": "Beast",
+          "p": 1,
+          "ranged": true
+        },
+        {
+          "n": "Lifesteal",
+          "c": 1,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "lifesteal_buff",
+            "value": 0.5,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Counter",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "counter",
+            "value": 1,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "parents": [
+        "bat",
+        "mech_melee"
+      ]
+    },
+    {
+      "name": "Hybrid Titan",
+      "hp": 100,
+      "matk": 25,
+      "mdef": 24,
+      "ratk": 0,
+      "rdef": 20,
+      "spd": 6,
+      "startingEnergy": 1,
+      "art": "Art/Hybrid Titan.png",
+      "type": [
+        "Nature",
+        "Mech"
+      ],
+      "moves": [
+        {
+          "n": "Slam",
+          "c": 1,
+          "t": "Nature",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Thorns",
+          "c": 1,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "brambles",
+            "value": 10,
+            "turns": 3,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Punch",
+          "c": 1,
+          "t": "Mech",
+          "p": 1.2,
+          "melee": true
+        },
+        {
+          "n": "Counter",
+          "c": 2,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "counter",
+            "value": 1,
+            "turns": 1,
+            "target": "self"
+          }
+        }
+      ],
+      "parents": [
+        "tree",
+        "mech_melee"
+      ]
     }
   ],
   "BOSSES": {
     "mega_bat": {
       "id": "mega_bat",
       "unlocks": "bat",
-      "name": "MEGA BAT",
+      "name": "Mega Bat",
       "type": "Beast",
       "hp": 200,
       "matk": 0,
@@ -2008,7 +2936,7 @@
     "mega_treant": {
       "id": "mega_treant",
       "unlocks": "tree",
-      "name": "MEGA TREANT",
+      "name": "Colossal Treant",
       "type": "Nature",
       "hp": 300,
       "spd": 4,
@@ -2037,13 +2965,13 @@
           }
         }
       ],
-      "art": "🌳",
+      "art": "Art/Colossal Treant.png",
       "startingEnergy": 1
     },
     "mega_mech": {
       "id": "mega_mech",
       "unlocks": "mech_melee",
-      "name": "MEGA BRAWLER",
+      "name": "Heavy Robot",
       "type": "Mech",
       "hp": 250,
       "spd": 10,
@@ -2072,7 +3000,7 @@
           }
         }
       ],
-      "art": "🤖",
+      "art": "Art/Heavy Robot.png",
       "startingEnergy": 1
     }
   }

@@ -135,6 +135,8 @@
                     effectDesc = `reduces incoming damage to ${targetStr} by ${eff.value * 100}% until hit`;
                 } else if (eff.type === 'heal_flat') {
                     effectDesc = `heals ${targetStr} for ${eff.value} HP`;
+                } else if (eff.type === 'heal_pct') {
+                    effectDesc = `heals ${targetStr} for ${eff.value * 100}% of their max HP`;
                 } else if (eff.type === 'sleep') {
                     effectDesc = `has a ${eff.chance * 100}% chance to put ${targetStr} to sleep for up to ${eff.turns} turns`;
                 } else if (eff.type === 'poison_flat') {
@@ -151,8 +153,14 @@
                     effectDesc = `decreases the damage of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
                 } else if (eff.type === 'regen_flat') {
                     effectDesc = `applies health regeneration to ${targetStr}, healing ${eff.value} HP per turn for ${eff.turns} turns`;
+                } else if (eff.type === 'regen_pct') {
+                    effectDesc = `applies health regeneration to ${targetStr}, healing ${eff.value * 100}% of their max HP per turn for ${eff.turns} turns`;
                 } else if (eff.type === 'brambles') {
                     effectDesc = `gains Thorns, reflecting ${eff.value} flat damage back to the attacker when hit by direct attacks for ${eff.turns} turns`;
+                } else if (eff.type === 'counter') {
+                    effectDesc = `applies Counter to ${targetStr} for ${eff.turns} turn(s). The next hit taken is completely negated and ${eff.value * 100}% of the damage is reflected back to the attacker`;
+                } else if (eff.type === 'taunt') {
+                    effectDesc = `taunts all enemies for ${eff.turns} turn(s), forcing them to attack ${targetStr}`;
                 } else if (eff.type === 'savage_stance_pct') {
                     effectDesc = `enters Savage Stance, gaining a ${eff.guard_value * 100}% shield until hit and increasing damage by ${eff.atk_value * 100}% for ${eff.turns} turns`;
                 } else if (eff.type === 'ultimate_overcharge') {
