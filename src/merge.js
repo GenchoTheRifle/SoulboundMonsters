@@ -1,5 +1,7 @@
 // --- MERGE ENGINE ---
         function initMerge() {
+            const bgElement = document.getElementById('merge-bg');
+            if (bgElement && currentRun.arcId) bgElement.style.backgroundImage = getMapBackground(currentRun.arcId);
             showScreen('screen-merge');
             mergeSlots = [null, null];
             updateMergeUI();

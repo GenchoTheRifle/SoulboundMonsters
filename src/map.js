@@ -20,6 +20,9 @@
         }
 
         function renderMap() {
+            const bgElement = document.getElementById('map-bg');
+            if (bgElement && currentRun.arcId) bgElement.style.backgroundImage = getMapBackground(currentRun.arcId);
+
             const container = document.getElementById('map-nodes');
             container.innerHTML = '';
             

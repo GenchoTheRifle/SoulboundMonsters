@@ -14,6 +14,12 @@
 
         function initCombat(node) {
             isExecutingMove = false;
+            
+            const arenaBg = document.getElementById('combat-arena');
+            if (arenaBg && currentRun.arcId) {
+                arenaBg.style.backgroundImage = getMapBackground(currentRun.arcId);
+            }
+
             showScreen('screen-combat');
             combatState.log = ["Combat Started!"];
             combatState.targetingMove = null;
@@ -1125,7 +1131,7 @@
                             <div style="text-align: center;">BACKLINE</div>
                             <div style="text-align: center;">FRONTLINE</div>
                         </div>
-                        <div style="position: relative; padding: 20px 40px; background: url('Art/Map.png') center/cover; border-radius: 15px; border: 2px solid #444;">
+                        <div style="position: relative; padding: 20px 40px; background: ${getMapBackground(currentRun.arcId)} center/cover; border-radius: 15px; border: 2px solid #444;">
                             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); border-radius: 15px;"></div>
                             <div class="team" style="position: relative; z-index: 2; width: auto; padding: 0; direction: rtl;" id="replace-list-team">
                             </div>

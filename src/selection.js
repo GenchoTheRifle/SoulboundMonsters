@@ -5,6 +5,8 @@
 
         window.startArc = function(arcId) {
             selectedArcId = arcId;
+            const bgElement = document.getElementById('selection-bg');
+            if (bgElement) bgElement.style.backgroundImage = getMapBackground(arcId);
             showScreen('screen-selection');
         };
 
