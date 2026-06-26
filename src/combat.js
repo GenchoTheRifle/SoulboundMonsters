@@ -73,7 +73,7 @@
                     defMod: 0,
                     buffs: [],
                     debuffs: [],
-                    stunned: false,
+                    stunned: 0,
                     poison: 0
                 });
             } else {
@@ -107,7 +107,7 @@
                         defMod: 0,
                         buffs: [],
                         debuffs: [],
-                        stunned: false,
+                        stunned: 0,
                         poison: 0
                     });
                 }
@@ -122,7 +122,7 @@
                 p.defMod = 0;
                 p.buffs = [];
                 p.debuffs = [];
-                p.stunned = false;
+                p.stunned = 0;
                 p.poison = 0;
             });
 
@@ -848,10 +848,10 @@
                         showFloatingText(t, "+" + amount, "#51cf66");
                         combatLog(`${t.name} was healed for ${amount}!`);
                     } else if (eff.type === 'stun' && Math.random() < eff.chance) {
-                        t.stunned = eff.turns;
+                        t.stunned = (t.stunned || 0) + eff.turns;
                         combatLog(`${t.name} was stunned!`);
                     } else if (eff.type === 'sleep' && Math.random() < eff.chance) {
-                        t.sleep = eff.turns;
+                        t.sleep = (t.sleep || 0) + eff.turns;
                         combatLog(`${t.name} fell asleep!`);
                     } else if (eff.type.includes('poison')) {
                         let poisonDmg = 0;
