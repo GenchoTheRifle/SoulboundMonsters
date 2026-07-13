@@ -10,34 +10,76 @@
 <body>
     <div id="game-container">
         <!-- Title Screen -->
-        <div id="screen-title" class="screen active" style="justify-content: center; align-items: center;">
-            <h1 style="font-size: 100px; margin-bottom: 80px; letter-spacing: 5px;">SOULBOUND MONSTERS</h1>
-            <button onclick="playClicked()" style="font-size: 50px; padding: 20px 80px; border-radius: 15px;">PLAY</button>
+        <div id="screen-title" class="screen active" style="justify-content: center; align-items: center; background: url('Art/Main%20Menu.png') center/cover; position: relative; cursor: pointer;" onclick="playClicked()">
+            <img id="title-img" src="Art/Title.png" style="position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); max-width: 70%; pointer-events: none; transition: opacity 0.5s;" />
+            <img id="title-arrow" src="Art/Arrow.png" style="position: absolute; bottom: 22%; left: 50%; transform: translateX(-50%); width: 480px; pointer-events: none; transition: opacity 0.5s;" />
+            <div id="title-text" style="position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%); font-size: 30px; text-shadow: 2px 2px 4px #000; pointer-events: none; font-weight: bold; transition: opacity 0.5s;">CLICK TO START</div>
+            <div id="title-fade" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; opacity: 0; pointer-events: none; transition: opacity 1.5s;"></div>
         </div>
 
         <!-- First Time Setup -->
-        <div id="screen-first-time" class="screen" style="justify-content: center; align-items: center; background: url('Art/Background.png') center/cover; position: relative;">
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);"></div>
-            <h1 style="position: relative; z-index: 10; font-size: 60px; margin-bottom: 20px; text-shadow: 2px 2px 4px #000;">SELECT 2 STARTERS</h1>
-            <p style="position: relative; z-index: 10; font-size: 24px; margin-bottom: 40px; text-align: center; max-width: 600px; color: #ddd;">
-                Choose two starting monsters to bond with. These will be permanently unlocked.
-            </p>
-            
-            <div id="first-time-list" style="position: relative; z-index: 10; display: flex; gap: 30px; margin-bottom: 40px;">
-                <!-- Filled dynamically -->
+        <div id="screen-first-time" class="screen" style="justify-content: center; align-items: center; background: url('Art/Select%20Starters.png') center/cover; position: relative; padding: 0;">
+            <div id="first-time-bg-fade" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; opacity: 1; pointer-events: none;"></div>
+            <div id="first-time-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0); pointer-events: none;"></div>
+            <div id="first-time-content" style="display: flex; flex-direction: column; align-items: center; opacity: 0; transform: scale(1.5);">
+                <h1 style="position: relative; z-index: 10; font-size: 60px; margin-bottom: 20px; text-shadow: 2px 2px 4px #000;">SELECT 2 STARTERS</h1>
+                <p style="position: relative; z-index: 10; font-size: 24px; margin-bottom: 40px; text-align: center; max-width: 600px; color: #ddd;">
+                    Choose two starting monsters to bond with. These will be permanently unlocked.
+                </p>
+                
+                <div id="first-time-list" style="position: relative; z-index: 10; display: flex; gap: 30px; margin-bottom: 40px;">
+                    <!-- Filled dynamically -->
+                </div>
+                
+                <button id="btn-confirm-first-time" disabled onclick="confirmFirstTime()" style="position: relative; z-index: 10; font-size: 30px; padding: 15px 50px; border-radius: 10px;">CONFIRM</button>
             </div>
-            
-            <button id="btn-confirm-first-time" disabled onclick="confirmFirstTime()" style="position: relative; z-index: 10; font-size: 30px; padding: 15px 50px; border-radius: 10px;">CONFIRM</button>
+            <div id="first-time-fade-out" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; opacity: 0; pointer-events: none; transition: opacity 1s;"></div>
         </div>
 
         <!-- Main Menu -->
-        <div id="screen-menu" class="screen" style="justify-content: center; align-items: center;">
-            <h1 style="font-size: 80px; margin-bottom: 60px;">MAIN MENU</h1>
-            <button onclick="showScreen('screen-arcs')" style="font-size: 40px; padding: 20px 60px; width: 500px; margin-bottom: 30px; border-radius: 15px;">START RUN</button>
-            <button onclick="openCollection()" style="font-size: 40px; padding: 20px 60px; width: 500px; border-radius: 15px; margin-bottom: 30px;">COLLECTION</button>
-            <div style="display: flex; gap: 20px;">
-                <button onclick="resetProgress()" style="font-size: 24px; padding: 10px 40px; width: 300px; border-radius: 15px; background-color: #522; color: #f99;">RESET PROGRESS</button>
-                <button onclick="unlockAllProgress()" style="font-size: 24px; padding: 10px 40px; width: 300px; border-radius: 15px; background-color: #252; color: #9f9;">UNLOCK ALL</button>
+        <div id="screen-menu" class="screen" style="animation: fadeIn 1s; overflow: hidden; position: relative; padding: 0;">
+            <div id="menu-zoom-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: transform 1.5s ease-in; transform-origin: center;">
+                <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: url('Art/Start%20Run.png') center/cover; z-index: 0;"></div>
+
+                <div id="menu-dark-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); opacity: 0; transition: opacity 0.5s; pointer-events: none; z-index: 5;"></div>
+
+                <img id="menu-btn-collection" src="Art/Collection%20Button.png" class="menu-glow-btn" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; transition: transform 0.2s; transform-origin: 27% 67.3%; z-index: 1;">
+                
+                <img id="menu-btn-start" src="Art/Start%20Run%20Button.png" class="menu-glow-btn" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; transition: transform 0.2s; transform-origin: 74.1% 23.1%; z-index: 1;">
+                
+                <button id="hitbox-collection" onmouseover="
+                            document.getElementById('menu-btn-collection').style.transform='scale(1.05)';
+                            document.getElementById('menu-btn-collection').style.zIndex='10';
+                            document.getElementById('menu-dark-overlay').style.opacity='1';
+                        " 
+                        onmouseout="
+                            document.getElementById('menu-btn-collection').style.transform='scale(1)';
+                            document.getElementById('menu-btn-collection').style.zIndex='1';
+                            document.getElementById('menu-dark-overlay').style.opacity='0';
+                        "
+                        onclick="startCollectionZoom()"
+                        style="position: absolute; left: 27.5%; top: 34%; width: 18.5%; height: 13%; background: transparent; border: none; cursor: pointer; outline: none; z-index: 20;"></button>
+
+                <button id="hitbox-start" onmouseover="
+                            document.getElementById('menu-btn-start').style.transform='scale(1.05)';
+                            document.getElementById('menu-btn-start').style.zIndex='10';
+                            document.getElementById('menu-dark-overlay').style.opacity='1';
+                        " 
+                        onmouseout="
+                            document.getElementById('menu-btn-start').style.transform='scale(1)';
+                            document.getElementById('menu-btn-start').style.zIndex='1';
+                            document.getElementById('menu-dark-overlay').style.opacity='0';
+                        "
+                        onclick="startRunZoom()"
+                        style="position: absolute; left: 65.5%; top: 14.5%; width: 17%; height: 24%; background: transparent; border: none; cursor: pointer; outline: none; z-index: 20;"></button>
+            </div>
+
+            <div style="position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; z-index: 50;">
+                <button onclick="document.getElementById('settings-menu').style.display = document.getElementById('settings-menu').style.display === 'none' ? 'flex' : 'none'" style="font-size: 50px; background: none; border: none; cursor: pointer; color: white; filter: drop-shadow(2px 2px 4px black);">⚙️</button>
+                <div id="settings-menu" style="display: none; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 15px; border: 2px solid #555;">
+                    <button onclick="resetProgress()" style="font-size: 24px; padding: 10px 40px; width: 300px; border-radius: 15px; background-color: #522; color: #f99; cursor: pointer; border: none;">RESET PROGRESS</button>
+                    <button onclick="unlockAllProgress()" style="font-size: 24px; padding: 10px 40px; width: 300px; border-radius: 15px; background-color: #252; color: #9f9; cursor: pointer; border: none;">UNLOCK ALL</button>
+                </div>
             </div>
         </div>
 
@@ -110,7 +152,7 @@
 
         <!-- Map -->
         <div id="screen-map" class="screen" style="flex-direction: column; align-items: center; justify-content: center; position: relative;">
-            <button id="btn-pause-map" onclick="openPauseModal()" style="position: absolute; top: 20px; left: 20px; z-index: 100; font-size: 24px; padding: 10px 15px; background: rgba(0,0,0,0.5); border: 2px solid #555; color: white; border-radius: 5px; cursor: pointer;">⏸</button>
+            <button id="btn-pause-map" onclick="openPauseModal()" style="position: absolute; top: 20px; left: 20px; z-index: 100; font-size: 50px; padding: 0; background: none; border: none; color: white; cursor: pointer; filter: drop-shadow(2px 2px 4px black);">⚙️</button>
             <h2 style="margin-top: 20px;">THE RUN</h2>
             <div id="map-nodes" class="map-nodes" style="flex: 1; display: flex; align-items: center; overflow-x: auto; overflow-y: hidden; width: 100%; max-width: 800px;"></div>
             
@@ -123,19 +165,10 @@
         <!-- Combat -->
         <div id="screen-combat" class="screen" style="padding: 0;">
             <div class="combat-header">
-                <button id="btn-pause" onclick="openPauseModal()">⏸</button>
+                <button id="btn-pause" onclick="openPauseModal()" style="font-size: 50px; background: none; border: none; cursor: pointer; color: white; filter: drop-shadow(2px 2px 4px black); padding: 0;">⚙️</button>
                 <div id="turn-order" class="turn-order"></div>
-                <div class="element-triangle-top">
-                    <div style="font-size: 10px; margin-bottom: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">Element Counters</div>
-                    <div style="position: relative; width: 140px; height: 110px; margin: 0 auto;">
-                        <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%);"><img src="Art/Beast.png" style="width:40px; height:40px;" alt="Beast" /></div>
-                        <div style="position: absolute; bottom: -5px; right: 0px;"><img src="Art/Nature.png" style="width:40px; height:40px;" alt="Nature" /></div>
-                        <div style="position: absolute; bottom: -5px; left: 0px;"><img src="Art/Mech.png" style="width:40px; height:40px;" alt="Mech" /></div>
-                        
-                        <div style="position: absolute; top: 35px; right: 25px; color: #888; font-size: 20px; font-weight: bold;">↘</div>
-                        <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: #888; font-size: 20px; font-weight: bold;">←</div>
-                        <div style="position: absolute; top: 35px; left: 25px; color: #888; font-size: 20px; font-weight: bold;">↗</div>
-                    </div>
+                <div class="element-triangle-top" style="padding: 0; background: none; border: none;">
+                    <img src="Art/Element Counter Button.png" alt="Element Counters" style="width: 140px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" onclick="document.getElementById('modal-element-counter').style.display='flex'" />
                 </div>
             </div>
             <div id="combat-arena" class="combat-arena">
@@ -149,7 +182,10 @@
                 </div>
                 <div class="controls-right" style="width: 150px; display: flex; flex-direction: column; gap: 10px; height: 100%;">
                     <div id="energy-display" class="energy-display">EN: 0</div>
-                    <button id="btn-end-turn" onclick="advanceTurn()" style="flex: 1; background: #d97706; border: none; font-size: 20px; cursor: pointer; border-radius: 8px; font-weight: bold; color: white;">END TURN</button>
+                    <button id="btn-end-turn" onclick="advanceTurn()" style="flex: 1; background: #d97706; border: none; font-size: 18px; cursor: pointer; border-radius: 8px; font-weight: bold; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        END TURN
+                        <span style="font-size: 14px; font-weight: normal;">(+1 <img src="Art/EN.png" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;">)</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -242,6 +278,13 @@
             </div>
         </div>
 
+        <div id="modal-element-counter" class="modal" onclick="if(event.target === this) this.style.display='none'">
+            <div class="modal-content" style="max-width: 600px; padding: 0; background: transparent; box-shadow: none; border: none; text-align: center; position: relative;">
+                <button onclick="document.getElementById('modal-element-counter').style.display='none'" style="position: absolute; top: -15px; right: -15px; font-size: 24px; width: 40px; height: 40px; border-radius: 50%; background: #333; color: white; border: 2px solid white; cursor: pointer; z-index: 10;">&times;</button>
+                <img src="Art/Element Counter Advanced.png" style="max-width: 100%; border-radius: 15px; border: 2px solid #555; pointer-events: none;" />
+            </div>
+        </div>
+
         <div id="modal-confirm" class="modal">
             <div class="modal-content">
                 <h3 id="confirm-title">Confirm</h3>
@@ -275,6 +318,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Global Fade -->
+    <div id="global-fade" style="position: fixed; top:0; left:0; width:100%; height:100%; background: black; opacity: 0; pointer-events: none; transition: opacity 1.5s; z-index: 10000;"></div>
 
     <script src="src/data.js"></script>
     <script src="src/state.js"></script>

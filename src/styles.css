@@ -343,13 +343,13 @@
             position: absolute;
             left: 20px;
             top: 20px;
-            background: rgba(0,0,0,0.5);
-            border: 2px solid #fff;
+            background: none;
+            border: none;
             color: #fff;
-            padding: 10px 20px;
-            font-size: 18px;
+            padding: 0;
+            font-size: 50px;
             cursor: pointer;
-            border-radius: 8px;
+            filter: drop-shadow(2px 2px 4px black);
         }
 
         .turn-order {
@@ -460,7 +460,8 @@
             top: 20px;
         }
 
-        .combatant.enemy .monster-art-container > .art-content {
+        .combatant.enemy .monster-art-container > .art-content > img,
+        .combatant.enemy .monster-art-container > .art-content > div {
             transform: scaleX(-1);
         }
 
@@ -495,6 +496,8 @@
 
         .combatant .monster-art-container > .art-content {
             transition: filter 0.3s;
+            position: relative;
+            z-index: 2;
         }
 
         .combatant.targetable .monster-art-container > .art-content {
@@ -593,7 +596,7 @@
             padding: 10px;
             border-radius: 8px;
             text-align: center;
-            color: var(--mech);
+            color: #00a8ff;
             font-weight: bold;
         }
 
@@ -747,4 +750,62 @@
     pointer-events: none;
     z-index: 100;
     animation: floatUp 1.2s ease-out forwards;
+}
+
+@keyframes idleBob {
+    0% { transform: scaleY(1) translateY(0); }
+    50% { transform: scaleY(0.97) translateY(2px); }
+    100% { transform: scaleY(1) translateY(0); }
+}
+
+.combatant:not(.dead) .art-content {
+    animation: idleBob 2s ease-in-out infinite;
+    transform-origin: bottom center;
+}
+
+.monster-art-container .taunt-circle {
+    position: absolute !important;
+    bottom: -65px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 176px;
+    height: auto;
+    z-index: 1;
+    animation: tauntPulse 1s infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes tauntPulse {
+    0% { filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.5)) brightness(0.8); opacity: 0.7; transform: translateX(-50%); }
+    100% { filter: drop-shadow(0 0 15px rgba(255, 0, 0, 1)) brightness(1.2); opacity: 1; transform: translateX(-50%); }
+}
+
+@keyframes titlePulse {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes arrowAnim {
+    0% { transform: translateX(-50%) scale(1); opacity: 0.5; }
+    50% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1); opacity: 0.5; }
+}
+
+@keyframes menuGlowPulse {
+    0% { filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.4)); }
+    50% { filter: drop-shadow(0 0 30px rgba(255, 165, 0, 0.9)); }
+    100% { filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.4)); }
+}
+
+.menu-glow-btn {
+    animation: menuGlowPulse 2.5s infinite ease-in-out;
+}
+
+#title-img {
+    animation: titlePulse 4s infinite ease-in-out;
+}
+
+#title-arrow {
+    animation: arrowAnim 2s infinite ease-in-out;
 }

@@ -74,7 +74,8 @@
                     buffs: [],
                     debuffs: [],
                     stunned: 0,
-                    poison: 0
+                    poison: 0,
+                    toxin: 0
                 });
             } else {
                 for (let i = 0; i < enemyCount; i++) {
@@ -108,7 +109,8 @@
                         buffs: [],
                         debuffs: [],
                         stunned: 0,
-                        poison: 0
+                        poison: 0,
+                        toxin: 0
                     });
                 }
             }
@@ -124,6 +126,7 @@
                 p.debuffs = [];
                 p.stunned = 0;
                 p.poison = 0;
+                p.toxin = 0;
             });
 
             // Pad enemies to 4 slots if not boss
@@ -185,6 +188,116 @@
             }, 1200);
         }
 
+        async function playStatusVFX(unit, type, onImpact) {
+            const targetEl = getElementForUnit(unit);
+            if (!targetEl) {
+                if (onImpact) onImpact();
+                return;
+            }
+            
+            const animEl = document.createElement('img');
+            animEl.src = `Art/${type}_1.png`;
+            animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1.6); width:200px; height:200px; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+            const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+            artContainer.appendChild(animEl);
+            
+            const maxFrames = type === 'Hemorrhage' ? 8 : 7;
+            
+            // Preload images to avoid flickering
+            for (let i = 2; i <= maxFrames; i++) {
+                const img = new Image();
+                img.src = `Art/${type}_${i}.png`;
+            }
+            
+            if (type === 'Hemorrhage') {
+                animEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, fill: 'forwards' });
+                animEl.style.transform = 'translate(-50%, -50%) scale(0.5)';
+                animEl.animate([
+                    { transform: 'translate(-50%, -50%) scale(0.5)' },
+                    { transform: 'translate(-50%, -50%) scale(1.6)' }
+                ], { duration: 5 * 80, easing: 'ease-out', fill: 'forwards' });
+
+                for (let i = 1; i <= 5; i++) {
+                    animEl.src = `Art/${type}_${i}.png`;
+                    if (i === 5 && onImpact) onImpact();
+                    await new Promise(r => setTimeout(r, 80));
+                }
+
+                // Squish in and out
+                const squishAnim = animEl.animate([
+                    { transform: 'translate(-50%, -50%) scale(1.6)' },
+                    { transform: 'translate(-50%, -50%) scale(1.2)' },
+                    { transform: 'translate(-50%, -50%) scale(1.8)' },
+                    { transform: 'translate(-50%, -50%) scale(1.6)' }
+                ], { duration: 300, easing: 'ease-in-out' });
+                await squishAnim.finished;
+
+                for (let i = 6; i <= 8; i++) {
+                    animEl.src = `Art/${type}_${i}.png`;
+                    await new Promise(r => setTimeout(r, 80));
+                }
+                animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' });
+                await new Promise(r => setTimeout(r, 150));
+            } else {
+                animEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, fill: 'forwards' });
+                for (let i = 1; i <= maxFrames; i++) {
+                    animEl.src = `Art/${type}_${i}.png`;
+                    if (i === 5 && onImpact) {
+                        onImpact();
+                    }
+                    let delayMs = type === 'Poison' || type === 'Toxin' ? 50 : 75;
+                    await new Promise(r => setTimeout(r, delayMs));
+                }
+                animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' });
+                await new Promise(r => setTimeout(r, 150));
+            }
+            
+            if (animEl.parentNode) {
+                animEl.parentNode.removeChild(animEl);
+            }
+        }
+
+        function playHealVFX(unit) {
+            const teamPrefix = unit.isEnemy ? 'enemy' : 'player';
+            let index = -1;
+            if (unit.isEnemy) {
+                index = combatState.enemies.indexOf(unit);
+            } else {
+                index = currentRun.party.indexOf(unit);
+            }
+            if (index === -1) return;
+            
+            const teamContainer = document.getElementById(teamPrefix + '-team');
+            if (!teamContainer || !teamContainer.children[index]) return;
+            const unitEl = teamContainer.children[index];
+
+            const numPluses = 5;
+            for (let i = 0; i < numPluses; i++) {
+                setTimeout(() => {
+                    const healEl = document.createElement('img');
+                    healEl.src = "Art/Heal_1.png";
+                    
+                    const randomX = Math.random() * 80 - 40; 
+                    const randomY = Math.random() * 80 - 40; 
+                    
+                    healEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px)) scale(0.5); width:80px; height:80px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 5px #51cf66);`;
+                    unitEl.appendChild(healEl);
+                    
+                    const anim = healEl.animate([
+                        { opacity: 0, transform: `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY + 30}px)) scale(0.5)` },
+                        { opacity: 1, transform: `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px)) scale(1)` },
+                        { opacity: 0, transform: `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY - 60}px)) scale(1.2)` }
+                    ], { duration: 600, easing: 'ease-out', fill: 'forwards' });
+                    
+                    anim.onfinish = () => {
+                        if (healEl && healEl.parentNode) {
+                            healEl.parentNode.removeChild(healEl);
+                        }
+                    };
+                }, i * 150);
+            }
+        }
+
         function updateCombatUI() {
             const unit = currentRun.turnOrder[currentRun.activeTurnIndex];
             if (!unit) return;
@@ -238,7 +351,7 @@
             });
 
             const energy = unit.energy;
-            document.getElementById('energy-display').innerText = `EN: ${energy}`;
+            document.getElementById('energy-display').innerHTML = `<div style="display:flex; justify-content:center; align-items:center; gap:5px;"><img src="Art/EN.png" style="width:24px;height:24px;filter:drop-shadow(1px 1px 1px black);" alt="EN" /><span style="font-size:24px; font-weight:bold; color:white; text-shadow:1px 1px 2px black;">${energy}</span></div>`;
             document.getElementById('combat-log').innerHTML = combatState.log.slice(-5).join('<br>');
             
             const endTurnBtn = document.getElementById('btn-end-turn');
@@ -255,12 +368,12 @@
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
                 const current = Math.floor(progress * (end - start) + start);
-                obj.innerHTML = `HP: ${current}/${maxHp}`;
+                obj.innerHTML = `${current}/${maxHp}`;
                 obj.setAttribute('data-current-hp', current);
                 if (progress < 1) {
                     window.requestAnimationFrame(step);
                 } else {
-                    obj.innerHTML = `HP: ${end}/${maxHp}`;
+                    obj.innerHTML = `${end}/${maxHp}`;
                     obj.setAttribute('data-current-hp', end);
                 }
             };
@@ -341,6 +454,7 @@
                 };
 
                 if (u.poison > 0) statusHtml += renderIcon('Art/Poison.png', badStyle, 'Poisoned', u.poisonTurns);
+                if (u.toxin > 0) statusHtml += renderIcon('Art/Toxin.png', badStyle, 'Toxin', u.toxinTurns);
                 if (u.sleep > 0) statusHtml += renderIcon('Art/Sleep.png', badStyle, 'Sleeping', u.sleep);
                 if (u.stunned > 0) statusHtml += renderIcon('Art/Stun.png', badStyle, 'Stunned', u.stunned);
                 
@@ -355,24 +469,24 @@
                     if (spdBuff) statusHtml += renderIcon('Art/Buff SPD.png', goodStyle, 'SPD Up', spdBuff.turns);
 
                     const lifestealBuff = u.buffs.find(b => b.type === 'lifesteal_buff');
-                    if (lifestealBuff) statusHtml += renderEmojiIcon('❤️‍🩹', goodStyle, 'Lifesteal', lifestealBuff.turns);
+                    if (lifestealBuff) statusHtml += renderIcon('Art/Lifesteal.png', goodStyle, 'Lifesteal', lifestealBuff.turns);
+
+                    const overchargeBuff = u.buffs.find(b => b.type === 'overcharge_buff');
+                    if (overchargeBuff) statusHtml += renderIcon('Art/Buff Energy.png', goodStyle, 'Overcharge', overchargeBuff.turns);
 
                     const bramblesBuff = u.buffs.find(b => b.type === 'brambles');
-                    if (bramblesBuff) statusHtml += renderEmojiIcon('🌵', goodStyle, 'Thorns', bramblesBuff.turns);
+                    if (bramblesBuff) statusHtml += renderIcon('Art/Thorns.png', goodStyle, 'Thorns', bramblesBuff.turns);
 
                     const counterBuff = u.buffs.find(b => b.type === 'counter');
-                    if (counterBuff) statusHtml += renderEmojiIcon('⚔️', goodStyle, 'Counter', counterBuff.turns);
+                    if (counterBuff) statusHtml += renderIcon('Art/Counter.png', goodStyle, 'Counter', counterBuff.turns);
 
                     const tauntBuff = u.buffs.find(b => b.type === 'taunt');
-                    if (tauntBuff) statusHtml += renderEmojiIcon('🎯', goodStyle, 'Taunt', tauntBuff.turns);
+                    if (tauntBuff) statusHtml += renderIcon('Art/Taunt.png', goodStyle, 'Taunt', tauntBuff.turns);
                 }
 
                 if (u.debuffs) {
                     const atkDebuff = u.debuffs.find(b => b.type === 'atk_debuff' || b.type === 'atk_debuff_pct');
                     if (atkDebuff) statusHtml += renderIcon('Art/Debuff DMG.png', badStyle, 'ATK Down', atkDebuff.turns);
-
-                    const spdDebuff = u.debuffs.find(b => b.type === 'spd_debuff' || b.type === 'spd_debuff_pct');
-                    if (spdDebuff) statusHtml += renderIcon('Art/Debuff SPD.png', badStyle, 'SPD Down', spdDebuff.turns);
                 }
 
                 if (u.defMod > 0) statusHtml += renderIcon('Art/Guard.png', goodStyle, 'Guarded');
@@ -381,31 +495,48 @@
             const typeIconHtml = getTypeIconHtml(types, 40);
 
             const iconPosition = u.isEnemy ? 'right: -10px;' : 'left: -10px;';
+            const hasTaunt = u.buffs && u.buffs.some(b => b.type === 'taunt');
 
             if (!div.querySelector('.hp-fill') || !div.querySelector('.hp-text')) {
                 div.innerHTML = `
                     <div class="monster-art-container" style="position: relative;">
-                        <div class="art-content">${artHtml}</div>
+                        <div class="art-content" style="animation-delay: -${index * 0.4}s">${artHtml}</div>
+                        <img src="Art/Taunt_1.png" class="taunt-circle" style="display: ${hasTaunt ? 'block' : 'none'};" />
                         <div class="shadow-ellipse"></div>
                         <div class="status-container" style="position: absolute; bottom: 0; left: 0; width: 100%; display:flex; justify-content:center; gap:4px; z-index: 10;">
                             ${statusHtml}
                         </div>
                     </div>
-                    <div class="stats-container" style="position: relative; padding-top: 10px;">
+                    <div class="stats-container" style="position: relative; padding-top: 10px; z-index: 10;">
                         <div class="type-icon-container" style="position: absolute; top: -10px; ${iconPosition} z-index: 11;">
                             ${typeIconHtml}
                         </div>
                         <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
                             ${u.name}
                         </div>
-                        <div class="hp-bar" style="margin-bottom: 4px;"><div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor}; transition: width 1.5s ease-out, background-color 1.5s ease-out;"></div></div>
-                        <div class="hp-text" style="text-align: center; color: white; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px black;" data-current-hp="${Math.ceil(u.currentHp)}">
-                            HP: ${Math.ceil(u.currentHp)}/${u.hp}
+                        <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                            <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
+                            <div class="hp-bar" style="flex: 1; position: relative;">
+                                <div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor}; transition: width 1.5s ease-out, background-color 1.5s ease-out;"></div>
+                                <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; pointer-events: none;" data-current-hp="${Math.ceil(u.currentHp)}">
+                                    ${Math.ceil(u.currentHp)}/${u.hp}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                            <img src="Art/EN.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="EN" />
+                            <div class="energy-blocks" style="display: flex; gap: 4px; flex: 1;">
+                                ${[1, 2, 3].map(i => `<div style="flex: 1; height: 6px; background-color: ${u.energy >= i ? '#00a8ff' : '#222'}; border-radius: 2px; transition: background-color 0.3s ease;"></div>`).join('')}
+                            </div>
                         </div>
                     </div>
                 `;
             } else {
                 div.querySelector('.art-content').innerHTML = artHtml;
+                
+                const tauntCircle = div.querySelector('.taunt-circle');
+                if (tauntCircle) tauntCircle.style.display = hasTaunt ? 'block' : 'none';
+
                 div.querySelector('.status-container').innerHTML = statusHtml;
                 div.querySelector('.type-icon-container').innerHTML = typeIconHtml;
                 div.querySelector('.type-icon-container').style.cssText = `position: absolute; top: -10px; ${iconPosition} z-index: 11;`;
@@ -422,7 +553,12 @@
                 if (currentDisplayedHp !== targetHp) {
                     animateValue(hpTextEl, currentDisplayedHp, targetHp, 1500, u.hp);
                 } else {
-                    hpTextEl.innerHTML = `HP: ${targetHp}/${u.hp}`;
+                    hpTextEl.innerHTML = `${targetHp}/${u.hp}`;
+                }
+
+                const energyBlocksEl = div.querySelector('.energy-blocks');
+                if (energyBlocksEl) {
+                    energyBlocksEl.innerHTML = [1, 2, 3].map(i => `<div style="flex: 1; height: 6px; background-color: ${u.energy >= i ? '#00a8ff' : '#222'}; border-radius: 2px; transition: background-color 0.3s ease;"></div>`).join('');
                 }
             }
 
@@ -509,19 +645,12 @@
                 return;
             }
 
-            // Decay buffs
+            // Recalculate mods
+            unit.atkMod = 0;
+            unit.spdMod = 0;
+            unit.defMod = 0;
+
             if (unit.buffs) {
-                unit.buffs.forEach(b => {
-                    if (b.type !== 'guard' && b.type !== 'guard_pct') {
-                        b.turns--;
-                    }
-                });
-                unit.buffs = unit.buffs.filter(b => b.turns > 0 || b.type === 'guard' || b.type === 'guard_pct');
-                
-                // Recalculate mods
-                unit.atkMod = 0;
-                unit.spdMod = 0;
-                unit.defMod = 0;
                 unit.buffs.forEach(b => {
                     if (b.type === 'atk_buff' || b.type === 'atk_buff_pct') unit.atkMod += b.value;
                     if (b.type === 'spd_buff' || b.type === 'spd_buff_pct') unit.spdMod += b.value;
@@ -530,16 +659,13 @@
                         const healAmount = b.type === 'regen_pct' ? Math.floor(unit.hp * b.value) : b.value;
                         unit.currentHp = Math.min(unit.hp, unit.currentHp + healAmount);
                         showFloatingText(unit, "+" + healAmount, "#51cf66");
+                        playHealVFX(unit);
                         combatLog(`${unit.name} regenerated ${healAmount} HP!`);
                     }
                 });
             }
-
-            // Decay debuffs
+            // Apply debuffs
             if (unit.debuffs) {
-                unit.debuffs.forEach(d => d.turns--);
-                unit.debuffs = unit.debuffs.filter(d => d.turns > 0);
-                
                 unit.debuffs.forEach(d => {
                     if (d.type === 'atk_debuff' || d.type === 'atk_debuff_pct') unit.atkMod -= d.value;
                     if (d.type === 'spd_debuff' || d.type === 'spd_debuff_pct') unit.spdMod -= d.value;
@@ -548,16 +674,55 @@
 
             // Poison
             if (unit.poison > 0 && unit.poisonTurns > 0) {
-                const dmg = unit.poison;
-                unit.currentHp -= dmg;
-                showFloatingText(unit, "-" + dmg, "#a200ff");
-                unit.poisonTurns--;
-                if (unit.poisonTurns <= 0) unit.poison = 0;
-                
-                combatLog(`${unit.name} took ${dmg} poison damage!`);
-                if (unit.currentHp <= 0) {
-                    combatLog(`${unit.name} fainted from poison!`);
-                    calculateTurnOrder(true); // Refresh order if someone died
+                let isDead = false;
+                await playStatusVFX(unit, 'Poison', () => {
+                    const dmg = unit.poison;
+                    unit.currentHp -= dmg;
+                    showFloatingText(unit, "-" + dmg, "#a200ff");
+                    unit.poisonTurns--;
+                    if (unit.poisonTurns <= 0) unit.poison = 0;
+                    
+                    combatLog(`${unit.name} took ${dmg} poison damage!`);
+                    
+                    if (unit.currentHp <= 0) {
+                        isDead = true;
+                        combatLog(`${unit.name} fainted from poison!`);
+                        if (unit.isEnemy && !combatState.firstKilledEnemy) {
+                            combatState.firstKilledEnemy = unit;
+                        }
+                        calculateTurnOrder(true);
+                    }
+                });
+
+                if (isDead) {
+                    setTimeout(nextTurn, 1000);
+                    return;
+                }
+            }
+
+            // Toxin
+            if (unit.toxin > 0 && unit.toxinTurns > 0) {
+                let isDead = false;
+                await playStatusVFX(unit, 'Toxin', () => {
+                    const dmg = unit.toxin;
+                    unit.currentHp -= dmg;
+                    showFloatingText(unit, "-" + dmg, "#a200ff");
+                    unit.toxinTurns--;
+                    if (unit.toxinTurns <= 0) unit.toxin = 0;
+                    
+                    combatLog(`${unit.name} took ${dmg} toxin damage!`);
+                    
+                    if (unit.currentHp <= 0) {
+                        isDead = true;
+                        combatLog(`${unit.name} fainted from toxin!`);
+                        if (unit.isEnemy && !combatState.firstKilledEnemy) {
+                            combatState.firstKilledEnemy = unit;
+                        }
+                        calculateTurnOrder(true);
+                    }
+                });
+
+                if (isDead) {
                     setTimeout(nextTurn, 1000);
                     return;
                 }
@@ -566,6 +731,7 @@
             if (unit.stunned > 0) {
                 combatLog(`${unit.name} is stunned and skips their turn!`);
                 unit.stunned--;
+                unit.skipEnergyGeneration = true;
                 setTimeout(advanceTurn, 1000);
                 return;
             }
@@ -597,7 +763,27 @@
             updateCombatUI();
             const unit = currentRun.turnOrder[currentRun.activeTurnIndex];
             if (unit && unit.currentHp > 0) {
-                unit.energy = Math.min(3, unit.energy + 1);
+                if (unit.skipEnergyGeneration) {
+                    unit.skipEnergyGeneration = false;
+                } else {
+                    unit.energy = Math.min(3, unit.energy + 1);
+                }
+                
+                // Decay buffs and debuffs at turn end
+                if (unit.buffs) {
+                    unit.buffs.forEach(b => {
+                        if (b.isNew) b.isNew = false;
+                        else if (b.type !== 'guard' && b.type !== 'guard_pct') b.turns--;
+                    });
+                    unit.buffs = unit.buffs.filter(b => b.turns > 0 || b.type === 'guard' || b.type === 'guard_pct');
+                }
+                if (unit.debuffs) {
+                    unit.debuffs.forEach(d => {
+                        if (d.isNew) d.isNew = false;
+                        else d.turns--;
+                    });
+                    unit.debuffs = unit.debuffs.filter(d => d.turns > 0);
+                }
             }
             currentRun.activeTurnIndex = (currentRun.activeTurnIndex + 1) % currentRun.turnOrder.length;
             nextTurn();
@@ -651,6 +837,19 @@
             });
         }
 
+        function getElementForUnit(unit) {
+            if (!unit) return null;
+            let index;
+            if (unit.isEnemy) {
+                index = combatState.enemies.indexOf(unit);
+                if (index !== -1) return document.getElementById('enemy-team').children[index];
+            } else {
+                index = currentRun.party.indexOf(unit);
+                if (index !== -1) return document.getElementById('player-team').children[index];
+            }
+            return null;
+        }
+
         async function executeMove(attacker, move, target) {
             if (isExecutingMove) return;
             if (attacker.energy < move.c) return;
@@ -695,8 +894,740 @@
 
             combatLog(`${attacker.name} used ${move.n}!`);
 
+            if (move.p > 0 && !move.effect?.type.includes('heal')) {
+                const attackerEl = getElementForUnit(attacker);
+                if (attackerEl) {
+                    const dashDist = attacker.isEnemy ? '-30px' : '30px';
+                    attackerEl.animate([
+                        { transform: 'translateX(0)' },
+                        { transform: `translateX(${dashDist})` },
+                        { transform: 'translateX(0)' }
+                    ], { duration: 300, easing: 'ease-in-out' });
+                }
+                await new Promise(r => setTimeout(r, 250));
+            }
+
             for (const t of targets) {
                 if (!t || t.currentHp <= 0) continue;
+
+                let animDelay = 0;
+
+                if (move.n.includes("Bite")) {
+                    animDelay = 490; // 250 + 4*60
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const biteAnimEl = document.createElement('img');
+                        biteAnimEl.src = "Art/Bite_1.png";
+                        biteAnimEl.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;";
+                        targetEl.appendChild(biteAnimEl);
+                        
+                        // Play animation concurrently with the damage step
+                        (async () => {
+                            const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                            biteAnimEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, fill: 'forwards' });
+                            await new Promise(r => setTimeout(r, 75)); // Stay on frame 1
+                            for (let frame = 2; frame <= 5; frame++) {
+                                await new Promise(r => setTimeout(r, 60)); // Fast close
+                                if (biteAnimEl) biteAnimEl.src = `Art/Bite_${frame}.png`;
+                            }
+                            
+                            // Squish target when bitten
+                            const bScale = t.isBoss ? 2.0 : 1.0;
+                            artContainer.animate([
+                                { transform: `scale(${bScale}, ${bScale})` },
+                                { transform: `scale(${bScale * 1.2}, ${bScale * 0.8})` },
+                                { transform: `scale(${bScale * 0.9}, ${bScale * 1.1})` },
+                                { transform: `scale(${bScale}, ${bScale})` }
+                            ], { duration: 300, easing: 'ease-out' });
+
+                            // Shake
+                            biteAnimEl.animate([
+                                { transform: 'translate(-50%, -50%) rotate(0deg) scale(1)' },
+                                { transform: 'translate(-55%, -45%) rotate(-5deg) scale(1.05)' },
+                                { transform: 'translate(-45%, -55%) rotate(5deg) scale(1.05)' },
+                                { transform: 'translate(-55%, -55%) rotate(-5deg) scale(1.05)' },
+                                { transform: 'translate(-45%, -45%) rotate(5deg) scale(1.05)' },
+                                { transform: 'translate(-50%, -50%) rotate(0deg) scale(1)' }
+                            ], { duration: 200, easing: 'ease-in-out' });
+
+                            await new Promise(r => setTimeout(r, 300)); // Stay closed
+                            
+                            const fadeOut = biteAnimEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && biteAnimEl.parentNode === targetEl) {
+                                targetEl.removeChild(biteAnimEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Snipe")) {
+                    animDelay = 450; // 150 appear + 200 stay + 100 tremble
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Snipe_1.png";
+                        animEl.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1.5); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;";
+                        targetEl.appendChild(animEl);
+                        
+                        // Play animation concurrently with the damage step
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: 'translate(-50%, -50%) scale(2)' }, 
+                                { opacity: 1, transform: 'translate(-50%, -50%) scale(1)' }
+                            ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 150));
+                            
+                            // Stay
+                            await new Promise(r => setTimeout(r, 200));
+
+                            // Impact flash / tremble
+                            animEl.animate([
+                                { transform: 'translate(-50%, -50%) scale(1)', filter: 'brightness(1) drop-shadow(0 0 0px red)' },
+                                { transform: 'translate(-55%, -45%) scale(1.05)', filter: 'brightness(1.5) drop-shadow(0 0 10px red) drop-shadow(0 0 20px red)' },
+                                { transform: 'translate(-45%, -55%) scale(1.05)', filter: 'brightness(1.5) drop-shadow(0 0 10px red) drop-shadow(0 0 20px red)' },
+                                { transform: 'translate(-50%, -50%) scale(1)', filter: 'brightness(1) drop-shadow(0 0 0px red)' }
+                            ], { duration: 100, easing: 'linear' });
+                            
+                            await new Promise(r => setTimeout(r, 200)); 
+                            
+                            const fadeOut = animEl.animate([{ opacity: 1, transform: 'translate(-50%, -50%) scale(1)' }, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.8)' }], { duration: 150, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Spit") || move.n.includes("Slumber Sludge")) {
+                    const animPrefix = move.n.includes("Slumber Sludge") ? "SlumberSludge" : "Spit";
+                    animDelay = 300; 
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const spitAnimEl = document.createElement('img');
+                        spitAnimEl.src = `Art/${animPrefix}_1.png`;
+                        
+                        const startX = attacker.isEnemy ? '250px' : '-250px';
+                        const startY = '-250px';
+                        const endX = attacker.isEnemy ? '50px' : '-50px';
+                        const endY = '-50px';
+                        const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        
+                        spitAnimEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX}), calc(-50% + ${startY})) ${flip}; width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
+                        targetEl.appendChild(spitAnimEl);
+                        
+                        // Play animation concurrently with the damage step
+                        (async () => {
+                            spitAnimEl.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX}), calc(-50% + ${startY})) ${flip}` },
+                                { opacity: 1, transform: `translate(calc(-50% + ${startX} * 0.8), calc(-50% + ${startY} * 0.8)) ${flip}`, offset: 0.2 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX}), calc(-50% + ${endY})) ${flip}` }
+                            ], { duration: 300, easing: 'ease-in', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 300));
+                            
+                            spitAnimEl.src = `Art/${animPrefix}_2.png`;
+                            spitAnimEl.style.width = "250px";
+                            spitAnimEl.style.height = "250px";
+                            
+                            spitAnimEl.animate([
+                                { transform: `translate(-50%, -50%) scale(0.5) ${flip}` },
+                                { transform: `translate(-50%, -50%) scale(1.1) ${flip}` },
+                                { transform: `translate(-50%, -50%) scale(1) ${flip}` }
+                            ], { duration: 200, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 400));
+                            
+                            const fadeOut = spitAnimEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && spitAnimEl.parentNode === targetEl) {
+                                targetEl.removeChild(spitAnimEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Maul")) {
+                    animDelay = 250; 
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Maul_1.png";
+                        
+                        const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        const startX = attacker.isEnemy ? -80 : 80;
+                        const endX = attacker.isEnemy ? 80 : -80;
+                        
+                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX}px), calc(-50% - 100px)) scale(1.5) ${flip}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;`;
+                        targetEl.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX}px), calc(-50% - 100px)) scale(1.5) ${flip}` },
+                                { opacity: 1, transform: `translate(-50%, calc(-50% - 20px)) scale(1.2) ${flip}`, offset: 0.4 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX * 0.2}px), calc(-50%)) scale(1.2) ${flip}`, offset: 0.7 },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX}px), calc(-50% + 20px)) scale(0.8) ${flip}` }
+                            ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+                            
+                            setTimeout(() => {
+                                animEl.animate([
+                                    { filter: 'brightness(1) drop-shadow(0 0 0px red)' },
+                                    { filter: 'brightness(1.5) drop-shadow(0 0 20px red)' },
+                                    { filter: 'brightness(1) drop-shadow(0 0 0px red)' }
+                                ], { duration: 150 });
+                            }, 150);
+
+                            await new Promise(r => setTimeout(r, 450));
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Devour")) {
+                    animDelay = 250; 
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl1 = document.createElement('img');
+                        animEl1.src = "Art/Maul_1.png";
+                        const animEl2 = document.createElement('img');
+                        animEl2.src = "Art/Maul_1.png";
+                        
+                        const flip1 = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        const flip2 = attacker.isEnemy ? 'scaleX(1)' : 'scaleX(-1)'; // Mirrored
+                        const startX1 = attacker.isEnemy ? -80 : 80;
+                        const endX1 = attacker.isEnemy ? 80 : -80;
+                        const startX2 = attacker.isEnemy ? 80 : -80;
+                        const endX2 = attacker.isEnemy ? -80 : 80;
+                                          animEl1.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX1}px), calc(-50% - 100px)) scale(1.5) ${flip1}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
+                        animEl2.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX2}px), calc(-50% - 100px)) scale(1.5) ${flip2}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
+                        
+                        targetEl.appendChild(animEl1);
+                        targetEl.appendChild(animEl2);
+                        
+                        (async () => {
+                            animEl1.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX1}px), calc(-50% - 100px)) scale(1.5) ${flip1}` },
+                                { opacity: 1, transform: `translate(-50%, calc(-50% - 20px)) scale(1.2) ${flip1}`, offset: 0.4 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX1 * 0.2}px), calc(-50%)) scale(1.2) ${flip1}`, offset: 0.7 },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX1}px), calc(-50% + 20px)) scale(0.8) ${flip1}` }
+                            ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+                            animEl2.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX2}px), calc(-50% - 100px)) scale(1.5) ${flip2}` },
+                                { opacity: 1, transform: `translate(-50%, calc(-50% - 20px)) scale(1.2) ${flip2}`, offset: 0.4 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX2 * 0.2}px), calc(-50%)) scale(1.2) ${flip2}`, offset: 0.7 },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX2}px), calc(-50% + 20px)) scale(0.8) ${flip2}` }
+                            ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+                            
+                            setTimeout(() => {
+                                [animEl1, animEl2].forEach(el => el.animate([
+                                    { filter: 'brightness(1) drop-shadow(0 0 10px #ff0000)' },
+                                    { filter: 'brightness(1.5) drop-shadow(0 0 30px #ff0000)' },
+                                    { filter: 'brightness(1) drop-shadow(0 0 10px #ff0000)' }
+                                ], { duration: 150 }));
+                            }, 150);
+
+                            await new Promise(r => setTimeout(r, 450));
+                            if (targetEl && animEl1.parentNode === targetEl) targetEl.removeChild(animEl1);
+                            if (targetEl && animEl2.parentNode === targetEl) targetEl.removeChild(animEl2);
+                        })();
+                    }
+                }
+
+                if (move.n === "Spore" || move.n === "Giant Spore") {
+                    animDelay = 500;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const mushroomEl = document.createElement('img');
+                        mushroomEl.src = "Art/Spore_1.png";
+                        mushroomEl.style.cssText = "position:absolute; bottom:-10px; left:50%; transform:translateX(-50%) scale(0); width:200px; height:auto; z-index:5; pointer-events:none; transform-origin: bottom center;";
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(mushroomEl);
+
+                        (async () => {
+                            mushroomEl.animate([
+                                { transform: 'translateX(-50%) scale(0)' },
+                                { transform: 'translateX(-50%) scale(0.99)' },
+                                { transform: 'translateX(-50%) scale(0.9)' }
+                            ], { duration: 250, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 250));
+                            
+                            mushroomEl.animate([
+                                { transform: 'translateX(-50%) scale(0.9, 0.9)' },
+                                { transform: 'translateX(-50%) scale(1.17, 0.63)' },
+                                { transform: 'translateX(-50%) scale(0.72, 1.17)' },
+                                { transform: 'translateX(-50%) scale(0.9, 0.9)' }
+                            ], { duration: 300, easing: 'ease-in-out' });
+                            
+                            await new Promise(r => setTimeout(r, 250)); 
+                            
+                            for (let i=0; i<20; i++) {
+                                const sporeEl = document.createElement('img');
+                                sporeEl.src = "Art/Spore_2.png";
+                                const startX = (Math.random() - 0.5) * 80;
+                                const startY = -40 - Math.random() * 20;
+                                const endX = startX + (Math.random() - 0.5) * 200;
+                                const endY = -150 - Math.random() * 100;
+                                
+                                sporeEl.style.cssText = `position:absolute; bottom:-10px; left:50%; transform:translate(calc(-50% + ${startX}px), ${startY}px) scale(0.5); width:40px; height:40px; z-index:101; pointer-events:none; opacity:1; filter: drop-shadow(0 0 5px #51cf66);`;
+                                const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                                artContainer.appendChild(sporeEl);
+                                
+                                const sporeAnim = sporeEl.animate([
+                                    { transform: `translate(calc(-50% + ${startX}px), ${startY}px) scale(0.5)`, opacity: 1 },
+                                    { transform: `translate(calc(-50% + ${endX}px), ${endY}px) scale(1.5)`, opacity: 0 }
+                                ], { duration: 400 + Math.random() * 200, easing: 'ease-out', fill: 'forwards' });
+                                
+                                sporeAnim.finished.then(() => {
+                                    if (sporeEl.parentNode) sporeEl.parentNode.removeChild(sporeEl);
+                                });
+                            }
+                            
+                            await new Promise(r => setTimeout(r, 300));
+                            
+                            const fadeOut = mushroomEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+                            await fadeOut.finished;
+                            if (mushroomEl.parentNode) mushroomEl.parentNode.removeChild(mushroomEl);
+                        })();
+                    }
+                }
+
+                
+                if (move.n.includes("Root Crush")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/RootCrush_1.png";
+                        animEl.style.cssText = "position:absolute; bottom:-30px; left:50%; transform:translate(-50%, 0); width:320px; height:auto; z-index:100; pointer-events:none; opacity: 1;";
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, fill: 'forwards' });
+                            for (let frame = 1; frame <= 6; frame++) {
+                                if (animEl) animEl.src = `Art/RootCrush_${frame}.png`;
+                                await new Promise(r => setTimeout(r, 60));
+                            }
+                            
+                            const bScale = t.isBoss ? 2.0 : 1.0;
+                            artContainer.animate([
+                                { transform: `scale(${bScale}, ${bScale})` },
+                                { transform: `scale(${bScale * 1.1}, ${bScale * 0.9})` },
+                                { transform: `scale(${bScale * 0.95}, ${bScale * 1.05})` },
+                                { transform: `scale(${bScale}, ${bScale})` }
+                            ], { duration: 250, easing: 'ease-out' });
+                            
+                            animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' });
+                            await new Promise(r => setTimeout(r, 150));
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Slam")) {
+                    animDelay = 350;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Slam_1.png";
+                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1.1); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -250px) scale(1.1)` },
+                                { opacity: 1, transform: `translate(-50%, -150px) scale(1.1)` },
+                                { opacity: 1, transform: `translate(-50%, -20%) scale(1.1)` }
+                            ], { duration: 350, easing: 'ease-in', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 350));
+                            
+                            const bScale = t.isBoss ? 2.0 : 1.0;
+                            artContainer.animate([
+                                { transform: `translate(0, 0) scale(${bScale}, ${bScale})` },
+                                { transform: `translate(0, 20px) scale(${bScale * 1.2}, ${bScale * 0.7})` },
+                                { transform: `translate(0, -5px) scale(${bScale * 0.9}, ${bScale * 1.1})` },
+                                { transform: `translate(0, 0) scale(${bScale}, ${bScale})` }
+                            ], { duration: 300, easing: 'ease-out' });
+                            
+                            await new Promise(r => setTimeout(r, 300));
+                            
+                            const fadeOut = animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, delay: 200, fill: 'forwards' });
+                            await fadeOut.finished;
+                            
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Punch")) {
+                    animDelay = 250;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Punch_1.png";
+                        const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        const startX = attacker.isEnemy ? '150px' : '-150px';
+                        const endX = attacker.isEnemy ? '50px' : '-50px';
+                        
+                        animEl.style.cssText = `position:absolute; top:65%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            const punchAnim = animEl.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(0.8)` },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX}), -50%) ${flip} scale(1.2)` }
+                            ], { duration: 250, easing: 'ease-in', fill: 'forwards' });
+
+                            await punchAnim.finished;
+
+                            animEl.animate([
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX}), -50%) ${flip} scale(1.2)` },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX}), -50%) ${flip} scale(1.3)` }
+                            ], { duration: 500, delay: 300, fill: 'forwards' });
+
+                            const bScale = t.isBoss ? 'scale(2.0, 2.0)' : 'scale(1.0, 1.0)';
+                            artContainer.animate([
+                                { transform: `translate(0, 0) ${bScale}`, offset: 0 },
+                                { transform: `translate(${attacker.isEnemy ? '-20px' : '20px'}, 0) ${bScale}`, offset: 0.15 },
+                                { transform: `translate(${attacker.isEnemy ? '-90px' : '90px'}, 0) ${bScale}`, offset: 0.5 },
+                                { transform: `translate(0, 0) ${bScale}`, offset: 1 }
+                            ], { duration: 1000, easing: 'ease-in-out' });
+
+                            await new Promise(r => setTimeout(r, 1000));
+
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Echo")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Echo_1.png";
+                        const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        const startX = attacker.isEnemy ? '90px' : '-90px';
+                        
+                        animEl.style.cssText = `position:absolute; top:65%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(0.8)` },
+                                { opacity: 1, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.1)` },
+                                { opacity: 1, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0)` }
+                            ], { duration: 200, easing: 'ease-out', fill: 'forwards' });
+
+                            for (let i = 1; i <= 7; i++) {
+                                animEl.src = `Art/Echo_${i}.png`;
+                                if (i >= 4) {
+                                    artContainer.animate([
+                                        { filter: 'brightness(1)', transform: 'scale(1)' },
+                                        { filter: 'brightness(1.5) drop-shadow(0 0 10px #ffea00)', transform: 'scale(1.05)' },
+                                        { filter: 'brightness(1)', transform: 'scale(1)' }
+                                    ], { duration: 100 });
+                                }
+                                await new Promise(r => setTimeout(r, i === 3 ? 150 : 50)); // hold briefly before blast
+                            }
+                            animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' });
+                            await new Promise(r => setTimeout(r, 150));
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Hemorrhage")) {
+                    animDelay = 800;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Hemorrhage_1.png";
+                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.5); width:200px; height:200px; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { transform: 'translate(-50%, -50%) scale(0.5)' },
+                                { transform: 'translate(-50%, -50%) scale(1.6)' }
+                            ], { duration: 5 * 80, easing: 'ease-out', fill: 'forwards' });
+
+                            for (let i = 1; i <= 5; i++) {
+                                animEl.src = `Art/Hemorrhage_${i}.png`;
+                                await new Promise(r => setTimeout(r, 80));
+                            }
+                            
+                            const squishAnim = animEl.animate([
+                                { transform: 'translate(-50%, -50%) scale(1.6)' },
+                                { transform: 'translate(-50%, -50%) scale(1.2)' },
+                                { transform: 'translate(-50%, -50%) scale(1.8)' },
+                                { transform: 'translate(-50%, -50%) scale(1.6)' }
+                            ], { duration: 300, easing: 'ease-in-out' });
+                            await squishAnim.finished;
+                            
+                            for (let i = 6; i <= 8; i++) {
+                                animEl.src = `Art/Hemorrhage_${i}.png`;
+                                await new Promise(r => setTimeout(r, 80));
+                            }
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Stun Bolt")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/StunBolt_1.png";
+                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:340px; height:340px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
+                        targetEl.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -50%) scale(0.2)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.0)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(0.85)` }
+                            ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 150));
+                            
+                            await new Promise(r => setTimeout(r, 200));
+
+                            animEl.animate([
+                                { filter: 'drop-shadow(0 0 20px #00a8ff) brightness(1.2)' },
+                                { filter: 'drop-shadow(0 0 40px #fff) brightness(2.0)' },
+                                { filter: 'drop-shadow(0 0 20px #00a8ff) brightness(1.2)' }
+                            ], { duration: 100 });
+                            
+                            targetEl.animate([
+                                { transform: 'translate(2px, 2px) rotate(0deg)' },
+                                { transform: 'translate(-2px, -2px) rotate(-1deg)' },
+                                { transform: 'translate(-3px, 0px) rotate(1deg)' },
+                                { transform: 'translate(3px, 2px) rotate(0deg)' },
+                                { transform: 'translate(1px, -1px) rotate(1deg)' },
+                                { transform: 'translate(-1px, 2px) rotate(-1deg)' },
+                                { transform: 'translate(-3px, 1px) rotate(0deg)' },
+                                { transform: 'translate(0px, 0px) rotate(0deg)' }
+                            ], { duration: 250, easing: 'linear' });
+
+                            await new Promise(r => setTimeout(r, 200));
+
+                            const fadeOut = animEl.animate([{ opacity: 1, transform: 'translate(-50%, -50%) scale(0.85)' }, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.6)' }], { duration: 150, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Bulletstorm")) {
+                    animDelay = 150; 
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        (async () => {
+                            for (let i=0; i<3; i++) {
+                                const animEl = document.createElement('img');
+                                animEl.src = "Art/Snipe_1.png";
+                                const offsetX = (Math.random() - 0.5) * 80;
+                                const offsetY = (Math.random() - 0.5) * 80;
+                                animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8); width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
+                                targetEl.appendChild(animEl);
+                                
+                                animEl.animate([
+                                    { opacity: 0, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(1.5)` }, 
+                                    { opacity: 1, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8)` }
+                                ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                                
+                                setTimeout(() => {
+                                    animEl.animate([
+                                        { transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8)`, filter: 'brightness(1) drop-shadow(0 0 0px red)' },
+                                        { transform: `translate(calc(-50% + ${offsetX - 5}px), calc(-50% + ${offsetY + 5}px)) scale(0.9)`, filter: 'brightness(1.5) drop-shadow(0 0 10px red)' },
+                                        { transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8)`, filter: 'brightness(1) drop-shadow(0 0 0px red)' }
+                                    ], { duration: 100, easing: 'linear' });
+                                }, 150);
+
+                                setTimeout(() => {
+                                    const fadeOut = animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, delay: 200, fill: 'forwards' });
+                                    fadeOut.finished.then(() => {
+                                        if (targetEl && animEl.parentNode === targetEl) targetEl.removeChild(animEl);
+                                    });
+                                }, 350);
+                                
+                                await new Promise(r => setTimeout(r, 400));
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Zap")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Zap_1.png";
+                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
+                        targetEl.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -50%) scale(0.2)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.0)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(0.8)` }
+                            ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 150));
+                            
+                            await new Promise(r => setTimeout(r, 200));
+
+                            animEl.animate([
+                                { filter: 'drop-shadow(0 0 20px #00a8ff) brightness(1.2)' },
+                                { filter: 'drop-shadow(0 0 40px #fff) brightness(2.0)' },
+                                { filter: 'drop-shadow(0 0 20px #00a8ff) brightness(1.2)' }
+                            ], { duration: 100 });
+                            
+                            // Flinch animation
+                            targetEl.animate([
+                                { transform: 'translate(4px, 4px) rotate(2deg) scale(0.95)' },
+                                { transform: 'translate(-4px, -2px) rotate(-2deg) scale(0.95)' },
+                                { transform: 'translate(-6px, 2px) rotate(1deg) scale(0.95)' },
+                                { transform: 'translate(4px, -2px) rotate(-1deg) scale(0.95)' },
+                                { transform: 'translate(2px, 3px) rotate(2deg) scale(0.95)' },
+                                { transform: 'translate(-2px, -3px) rotate(-2deg) scale(0.95)' },
+                                { transform: 'translate(0px, 0px) rotate(0deg) scale(1)' }
+                            ], { duration: 300, easing: 'linear' });
+
+                            await new Promise(r => setTimeout(r, 200));
+
+                            const fadeOut = animEl.animate([{ opacity: 1, transform: 'translate(-50%, -50%) scale(0.8)' }, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.5)' }], { duration: 150, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Shockwave")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Shockwave_1.png";
+                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #ffea00) brightness(1.2);`;
+                        targetEl.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -50%) scale(0.2)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.0)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(0.8)` }
+                            ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 150));
+                            
+                            await new Promise(r => setTimeout(r, 200));
+
+                            animEl.animate([
+                                { filter: 'drop-shadow(0 0 20px #ffea00) brightness(1.2)' },
+                                { filter: 'drop-shadow(0 0 40px #fff) brightness(2.0)' },
+                                { filter: 'drop-shadow(0 0 20px #ffea00) brightness(1.2)' }
+                            ], { duration: 100 });
+                            
+                            // Flinch animation
+                            targetEl.animate([
+                                { transform: 'translate(4px, 4px) rotate(2deg) scale(0.95)' },
+                                { transform: 'translate(-4px, -2px) rotate(-2deg) scale(0.95)' },
+                                { transform: 'translate(-6px, 2px) rotate(1deg) scale(0.95)' },
+                                { transform: 'translate(4px, -2px) rotate(-1deg) scale(0.95)' },
+                                { transform: 'translate(2px, 3px) rotate(2deg) scale(0.95)' },
+                                { transform: 'translate(-2px, -3px) rotate(-2deg) scale(0.95)' },
+                                { transform: 'translate(0px, 0px) rotate(0deg) scale(1)' }
+                            ], { duration: 300, easing: 'linear' });
+
+                            await new Promise(r => setTimeout(r, 200));
+
+                            const fadeOut = animEl.animate([{ opacity: 1, transform: 'translate(-50%, -50%) scale(0.8)' }, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.5)' }], { duration: 150, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                const isBuff = move.n.includes("Howl") || move.n.includes("Guard") || move.n.includes("Renewal Spores") || move.n.includes("Full Throttle") || move.n.includes("Overcharge") || move.n.includes("Savage Stance") || move.n.includes("Lifesteal") || move.n.includes("Thorns") || move.n.includes("Counter");
+                const isDebuff = move.n.includes("Intimidate") || move.n.includes("Poison Cloud") || move.n.includes("Toxin");
+
+                if (isBuff) {
+                    animDelay = Math.max(animDelay, 300);
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Buff_1.png";
+                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #51cf66);`;
+                        targetEl.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -20%) scale(0.5)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.2)` },
+                                { opacity: 0, transform: `translate(-50%, -80%) scale(1.5)` }
+                            ], { duration: 600, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 650));
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (isDebuff) {
+                    animDelay = Math.max(animDelay, 300);
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Debuff_1.png";
+                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff4444);`;
+                        targetEl.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -80%) scale(1.5)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.2)` },
+                                { opacity: 0, transform: `translate(-50%, -20%) scale(0.5)` }
+                            ], { duration: 600, easing: 'ease-in', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 650));
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (animDelay > 0) {
+                    await new Promise(r => setTimeout(r, animDelay));
+                }
 
                 // Damage
                 if (move.p > 0 && !move.effect?.type.includes('heal')) {
@@ -727,6 +1658,20 @@
                                 attacker.currentHp -= counterDamage;
                                 showFloatingText(attacker, "-" + counterDamage, "#ff4444");
                                 combatLog(`${t.name} countered! ${attacker.name} took ${counterDamage} damage!`);
+                                if (attacker.currentHp <= 0) {
+                                    if (attacker.isEnemy && !combatState.firstKilledEnemy) combatState.firstKilledEnemy = attacker;
+                                    else if (!attacker.isEnemy) { combatLog(`${attacker.name} has fallen!`); calculateTurnOrder(true); }
+                                }
+                                const attackerEl = getElementForUnit(attacker);
+                                if (attackerEl) {
+                                    attackerEl.animate([
+                                        { transform: 'translateX(0)' },
+                                        { transform: 'translateX(-5px)' },
+                                        { transform: 'translateX(5px)' },
+                                        { transform: 'translateX(-5px)' },
+                                        { transform: 'translateX(0)' }
+                                    ], { duration: 300, easing: 'ease-in-out' });
+                                }
                                 damage = 0;
                             }
                         }
@@ -740,6 +1685,18 @@
                             else if (dmgMult < 1) arrow = ' <span style="color:#aaa; text-shadow: 2px 2px 2px #000;">↓</span>';
                             showFloatingText(t, "-" + damage + arrow, "#ff4444");
                             combatLog(`${t.name} took ${damage} damage!`);
+
+                            const targetEl = getElementForUnit(t);
+                            if (targetEl) {
+                                const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                                const baseScale = t.isBoss ? 2.0 : 1.0;
+                                artContainer.animate([
+                                    { transform: `scale(${baseScale}, ${baseScale})` },
+                                    { transform: `scale(${baseScale * 1.2}, ${baseScale * 0.8})` },
+                                    { transform: `scale(${baseScale * 0.9}, ${baseScale * 1.1})` },
+                                    { transform: `scale(${baseScale}, ${baseScale})` }
+                                ], { duration: 300, easing: 'ease-out' });
+                            }
                         }
 
                         if (t.buffs) {
@@ -750,6 +1707,20 @@
                                     attacker.currentHp -= reflectAmt;
                                     showFloatingText(attacker, "-" + reflectAmt, "#ff4444");
                                     combatLog(`${attacker.name} took ${reflectAmt} damage from Thorns!`);
+                                    if (attacker.currentHp <= 0) {
+                                        if (attacker.isEnemy && !combatState.firstKilledEnemy) combatState.firstKilledEnemy = attacker;
+                                        else if (!attacker.isEnemy) { combatLog(`${attacker.name} has fallen!`); calculateTurnOrder(true); }
+                                    }
+                                    const attackerEl = getElementForUnit(attacker);
+                                    if (attackerEl) {
+                                        attackerEl.animate([
+                                            { transform: 'translateX(0)' },
+                                            { transform: 'translateX(-5px)' },
+                                            { transform: 'translateX(5px)' },
+                                            { transform: 'translateX(-5px)' },
+                                            { transform: 'translateX(0)' }
+                                        ], { duration: 300, easing: 'ease-in-out' });
+                                    }
                                 }
                             }
                         }
@@ -762,7 +1733,18 @@
                                 if (healAmt > 0) {
                                     attacker.currentHp = Math.min(attacker.hp, attacker.currentHp + healAmt);
                                     showFloatingText(attacker, "+" + healAmt, "#51cf66");
+                                    playHealVFX(attacker);
                                     combatLog(`${attacker.name} lifestealed ${healAmt} HP!`);
+                                }
+                            }
+
+                            const overchargeBuffs = attacker.buffs.filter(b => b.type === 'overcharge_buff');
+                            if (overchargeBuffs.length > 0) {
+                                const chance = overchargeBuffs[0].value || 0.2;
+                                if (Math.random() < chance) {
+                                    attacker.energy = Math.min(3, attacker.energy + 1);
+                                    showFloatingText(attacker, "+1 EN", "#00a8ff");
+                                    combatLog(`${attacker.name} gained bonus energy from Overcharge!`);
                                 }
                             }
                         }
@@ -788,10 +1770,15 @@
                         const list = isDebuff ? (t.debuffs = t.debuffs || []) : (t.buffs = t.buffs || []);
                         const existing = list.find(b => b.type === bType);
                         if (existing) {
-                            existing.turns += bTurns;
+                            if (bType === 'taunt' || bType === 'counter') {
+                                existing.turns = Math.max(existing.turns, bTurns);
+                            } else {
+                                existing.turns += bTurns;
+                            }
+                            existing.isNew = true;
                             if (bValue !== undefined) existing.value = Math.max(existing.value || 0, bValue);
                         } else {
-                            list.push({ type: bType, value: bValue, turns: bTurns });
+                            list.push({ type: bType, value: bValue, turns: bTurns, isNew: true });
                         }
                     }
                     function recalcMods(unit) {
@@ -816,10 +1803,9 @@
                             applyStatus(false, 'atk_buff_pct', eff.atk_value, eff.atk_turns);
                             applyStatus(false, 'guard_pct', eff.guard_value, eff.guard_turns);
                             combatLog(`${t.name} entered Savage Stance!`);
-                        } else if (eff.type === 'ultimate_overcharge' || move.n === 'Ultimate Overcharge') {
-                            applyStatus(false, 'atk_buff_pct', 0.2, 3);
-                            applyStatus(false, 'spd_buff_pct', 0.3, 3);
-                            combatLog(`${t.name} is Ultimately Overcharged!`);
+                        } else if (eff.type === 'overcharge_buff') {
+                            applyStatus(false, 'overcharge_buff', eff.value || 0.2, eff.turns || 3);
+                            combatLog(`${t.name} is Overcharged!`);
                         } else {
                             const turns = move.n === 'Overcharge' ? 3 : eff.turns;
                             let appliedType = eff.type;
@@ -846,6 +1832,7 @@
                         }
                         t.currentHp = Math.min(t.hp, t.currentHp + amount);
                         showFloatingText(t, "+" + amount, "#51cf66");
+                        playHealVFX(t);
                         combatLog(`${t.name} was healed for ${amount}!`);
                     } else if (eff.type === 'stun' && Math.random() < eff.chance) {
                         t.stunned = (t.stunned || 0) + eff.turns;
@@ -853,6 +1840,12 @@
                     } else if (eff.type === 'sleep' && Math.random() < eff.chance) {
                         t.sleep = (t.sleep || 0) + eff.turns;
                         combatLog(`${t.name} fell asleep!`);
+                        
+                        if (move.n === "Spore" || move.n === "Giant Spore" || move.n === "Slumber Sludge") {
+                            applyStatus(true, 'atk_debuff_pct', 0.2, eff.turns);
+                            recalcMods(t);
+                            combatLog(`${t.name}'s ATK was lowered by sleep!`);
+                        }
                     } else if (eff.type.includes('poison')) {
                         let poisonDmg = 0;
                         if (eff.type === 'poison_pct') {
@@ -863,6 +1856,16 @@
                         t.poison = Math.max(t.poison || 0, poisonDmg);
                         t.poisonTurns = eff.turns;
                         combatLog(`${t.name} was poisoned!`);
+                    } else if (eff.type.includes('toxin')) {
+                        let toxinDmg = 0;
+                        if (eff.type === 'toxin_pct') {
+                            toxinDmg = Math.floor(t.hp * eff.value);
+                        } else {
+                            toxinDmg = eff.value || 8;
+                        }
+                        t.toxin = Math.max(t.toxin || 0, toxinDmg);
+                        t.toxinTurns = eff.turns;
+                        combatLog(`${t.name} was inflicted with Toxin!`);
                     }
                 }
 
@@ -904,20 +1907,18 @@
         }
 
         function getElementMultiplier(moveType, targetTypes) {
-            let totalMult = 1;
+            let tier = 0;
             targetTypes.forEach(bt => {
-                let currentMult = 1;
-                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.NATURE) currentMult = 1.5;
-                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.MECH) currentMult = 1.5;
-                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.BEAST) currentMult = 1.5;
-
-                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.BEAST) currentMult = 0.75;
-                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.NATURE) currentMult = 0.75;
-                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.MECH) currentMult = 0.75;
-                
-                totalMult *= currentMult;
+                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.NATURE) tier += 1;
+                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.MECH) tier += 1;
+                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.BEAST) tier += 1;
+                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.BEAST) tier -= 1;
+                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.NATURE) tier -= 1;
+                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.MECH) tier -= 1;
             });
-            return totalMult;
+            if (tier > 0) return 1.5;
+            if (tier < 0) return 0.75;
+            return 1.0;
         }
 
         function calculateDamage(attacker, move, target) {

@@ -202,12 +202,106 @@
         let firstTimeSelection = [];
 
         window.playClicked = function() {
-            if (gameState.unlockedStarters.length < 2) {
-                showScreen('screen-first-time');
-                renderFirstTimeStarters();
-            } else {
-                showScreen('screen-menu');
+            if (window.isStartingPlay) return;
+            window.isStartingPlay = true;
+
+            const screenTitle = document.getElementById('screen-title');
+            const fadeOverlay = document.getElementById('title-fade');
+            const titleImg = document.getElementById('title-img');
+            const titleArrow = document.getElementById('title-arrow');
+            const titleText = document.getElementById('title-text');
+
+            // Fade out the title elements first
+            if (titleImg) {
+                titleImg.style.animation = 'none';
+                titleImg.style.opacity = '0';
             }
+            if (titleArrow) {
+                titleArrow.style.animation = 'none';
+                titleArrow.style.opacity = '0';
+            }
+            if (titleText) {
+                titleText.style.animation = 'none';
+                titleText.style.opacity = '0';
+            }
+            
+            setTimeout(() => {
+                // Zoom effect
+                screenTitle.style.transition = 'transform 1.5s ease-in';
+                screenTitle.style.transform = 'scale(2.5)';
+                screenTitle.style.transformOrigin = 'center center';
+                
+                // Fade to black
+                if(fadeOverlay) fadeOverlay.style.opacity = '1';
+
+                setTimeout(() => {
+                    screenTitle.style.transition = '';
+                    screenTitle.style.transform = '';
+                    if(fadeOverlay) fadeOverlay.style.opacity = '0';
+                    
+                    // Restore original opacities for the next time the title screen is visited
+                    if (titleImg) {
+                        titleImg.style.opacity = '1';
+                        titleImg.style.animation = '';
+                    }
+                    if (titleArrow) {
+                        titleArrow.style.opacity = '1';
+                        titleArrow.style.animation = '';
+                    }
+                    if (titleText) {
+                        titleText.style.opacity = '1';
+                        titleText.style.animation = '';
+                    }
+                    
+                    window.isStartingPlay = false;
+
+                    if (gameState.unlockedStarters.length < 2) {
+                    showScreen('screen-first-time');
+                    const ftFade = document.getElementById('first-time-bg-fade');
+                    const ftContent = document.getElementById('first-time-content');
+                    const ftOverlay = document.getElementById('first-time-overlay');
+                    
+                    if(ftFade) {
+                        ftFade.style.transition = 'none';
+                        ftFade.style.opacity = '1';
+                    }
+                    if(ftContent) {
+                        ftContent.style.transition = 'none';
+                        ftContent.style.opacity = '0';
+                        ftContent.style.transform = 'scale(1.5)';
+                    }
+                    if(ftOverlay) {
+                        ftOverlay.style.transition = 'none';
+                        ftOverlay.style.background = 'rgba(0,0,0,0)';
+                    }
+                    
+                    renderFirstTimeStarters();
+
+                    // Fade in background from black
+                    setTimeout(() => {
+                        if(ftFade) {
+                            ftFade.style.transition = 'opacity 1s';
+                            ftFade.style.opacity = '0';
+                        }
+                        
+                        // After background is visible, impact UI and darken background
+                        setTimeout(() => {
+                            if(ftOverlay) {
+                                ftOverlay.style.transition = 'background 0.5s';
+                                ftOverlay.style.background = 'rgba(0,0,0,0.8)';
+                            }
+                            if(ftContent) {
+                                ftContent.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                                ftContent.style.opacity = '1';
+                                ftContent.style.transform = 'scale(1)';
+                            }
+                        }, 2000);
+                    }, 50);
+                } else {
+                    showScreen('screen-menu');
+                }
+            }, 1500);
+            }, 500);
         }
 
         window.renderFirstTimeStarters = function() {
@@ -270,7 +364,17 @@
             if (firstTimeSelection.length === 2) {
                 gameState.unlockedStarters = [...firstTimeSelection];
                 saveGame();
-                showScreen('screen-menu');
+                
+                const fadeOut = document.getElementById('first-time-fade-out');
+                if (fadeOut) {
+                    fadeOut.style.opacity = '1';
+                    setTimeout(() => {
+                        fadeOut.style.opacity = '0';
+                        showScreen('screen-menu');
+                    }, 1000);
+                } else {
+                    showScreen('screen-menu');
+                }
             }
         }
 
@@ -301,3 +405,82 @@
                 showScreen('screen-menu');
             });
         }
+window.startCollectionZoom = function() {
+    const zoomContainer = document.getElementById('menu-zoom-container');
+    const fadeOverlay = document.getElementById('global-fade');
+    const collectionBtn = document.getElementById('hitbox-collection');
+    const startBtn = document.getElementById('hitbox-start');
+
+    // Disable buttons
+    collectionBtn.style.pointerEvents = 'none';
+    startBtn.style.pointerEvents = 'none';
+
+    // Restore transition
+    zoomContainer.style.transition = 'transform 1.5s ease-in';
+    void zoomContainer.offsetWidth; // force reflow
+
+    // Zoom into the door under the collection button (a bit more to the right)
+    zoomContainer.style.transformOrigin = '34% 67.3%';
+    zoomContainer.style.transform = 'scale(4)';
+    
+    // Fade to black
+    fadeOverlay.style.transition = 'opacity 1.5s ease-in';
+    fadeOverlay.style.opacity = '1';
+
+    setTimeout(() => {
+        // Restore for next time
+        zoomContainer.style.transition = 'none';
+        zoomContainer.style.transform = 'scale(1)';
+        collectionBtn.style.pointerEvents = 'auto';
+        startBtn.style.pointerEvents = 'auto';
+        
+        // Open collection screen
+        openCollection();
+        
+        // Fade from black
+        setTimeout(() => {
+            fadeOverlay.style.transition = 'opacity 1.5s ease-out';
+            fadeOverlay.style.opacity = '0';
+        }, 50);
+
+    }, 1500);
+};
+
+window.startRunZoom = function() {
+    const zoomContainer = document.getElementById('menu-zoom-container');
+    const fadeOverlay = document.getElementById('global-fade');
+    const collectionBtn = document.getElementById('hitbox-collection');
+    const startBtn = document.getElementById('hitbox-start');
+
+    // Disable buttons
+    collectionBtn.style.pointerEvents = 'none';
+    startBtn.style.pointerEvents = 'none';
+
+    // Restore transition
+    zoomContainer.style.transition = 'transform 1.5s ease-in';
+    void zoomContainer.offsetWidth; // force reflow
+
+    // Zoom into the road under the Start Run button (more to the right, and more down)
+    zoomContainer.style.transformOrigin = '82% 60%';
+    zoomContainer.style.transform = 'scale(4)';
+    
+    // Fade to black
+    fadeOverlay.style.transition = 'opacity 1.5s ease-in';
+    fadeOverlay.style.opacity = '1';
+
+    setTimeout(() => {
+        zoomContainer.style.transition = 'none';
+        zoomContainer.style.transform = 'scale(1)';
+        collectionBtn.style.pointerEvents = 'auto';
+        startBtn.style.pointerEvents = 'auto';
+        
+        // Open arcs screen
+        showScreen('screen-arcs');
+        
+        // Fade from black
+        setTimeout(() => {
+            fadeOverlay.style.transition = 'opacity 1.5s ease-out';
+            fadeOverlay.style.opacity = '0';
+        }, 50);
+    }, 1500);
+};

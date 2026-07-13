@@ -17,6 +17,35 @@
                 MERGES = data.MERGES;
                 BOSSES = data.BOSSES;
 
+                // Preload all VFX frames to prevent lag and frame skipping
+                const vfx = [
+                    { prefix: 'Poison', frames: 7 },
+                    { prefix: 'Toxin', frames: 7 },
+                    { prefix: 'Hemorrhage', frames: 8 },
+                    { prefix: 'RootCrush', frames: 6 },
+                    { prefix: 'Echo', frames: 7 },
+                    { prefix: 'Bite', frames: 5 },
+                    { prefix: 'Spore', frames: 2 },
+                    { prefix: 'Spit', frames: 2 },
+                    { prefix: 'SlumberSludge', frames: 2 },
+                    { prefix: 'Slam', frames: 1 },
+                    { prefix: 'Punch', frames: 1 },
+                    { prefix: 'StunBolt', frames: 1 },
+                    { prefix: 'Snipe', frames: 1 },
+                    { prefix: 'Zap', frames: 1 },
+                    { prefix: 'Shockwave', frames: 1 },
+                    { prefix: 'Buff', frames: 1 },
+                    { prefix: 'Debuff', frames: 1 },
+                    { prefix: 'Heal', frames: 1 },
+                    { prefix: 'Maul', frames: 1 },
+                    { prefix: 'Taunt', frames: 1 }
+                ];
+                Promise.all(vfx.flatMap(v => Array.from({length: v.frames}, (_, i) => new Promise(res => {
+                    const img = new Image();
+                    img.onload = img.onerror = res;
+                    img.src = `Art/${v.prefix}_${i + 1}.png`;
+                }))));
+
                 function getMonsterType(id) {
                     const starter = STARTERS[id];
                     if (starter) return Array.isArray(starter.type) ? starter.type : [starter.type];
@@ -127,8 +156,13 @@
             
             if (m.effect) {
                 const eff = m.effect;
-                const targetStr = eff.target === 'all_enemies' ? 'all enemies' : (eff.target === 'all_allies' ? 'all allies' : (eff.target === 'self' ? 'this monster' : 'the target'));
+                let targetStr = eff.target === 'all_enemies' ? 'all enemies' : (eff.target === 'all_allies' ? 'all allies' : (eff.target === 'self' ? 'this monster' : 'the target'));
                 
+                if (eff.chance && eff.chance < 1) {
+                    if (eff.target === 'all_enemies') targetStr = 'each enemy';
+                    if (eff.target === 'all_allies') targetStr = 'each ally';
+                }
+
                 if (eff.type === 'atk_buff_pct') {
                     effectDesc = `increases the damage of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
                 } else if (eff.type === 'guard_pct') {
@@ -143,6 +177,8 @@
                     effectDesc = `poisons ${targetStr}, dealing ${eff.value} flat damage per turn for ${eff.turns} turns`;
                 } else if (eff.type === 'poison_pct') {
                     effectDesc = `poisons ${targetStr}, dealing ${eff.value * 100}% of their max HP as damage per turn for ${eff.turns} turns`;
+                } else if (eff.type === 'toxin_pct') {
+                    effectDesc = `inflicts Toxin on ${targetStr}, dealing ${eff.value * 100}% of their max HP as damage per turn for ${eff.turns} turns`;
                 } else if (eff.type === 'stun') {
                     effectDesc = `has a ${eff.chance * 100}% chance to stun ${targetStr} for ${eff.turns} turn(s)`;
                 } else if (eff.type === 'spd_buff_pct') {
@@ -156,30 +192,32 @@
                 } else if (eff.type === 'regen_pct') {
                     effectDesc = `applies health regeneration to ${targetStr}, healing ${eff.value * 100}% of their max HP per turn for ${eff.turns} turns`;
                 } else if (eff.type === 'brambles') {
-                    effectDesc = `gains Thorns, reflecting ${eff.value} flat damage back to the attacker when hit by direct attacks for ${eff.turns} turns`;
+                    effectDesc = `grants ${targetStr} Thorns, reflecting ${eff.value} flat damage back to the attacker when hit by direct attacks for ${eff.turns} turns`;
                 } else if (eff.type === 'counter') {
                     effectDesc = `applies Counter to ${targetStr} for ${eff.turns} turn(s). The next hit taken is completely negated and ${eff.value * 100}% of the damage is reflected back to the attacker`;
                 } else if (eff.type === 'taunt') {
                     effectDesc = `taunts all enemies for ${eff.turns} turn(s), forcing them to attack ${targetStr}`;
                 } else if (eff.type === 'savage_stance_pct') {
-                    effectDesc = `enters Savage Stance, gaining a ${eff.guard_value * 100}% shield until hit and increasing damage by ${eff.atk_value * 100}% for ${eff.turns} turns`;
-                } else if (eff.type === 'ultimate_overcharge') {
-                    effectDesc = `increases the speed of ${targetStr} by ${eff.spd_value * 100}% and damage by ${eff.atk_value * 100}% for ${eff.turns} turns`;
+                    effectDesc = `grants ${targetStr} Savage Stance, granting a ${eff.guard_value * 100}% shield until hit and increasing damage by ${eff.atk_value * 100}% for ${eff.atk_turns} turns`;
+                } else if (eff.type === 'overcharge_buff') {
+                    effectDesc = `grants ${targetStr} a ${eff.value * 100}% chance to gain bonus energy upon attacking for ${eff.turns} turns`;
                 } else if (eff.type === 'lifesteal_buff') {
-                    effectDesc = `grants lifesteal, causing their attacks to heal them for ${eff.value * 100}% of damage dealt for ${eff.turns} turns`;
+                    effectDesc = `grants ${targetStr} lifesteal, causing their attacks to heal them for ${eff.value * 100}% of damage dealt for ${eff.turns} turns`;
                 }
             }
             
             if (m.p > 0) {
+                const isAoE = m.effect && m.effect.target === 'all_enemies';
+                const enemyTargetStr = isAoE ? 'all enemies' : 'an enemy';
                 if (m.hits > 1) {
-                    description = `Deals damage to an enemy ${m.hits} times.`;
+                    description = `Deals damage to ${enemyTargetStr} ${m.hits} times.`;
                     if (effectDesc) {
-                        description = `Deals damage to an enemy ${m.hits} times and ${effectDesc}.`;
+                        description = `Deals damage to ${enemyTargetStr} ${m.hits} times and ${effectDesc}.`;
                     }
                 } else {
-                    description = `Deals damage to an enemy.`;
+                    description = `Deals damage to ${enemyTargetStr}.`;
                     if (effectDesc) {
-                        description = `Deals damage to an enemy and ${effectDesc}.`;
+                        description = `Deals damage to ${enemyTargetStr} and ${effectDesc}.`;
                     }
                 }
             } else if (effectDesc) {

@@ -213,7 +213,7 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "spd_buff_pct",
+            "type": "overcharge_buff",
             "value": 0.2,
             "turns": 3,
             "target": "self"
@@ -512,7 +512,7 @@
           "p": 0,
           "ranged": true,
           "effect": {
-            "type": "poison_pct",
+            "type": "toxin_pct",
             "value": 0.15,
             "turns": 4,
             "target": "enemy"
@@ -546,12 +546,12 @@
           "n": "Elite Stun Bolt",
           "c": 2,
           "t": "Mech",
-          "p": 0,
+          "p": 0.6,
           "ranged": true,
           "effect": {
             "type": "stun",
             "chance": 1,
-            "turns": 2,
+            "turns": 1,
             "target": "enemy"
           }
         },
@@ -599,11 +599,10 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "ultimate_overcharge",
-            "atk_value": 0.2,
-            "spd_value": 0.3,
+            "type": "overcharge_buff",
+            "value": 0.2,
             "turns": 3,
-            "target": "self"
+            "target": "all_allies"
           }
         },
         {
@@ -651,7 +650,7 @@
           "effect": {
             "type": "savage_stance_pct",
             "atk_value": 0.4,
-            "atk_turns": 3,
+            "atk_turns": 4,
             "guard_value": 0.4,
             "guard_turns": 1,
             "target": "self"
@@ -896,7 +895,7 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "spd_buff_pct",
+            "type": "overcharge_buff",
             "value": 0.2,
             "turns": 3,
             "target": "self"
@@ -1129,7 +1128,7 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "spd_buff_pct",
+            "type": "overcharge_buff",
             "value": 0.2,
             "turns": 3,
             "target": "self"
@@ -1172,7 +1171,7 @@
           "p": 0,
           "ranged": true,
           "effect": {
-            "type": "poison_pct",
+            "type": "toxin_pct",
             "value": 0.15,
             "turns": 3,
             "target": "enemy"
@@ -1299,7 +1298,7 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "spd_buff_pct",
+            "type": "overcharge_buff",
             "value": 0.2,
             "turns": 3,
             "target": "self"
@@ -1430,7 +1429,7 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "spd_buff_pct",
+            "type": "overcharge_buff",
             "value": 0.2,
             "turns": 3,
             "target": "self"
@@ -1480,9 +1479,9 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "spd_buff_pct",
+            "type": "overcharge_buff",
             "value": 0.2,
-            "turns": 2,
+            "turns": 3,
             "target": "all_allies"
           }
         }
@@ -1897,7 +1896,7 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "spd_buff_pct",
+            "type": "overcharge_buff",
             "value": 0.2,
             "turns": 3,
             "target": "self"
@@ -1941,9 +1940,9 @@
           "melee": false,
           "hits": 1,
           "effect": {
-            "type": "spd_debuff_pct",
-            "value": 0.25,
-            "turns": 2,
+            "type": "stun",
+            "chance": 0.15,
+            "turns": 1,
             "target": "all_enemies"
           }
         }
@@ -2209,7 +2208,7 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "spd_buff_pct",
+            "type": "overcharge_buff",
             "value": 0.2,
             "turns": 3,
             "target": "self"
@@ -2388,6 +2387,7 @@
           "p": 0,
           "effect": {
             "type": "taunt",
+            "desc": "Forces attacks. If backline, Melee can still hit.",
             "turns": 1,
             "target": "self"
           }
@@ -2675,7 +2675,7 @@
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "spd_buff_pct",
+            "type": "overcharge_buff",
             "value": 0.2,
             "turns": 3,
             "target": "self"
