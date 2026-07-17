@@ -108,25 +108,27 @@
             const currentMax = gameState.maxActReached || 1;
             const btn2 = document.getElementById('btn-arc2');
             const btn3 = document.getElementById('btn-arc3');
+            const lock2 = document.getElementById('lock-overlay-2');
+            const lock3 = document.getElementById('lock-overlay-3');
             
             if (currentMax < 2) {
-                btn2.style.opacity = '0.5';
                 btn2.style.pointerEvents = 'none';
                 document.getElementById('text-arc2').innerText = 'LOCKED';
+                if(lock2) lock2.style.display = 'flex';
             } else {
-                btn2.style.opacity = '1';
                 btn2.style.pointerEvents = 'auto';
                 document.getElementById('text-arc2').innerText = 'ACT 2';
+                if(lock2) lock2.style.display = 'none';
             }
 
             if (currentMax < 3) {
-                btn3.style.opacity = '0.5';
                 btn3.style.pointerEvents = 'none';
                 document.getElementById('text-arc3').innerText = 'LOCKED';
+                if(lock3) lock3.style.display = 'flex';
             } else {
-                btn3.style.opacity = '1';
                 btn3.style.pointerEvents = 'auto';
                 document.getElementById('text-arc3').innerText = 'ACT 3';
+                if(lock3) lock3.style.display = 'none';
             }
         }
 

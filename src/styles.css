@@ -227,8 +227,8 @@
         }
 
         .select-slot {
-            width: 200px;
-            height: 200px;
+            width: 280px;
+            height: 250px;
             border: 2px dashed #888;
             border-radius: 10px;
             display: flex;
@@ -239,6 +239,7 @@
             cursor: pointer;
             transition: all 0.2s;
             position: relative;
+            margin-bottom: 15px;
         }
 
         .select-slot:hover {
@@ -247,10 +248,9 @@
         }
 
         .select-slot.filled {
-            border-style: solid;
-            border-color: var(--accent);
-            background: rgba(0,0,0,0.6);
-            flex-direction: column;
+            border: 2px solid transparent;
+            background: transparent;
+            justify-content: flex-start;
         }
 
         /* Map Styles */
@@ -427,27 +427,23 @@
             margin-bottom: 40px; /* Make room since transform doesn't affect flow */
         }
 
-        #player-team {
+        #player-team, .selection-team {
             direction: rtl;
         }
-        #player-team > * {
+        #player-team > *, .selection-team > * {
             direction: ltr;
         }
         #enemy-team {
             direction: ltr;
         }
-        #player-team > *:nth-child(1), #enemy-team > *:nth-child(1) {
-            margin-top: 30px;
-        }
-        #player-team > *:nth-child(2), #enemy-team > *:nth-child(2) {
-            margin-top: -20px;
-        }
-        #player-team > *:nth-child(3), #enemy-team > *:nth-child(3) {
-            margin-top: 50px;
-        }
-        #player-team > *:nth-child(4), #enemy-team > *:nth-child(4) {
-            margin-top: 0px;
-        }
+        #player-team > *:nth-child(1), #enemy-team > *:nth-child(1) { margin-top: 30px; }
+.selection-team > *:nth-child(1) { margin-top: 0px; }
+        #player-team > *:nth-child(2), #enemy-team > *:nth-child(2) { margin-top: -20px; }
+.selection-team > *:nth-child(2) { margin-top: 0px; }
+        #player-team > *:nth-child(3), #enemy-team > *:nth-child(3) { margin-top: 50px; }
+.selection-team > *:nth-child(3) { margin-top: 0px; }
+        #player-team > *:nth-child(4), #enemy-team > *:nth-child(4) { margin-top: 0px; }
+.selection-team > *:nth-child(4) { margin-top: 0px; }
 
         .element-triangle-top {
             background: rgba(0,0,0,0.6);
@@ -763,6 +759,7 @@
     transform-origin: bottom center;
 }
 
+
 .monster-art-container .taunt-circle {
     position: absolute !important;
     bottom: -65px;
@@ -809,3 +806,22 @@
 #title-arrow {
     animation: arrowAnim 2s infinite ease-in-out;
 }
+
+#selection-list .collection-square img {
+    max-height: 120px;
+    max-width: 100%;
+    object-fit: contain;
+}
+#selection-list .collection-square .monster-art {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    overflow: hidden;
+}
+
+.selection-team {
+    row-gap: 120px;
+}
+
+.select-slot.combatant .art-content { animation: idleBob 2s ease-in-out infinite !important; }

@@ -38,7 +38,7 @@
             
             document.getElementById('col-detail-types').innerHTML = typeIconHtml;
             
-            document.getElementById('col-detail-art').innerHTML = renderArt(monster.art, 380);
+            document.getElementById('col-detail-art').innerHTML = renderArt(monster.art, 200);
             
             const matk = monster.matk !== undefined ? monster.matk : (monster.atk || 10);
             const mdef = monster.mdef !== undefined ? monster.mdef : 5;
@@ -47,11 +47,12 @@
 
             document.getElementById('col-detail-stats').innerHTML = `
                 <div><span style="color:#51cf66; display:inline-block; width:60px;">HP:</span> ${monster.hp}</div>
-                <div><span style="color:#fcc419; display:inline-block; width:60px;">SPD:</span> ${monster.spd}</div>
+                <div><span style="color:#00a8ff; display:inline-block; width:60px;">EN:</span> ${monster.startingEnergy !== undefined ? monster.startingEnergy : 1}</div>
                 <div><span style="color:#ff6b6b; display:inline-block; width:60px;">MATK:</span> ${matk}</div>
                 <div><span style="color:#ff6b6b; display:inline-block; width:60px;">MDEF:</span> ${mdef}%</div>
                 <div><span style="color:#339af0; display:inline-block; width:60px;">RATK:</span> ${ratk}</div>
                 <div><span style="color:#339af0; display:inline-block; width:60px;">RDEF:</span> ${rdef}%</div>
+                <div><span style="color:#fcc419; display:inline-block; width:60px;">SPD:</span> ${monster.spd}</div>
             `;
             
             const moves = monster.moves || [];

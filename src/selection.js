@@ -16,15 +16,49 @@
                 if (!slot) return;
                 if (s) {
                     slot.classList.add('filled');
+                    slot.classList.add('combatant');
                     
+                    
+                    
+                    const hpPerc = 100;
+                    let hpColor = '#22c55e';
+                    const elementIcon = getElementIcon(s.type);
                     slot.innerHTML = `
-                        <div class="monster-art" style="pointer-events: none;">${renderArt(s.art, 140)}</div>
-                        <strong style="pointer-events: none;">${s.name}</strong>
-                    `;
+                        <div class="monster-art-container" style="pointer-events: none;">
+                            <div class="art-content" style="position: relative;">
+                                ${s.art.includes('.png') ? `<img src="${s.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${s.art}</div>`}
+                            </div>
+                            <div class="shadow-ellipse"></div>
+                        </div>
+                        <div class="stats-container" style="position: relative; padding-top: 10px; z-index: 10; width: 100%; box-sizing: border-box; pointer-events: none;">
+                            <div class="type-icon-container" style="position: absolute; top: -10px; right: -10px; z-index: 11;">
+                                <img src="${elementIcon}" style="width: 24px; height: 24px; filter: drop-shadow(0px 0px 2px #000);" alt="${s.type}" />
+                            </div>
+                            <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
+                                ${s.name}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                                <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
+                                <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 10px; background: #222; border-radius: 5px; margin-top: 5px; overflow: hidden;">
+                                    <div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor};"></div>
+                                    <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; pointer-events: none;">
+                                        ${s.hp}/${s.hp}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                                <img src="Art/EN.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="EN" />
+                                <div class="energy-blocks" style="display: flex; gap: 4px; flex: 1;">
+                                    ${Array.from({length: 3}).map((_, idx) => `<div style="flex: 1; height: 6px; background-color: ${idx < 1 ? '#4fc3f7' : '#222'}; border-radius: 2px;"></div>`).join('')}
+                                </div>
+                            </div>
+                        </div>`;
+
                     slot.setAttribute('draggable', 'true');
                     slot.ondragstart = (e) => dragStartSelection(e, s.id, i);
                 } else {
                     slot.classList.remove('filled');
+                    slot.classList.remove('combatant');
                     slot.innerHTML = '';
                     slot.removeAttribute('draggable');
                     slot.ondragstart = null;
@@ -45,20 +79,26 @@
             });
             
             sortedStartersList.forEach(id => {
-                // If it's already in a slot, don't show in list
-                if (selectionSlots.some(s => s && s.id === id)) return;
+                // If already selected, visually disable it so it stays in place
+                const isSelected = selectionSlots.some(s => s && s.id === id);
 
                 const s = STARTERS[id];
                 if (!s) return;
-
                 const btn = document.createElement('div');
                 btn.className = 'collection-square';
-                btn.style.cursor = 'grab';
-                btn.setAttribute('draggable', 'true');
-                btn.ondragstart = (e) => dragStartSelection(e, id, null);
-
+                btn.style.aspectRatio = 'auto';
+                btn.style.height = '100%';
+                if (isSelected) {
+                    btn.style.opacity = '0.3';
+                    btn.style.pointerEvents = 'none';
+                    btn.style.filter = 'grayscale(1)';
+                } else {
+                    btn.style.cursor = 'grab';
+                    btn.setAttribute('draggable', 'true');
+                    btn.ondragstart = (e) => dragStartSelection(e, id, null);
+                }
                 btn.innerHTML = `
-                    <div class="monster-art" style="pointer-events: none;">${renderArt(s.art, 140)}</div>
+                    <div class="monster-art" style="pointer-events: none;">${renderArt(s.art, 120)}</div>
                     <strong style="pointer-events: none;">${s.name}</strong>
                 `;
                 list.appendChild(btn);
@@ -338,7 +378,7 @@
                 btn.innerHTML = `
                     ${extraLabels}
                     ${elementIcon}
-                    <div class="monster-art" style="pointer-events:none;">${renderArt(s.art, 160)}</div>
+                    <div class="monster-art" style="pointer-events:none;">${renderArt(s.art, 140)}</div>
                     <strong style="font-size: 20px; pointer-events:none;">${s.name}</strong>
                 `;
                 
