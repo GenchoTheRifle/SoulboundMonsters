@@ -223,6 +223,7 @@
                 }
 
                 div.innerHTML = `
+                    ${isActive ? `<div class="node-active-arrow">&#9660;</div>` : ''}
                     <div style="position:absolute; top:-35px; left:50%; transform:translateX(-50%); color:${textColor}; font-size:24px; font-weight:bold; text-shadow:2px 2px 2px black, 0 0 5px black; white-space:nowrap; z-index:10;">${nodeText}</div>
                     <img src="${iconSrc}" style="width: 80%; height: 80%; object-fit: contain; filter: ${filterStr}; transition: filter 0.3s;" />
                 `;
@@ -285,8 +286,7 @@
                     const hpPerc = Math.max(0, Math.min(100, (m.currentHp / m.hp) * 100));
                     let hpColor = hpPerc > 50 ? '#22c55e' : hpPerc > 25 ? '#eab308' : '#ef4444';
                     const mEnergy = m.energy !== undefined ? m.energy : (m.startingEnergy !== undefined ? m.startingEnergy : 1);
-                    const elementIcon = getElementIcon(m.type);
-                    
+
                     slot.innerHTML = `
                         <div draggable="true" ondragstart="dragStartTeam(event, ${i})" style="width:100%; height:100%; position: absolute; top:0; left:0; z-index: 20; cursor:grab;"></div>
                         <div class="monster-art-container" style="pointer-events: none;">
@@ -296,8 +296,8 @@
                             <div class="shadow-ellipse ${getShadowClass(m.name)}"></div>
                         </div>
                         <div class="stats-container" style="position: relative; padding-top: 10px; z-index: 10; width: 100%; box-sizing: border-box; pointer-events: none;">
-                            <div class="type-icon-container" style="position: absolute; top: -10px; right: -10px; z-index: 11;">
-                                <img src="${elementIcon}" style="width: 24px; height: 24px; filter: drop-shadow(0px 0px 2px #000);" alt="${m.type}" />
+                            <div class="type-icon-container" style="position: absolute; top: -10px; right: -10px; z-index: 11; filter: drop-shadow(0px 0px 2px #000);">
+                                ${getTypeIconHtml(m.type, 40)}
                             </div>
                             <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
                                 ${m.name}

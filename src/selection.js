@@ -98,9 +98,8 @@
                     btn.ondragstart = (e) => dragStartSelection(e, id, null);
                 }
                 btn.innerHTML = `
-                    <div class="monster-art" style="flex: 1; min-height: 0; pointer-events: none;">${renderArt(s.art, 100)}</div>
+                    <div class="monster-art" style="flex: 1; min-height: 0; pointer-events: none;">${renderArt(s.art, 160)}</div>
                     <strong style="pointer-events: none;">${s.name}</strong>
-                    <div style="padding: 0 6px; margin-top: 4px;">${getMiniHpEnergyHtml(s)}</div>
                 `;
                 list.appendChild(btn);
             });

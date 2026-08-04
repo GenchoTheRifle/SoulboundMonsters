@@ -262,8 +262,7 @@ html, body {
             border: 2px dashed rgba(255, 255, 255, 0.4);
             background: rgba(0,0,0,0.4);
             justify-content: flex-start;
-            height: auto;
-            min-height: 280px;
+            height: 280px;
             overflow: visible;
         }
 
@@ -335,6 +334,23 @@ html, body {
         
         .node-line.completed {
             background: #51cf66;
+        }
+
+        .node-active-arrow {
+            position: absolute;
+            top: -68px;
+            left: 50%;
+            color: yellow;
+            font-size: 28px;
+            line-height: 1;
+            text-shadow: 2px 2px 2px black, 0 0 8px black;
+            z-index: 10;
+            animation: nodeArrowBob 1s ease-in-out infinite;
+        }
+
+        @keyframes nodeArrowBob {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, 8px); }
         }
 
         /* Combat Styles */
@@ -871,7 +887,7 @@ html, body {
 }
 
 #selection-list .collection-square img {
-    max-height: 120px;
+    max-height: 160px;
     max-width: 100%;
     object-fit: contain;
 }

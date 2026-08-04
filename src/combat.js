@@ -834,7 +834,6 @@ let shadowClass = getShadowClass(u.name);
             if (unit.stunned > 0) {
                 combatLog(`${unit.name} is stunned and skips their turn!`);
                 unit.stunned--;
-                unit.skipEnergyGeneration = true;
                 setTimeout(advanceTurn, 1000);
                 return;
             }
@@ -886,14 +885,13 @@ let shadowClass = getShadowClass(u.name);
             
             const unit = combatState.activeUnit;
             if (unit && unit.currentHp > 0) {
-                if (unit.skipEnergyGeneration) {
-                    unit.skipEnergyGeneration = false;
-                } else {
+                if (unit.gainEnergyOnAdvance) {
                     const maxE = unit.isBoss ? 5 : 3;
                     const gainE = unit.isBoss ? 2 : 1;
                     unit.energy = Math.min(maxE, unit.energy + gainE);
                 }
-                
+                unit.gainEnergyOnAdvance = false;
+
                 // Decay buffs and debuffs at turn end
                 if (unit.buffs) {
                     unit.buffs.forEach(b => {
@@ -1003,6 +1001,7 @@ let shadowClass = getShadowClass(u.name);
             if (attacker.energy < move.c) return;
             isExecutingMove = true;
             attacker.energy -= move.c;
+            attacker.gainEnergyOnAdvance = !!move.isBasicAttack;
             combatState.targetingMove = null;
             document.getElementById('move-controls').innerHTML = ''; // Disable UI during move
 
@@ -2022,6 +2021,13 @@ let shadowClass = getShadowClass(u.name);
                         combatLog(`${t.name} has fallen!`);
                         calculateTurnOrder(true);
                     }
+
+                    const maxE = attacker.isBoss ? 5 : 3;
+                    if (attacker.energy < maxE) {
+                        attacker.energy = Math.min(maxE, attacker.energy + 1);
+                        showFloatingText(attacker, "+1 EN", "#00a8ff");
+                        combatLog(`${attacker.name} gained 1 energy for the kill!`);
+                    }
                 }
             }
 
@@ -2041,7 +2047,11 @@ let shadowClass = getShadowClass(u.name);
 
             // If enemy, check if can move again
             if (attacker.isEnemy) {
-                setTimeout(() => enemyAI(attacker), 800);
+                if (move.isBasicAttack || attacker.energy === 0) {
+                    setTimeout(advanceTurn, 800);
+                } else {
+                    setTimeout(() => enemyAI(attacker), 800);
+                }
             } else {
                 // For player, just re-render controls
                 renderMoveControls(attacker);
@@ -2113,24 +2123,26 @@ let shadowClass = getShadowClass(u.name);
             }
 
             const affordableMoves = unit.moves.filter(m => m.c <= unit.energy);
-            
-            // AI logic: 
-            // 1. If low energy (1), 60% chance to save energy and end turn
-            if (unit.energy <= 1 && Math.random() < 0.6) {
-                combatLog(`${unit.name} is waiting...`);
-                setTimeout(advanceTurn, 800);
-                return;
-            }
 
-            if (affordableMoves.length > 0) {
+            // AI logic:
+            // 1. If low energy (1), 60% chance to hold back and Basic Attack to build energy instead of spending it
+            const shouldBasicAttack = affordableMoves.length === 0 || (unit.energy <= 1 && Math.random() < 0.6);
+
+            if (shouldBasicAttack) {
+                executeMove(unit, {
+                    n: "Basic Attack",
+                    t: ELEMENTS.NEUTRAL,
+                    p: 0.5,
+                    c: 0,
+                    melee: true,
+                    isBasicAttack: true
+                });
+            } else {
                 // Pick a move
                 affordableMoves.sort((a, b) => b.c - a.c);
                 const move = Math.random() < 0.7 ? affordableMoves[0] : affordableMoves[Math.floor(Math.random() * affordableMoves.length)];
-                
+
                 executeMove(unit, move);
-            } else {
-                // No moves affordable, end turn
-                setTimeout(advanceTurn, 800);
             }
         }
 
