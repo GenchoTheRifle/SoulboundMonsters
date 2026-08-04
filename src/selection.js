@@ -49,7 +49,7 @@
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                                 <img src="Art/EN.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="EN" />
                                 <div class="energy-blocks" style="display: flex; gap: 4px; flex: 1;">
-                                    ${Array.from({length: 3}).map((_, idx) => `<div style="flex: 1; height: 6px; background-color: ${idx < 1 ? '#4fc3f7' : '#222'}; border-radius: 2px;"></div>`).join('')}
+                                    ${Array.from({length: 3}).map((_, idx) => `<div style="flex: 1; height: 6px; background-color: ${idx < (s.energy !== undefined ? s.energy : (s.startingEnergy !== undefined ? s.startingEnergy : 1)) ? '#4fc3f7' : '#222'}; border-radius: 2px;"></div>`).join('')}
                                 </div>
                             </div>
                         </div>`;
@@ -98,8 +98,9 @@
                     btn.ondragstart = (e) => dragStartSelection(e, id, null);
                 }
                 btn.innerHTML = `
-                    <div class="monster-art" style="pointer-events: none;">${renderArt(s.art, 120)}</div>
+                    <div class="monster-art" style="flex: 1; min-height: 0; pointer-events: none;">${renderArt(s.art, 100)}</div>
                     <strong style="pointer-events: none;">${s.name}</strong>
+                    <div style="padding: 0 6px; margin-top: 4px;">${getMiniHpEnergyHtml(s)}</div>
                 `;
                 list.appendChild(btn);
             });
@@ -174,8 +175,9 @@
                 btn.className = 'collection-square';
                 
                 btn.innerHTML = `
-                    <div class="monster-art">${renderArt(s.art, 140)}</div>
+                    <div class="monster-art" style="flex: 1; min-height: 0;">${renderArt(s.art, 120)}</div>
                     <strong>${s.name}</strong>
+                    <div style="padding: 0 6px; margin-top: 4px;">${getMiniHpEnergyHtml(s)}</div>
                 `;
                 btn.onclick = () => {
                     selectionSlots[slotIndex] = JSON.parse(JSON.stringify(s));

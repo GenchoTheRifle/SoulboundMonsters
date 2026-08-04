@@ -26,6 +26,7 @@
                 
                 const hpPerc = Math.max(0, Math.min(100, (m.currentHp / m.hp) * 100));
                 let hpColor = hpPerc > 50 ? '#22c55e' : hpPerc > 25 ? '#eab308' : '#ef4444';
+                const mEnergy = m.energy !== undefined ? m.energy : (m.startingEnergy !== undefined ? m.startingEnergy : 1);
                 
                 
                 slot.innerHTML = `
@@ -55,7 +56,7 @@
                         <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                             <img src="Art/EN.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="EN" />
                             <div class="energy-blocks" style="display: flex; gap: 4px; flex: 1;">
-                                ${Array.from({length: 3}).map((_, idx) => `<div style="flex: 1; height: 6px; background-color: ${idx < 1 ? '#00a8ff' : '#222'}; border-radius: 2px;"></div>`).join('')}
+                                ${(m.isBoss ? [1,2,3,4,5] : [1,2,3]).map(i => `<div style="flex: 1; height: 6px; background-color: ${mEnergy >= i ? '#00a8ff' : '#222'}; border-radius: 2px;"></div>`).join('')}
                             </div>
                         </div>
                     </div>
@@ -73,14 +74,15 @@
             if (s) {
                 slot.classList.add('filled');
                 slot.innerHTML = `
-                    <div draggable="true" ondragstart="dragStart(event, 'merge', ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
-                        <div class="monster-art-container" style="pointer-events: none; ">
+                    <div draggable="true" ondragstart="dragStart(event, 'merge', ${i})" style="width:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; cursor:grab;">
+                        <div class="monster-art-container" style="pointer-events: none;">
                             <div class="art-content" style="position: relative;">
                                 ${s.art.includes(".png") ? `<img src="${s.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${s.art}</div>`}
                             </div>
                             <div class="shadow-ellipse ${getShadowClass(s.name)}"></div>
                         </div>
                         <strong style="font-size:18px; text-align:center; pointer-events:none;">${s.name}</strong>
+                        <div style="width:100%; padding:0 16px; pointer-events:none;">${getMiniHpEnergyHtml(s)}</div>
                     </div>
                 `;
             } else {
@@ -228,9 +230,9 @@
                 }).join('');
 
                 btn.innerHTML = `
-                    <div style="height:140px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">${renderArt(m.art, 120)}</div>
+                    <div style="height:120px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">${renderArt(m.art, 100)}</div>
                     <strong>${m.name}</strong>
-                    <div style="font-size:10px; color:#ccc; margin-top:2px;">HP: ${m.currentHp}/${m.hp}</div>
+                    <div style="width:100%; padding:0 6px; margin-top:6px;">${getMiniHpEnergyHtml(m)}</div>
                     <div style="display:flex; gap:2px; margin-top:5px;">${typeHtml}</div>
                 `;
                 btn.onclick = () => {

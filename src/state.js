@@ -6,9 +6,15 @@
         };
 
         function getMapRoadBackground(arcId) {
-            if (arcId === 'arc2') return "url('Art/Forest Road.png')";
-            if (arcId === 'arc3') return "url('Art/Laboratory Road.png')";
+            if (arcId === 'arc2') return "url('Art/Forest_Road_red_dots.png')";
+            if (arcId === 'arc3') return "url('Art/Laboratory_Road_red_dots.png')";
             return "url('Art/Cave_Road_red_dots.png')";
+        }
+
+        function getMapRoadName(arcId) {
+            if (arcId === 'arc2') return 'FOREST ROAD';
+            if (arcId === 'arc3') return 'LABORATORY ROAD';
+            return 'CAVE ROAD';
         }
 
         function getMapBackground(arcId) {

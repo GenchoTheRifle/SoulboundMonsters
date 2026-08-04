@@ -117,10 +117,12 @@
                 }
             }
 
-            // Reset player energy and mods
+            // Reset player mods, but carry energy over from the previous battle
             currentRun.party.forEach(p => {
                 if (!p) return;
-                p.energy = p.startingEnergy !== undefined ? p.startingEnergy : 1;
+                if (p.energy === undefined) {
+                    p.energy = p.startingEnergy !== undefined ? p.startingEnergy : 1;
+                }
                 p.atkMod = 0;
                 p.spdMod = 0;
                 p.defMod = 0;
@@ -689,7 +691,7 @@ let shadowClass = getShadowClass(u.name);
                             }
                             
                             dmgEl.innerHTML = `-${totalDmg}${arrow}`;
-                        } else if (combatState.targetingMove.effect && combatState.targetingMove.effect.type.includes('heal')) {
+                        } else if (combatState.targetingMove.effect && combatState.targetingMove.effect.type?.includes('heal')) {
                             let dmgEl = div.querySelector('.projected-damage');
                             if (!dmgEl) {
                                 dmgEl = document.createElement('div');
@@ -857,6 +859,25 @@ let shadowClass = getShadowClass(u.name);
             }
         }
 
+        function basicAttack() {
+            if (combatState.ended || !combatState.isPlayerTurn || isExecutingMove) return;
+            const unit = combatState.activeUnit;
+            if (!unit || unit.currentHp <= 0) return;
+
+            const move = {
+                n: "Basic Attack",
+                t: ELEMENTS.NEUTRAL,
+                p: 0.5,
+                c: 0,
+                melee: true,
+                isBasicAttack: true
+            };
+            combatState.targetingMove = move;
+            combatLog("Select a target!");
+            updateCombatUI();
+            renderMoveControls(unit);
+        }
+
         function advanceTurn() {
             if (combatState.ended) return;
             combatState.targetingMove = null;
@@ -1021,7 +1042,7 @@ let shadowClass = getShadowClass(u.name);
 
             combatLog(`${attacker.name} used ${move.n}!`);
 
-            if (move.p > 0 && !move.effect?.type.includes('heal')) {
+            if (move.p > 0 && !move.effect?.type?.includes('heal')) {
                 const attackerEl = getElementForUnit(attacker);
                 if (attackerEl) {
                     const dashDist = attacker.isEnemy ? '-30px' : '30px';
@@ -1760,7 +1781,7 @@ let shadowClass = getShadowClass(u.name);
                 }
 
                 // Damage
-                if (move.p > 0 && !move.effect?.type.includes('heal')) {
+                if (move.p > 0 && !move.effect?.type?.includes('heal')) {
                     const hitCount = move.hits || 1;
 
                     for (let i = 0; i < hitCount; i++) {
@@ -1894,7 +1915,7 @@ let shadowClass = getShadowClass(u.name);
                 }
 
                 // Effects
-                if (move.effect) {
+                if (move.effect && move.effect.type) {
                     const eff = move.effect;
                     function applyStatus(isDebuff, bType, bValue, bTurns) {
                         const list = isDebuff ? (t.debuffs = t.debuffs || []) : (t.buffs = t.buffs || []);
@@ -2024,7 +2045,7 @@ let shadowClass = getShadowClass(u.name);
             } else {
                 // For player, just re-render controls
                 renderMoveControls(attacker);
-                if (attacker.energy === 0) {
+                if (attacker.energy === 0 || move.isBasicAttack) {
                     setTimeout(advanceTurn, 500);
                 }
             }

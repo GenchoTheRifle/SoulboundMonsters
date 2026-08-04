@@ -152,6 +152,34 @@
             return types.map(t => `<span style="font-size:10px; pointer-events:none;">${t}</span>`).join('');
         }
 
+        function getMiniHpEnergyHtml(m) {
+            const maxHp = m.hp;
+            const curHp = m.currentHp !== undefined ? m.currentHp : maxHp;
+            const hpPerc = Math.max(0, Math.min(100, (curHp / maxHp) * 100));
+            const hpColor = hpPerc > 50 ? '#22c55e' : hpPerc > 25 ? '#eab308' : '#ef4444';
+            const energy = m.energy !== undefined ? m.energy : (m.startingEnergy !== undefined ? m.startingEnergy : 1);
+            const energyPips = m.isBoss ? [1, 2, 3, 4, 5] : [1, 2, 3];
+            return `
+                <div style="display:flex; flex-direction:column; width:100%; pointer-events:none;">
+                    <div style="display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+                        <img src="Art/HP.png" style="width:16px; height:16px; filter:drop-shadow(1px 1px 1px black);" alt="HP" />
+                        <div class="hp-bar" style="flex:1; position:relative; width:100%; height:8px; background:#222; border-radius:4px; overflow:hidden;">
+                            <div class="hp-fill" style="height:100%; width:${hpPerc}%; background-color:${hpColor};"></div>
+                            <div class="hp-text" style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; color:white; font-size:8px; font-weight:bold; text-shadow:1px 1px 2px black;">
+                                ${Math.ceil(curHp)}/${maxHp}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <img src="Art/EN.png" style="width:16px; height:16px; filter:drop-shadow(1px 1px 1px black);" alt="EN" />
+                        <div class="energy-blocks" style="display:flex; gap:3px; flex:1;">
+                            ${energyPips.map(i => `<div style="flex:1; height:5px; background-color:${energy >= i ? '#00a8ff' : '#222'}; border-radius:2px;"></div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function getMoveDescription(m) {
             let description = '';
             let effectDesc = '';

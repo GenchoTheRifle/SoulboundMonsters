@@ -117,22 +117,56 @@
                 }
             }
 
+            const titleEl = document.getElementById('map-title');
+            if (titleEl && currentRun.arcId) titleEl.innerText = getMapRoadName(currentRun.arcId);
+
             const container = document.getElementById('map-nodes-container');
             if (!container) return;
             container.innerHTML = '';
-            
-            const MAP_NODE_POSITIONS = [
-                { x: 0.11797, y: 0.46103 },
-                { x: 0.18151, y: 0.49195 },
-                { x: 0.25268, y: 0.50228 },
-                { x: 0.33464, y: 0.47648 },
-                { x: 0.39817, y: 0.34248 },
-                { x: 0.47318, y: 0.35788 },
-                { x: 0.56484, y: 0.46230 },
-                { x: 0.66173, y: 0.51641 },
-                { x: 0.74505, y: 0.45457 },
-                { x: 0.91067, y: 0.46233 }
-            ];
+
+            // Node marker positions (fraction of track image width/height), read off the
+            // red dots baked into each road art asset. One set per arc since each road
+            // image lays its path out differently.
+            const MAP_NODE_POSITIONS_BY_ARC = {
+                arc1: [
+                    { x: 0.07698, y: 0.50275 },
+                    { x: 0.16330, y: 0.56714 },
+                    { x: 0.24490, y: 0.40286 },
+                    { x: 0.32545, y: 0.45275 },
+                    { x: 0.40386, y: 0.57145 },
+                    { x: 0.51187, y: 0.49178 },
+                    { x: 0.61466, y: 0.35463 },
+                    { x: 0.71960, y: 0.46944 },
+                    { x: 0.81806, y: 0.51389 },
+                    { x: 0.94860, y: 0.48263 }
+                ],
+                arc2: [
+                    { x: 0.08294, y: 0.62932 },
+                    { x: 0.18477, y: 0.70001 },
+                    { x: 0.27376, y: 0.48857 },
+                    { x: 0.34461, y: 0.45513 },
+                    { x: 0.42433, y: 0.67481 },
+                    { x: 0.52448, y: 0.56065 },
+                    { x: 0.60463, y: 0.57761 },
+                    { x: 0.71308, y: 0.60802 },
+                    { x: 0.81641, y: 0.68874 },
+                    { x: 0.92580, y: 0.67183 }
+                ],
+                arc3: [
+                    { x: 0.07067, y: 0.60459 },
+                    { x: 0.17811, y: 0.68241 },
+                    { x: 0.26188, y: 0.41304 },
+                    { x: 0.34522, y: 0.52422 },
+                    { x: 0.41929, y: 0.62152 },
+                    { x: 0.49569, y: 0.44098 },
+                    { x: 0.59891, y: 0.42392 },
+                    { x: 0.68919, y: 0.43800 },
+                    { x: 0.77485, y: 0.61580 },
+                    { x: 0.90958, y: 0.61578 }
+                ]
+            };
+
+            const MAP_NODE_POSITIONS = MAP_NODE_POSITIONS_BY_ARC[currentRun.arcId] || MAP_NODE_POSITIONS_BY_ARC.arc1;
 
             currentRun.nodes.forEach((n, i) => {
                 const pos = MAP_NODE_POSITIONS[i] || { x: 0.5, y: 0.5 };
@@ -159,7 +193,7 @@
                     iconSrc = 'Art/Fight_Icon.png';
                     nodeText = 'Battle';
                 } else {
-                    iconSrc = 'Art/Fight_Icon.png'; // placeholder for merge per user request
+                    iconSrc = 'Art/Merge_Icon.png';
                     nodeText = 'Merge';
                 }
                 
@@ -177,11 +211,13 @@
                     filterStr = 'drop-shadow(0 0 15px yellow)';
                     textColor = 'yellow';
                 } else if (isUpcoming) {
+                    // Upcoming nodes stay visible but dimmed, so the player's focus stays on
+                    // the current node and the trail already fought through.
                     if (n.type === 'merge') {
-                        filterStr = 'drop-shadow(0 0 15px #3b82f6)';
+                        filterStr = 'brightness(45%) drop-shadow(0 0 15px #3b82f6)';
                         textColor = '#3b82f6'; // Blue
                     } else {
-                        filterStr = 'drop-shadow(0 0 15px red)';
+                        filterStr = 'brightness(45%) drop-shadow(0 0 15px red)';
                         textColor = 'red';
                     }
                 }
@@ -210,7 +246,7 @@
                 const track = document.getElementById('map-track');
                 if (mapNodes && track) {
                     const viewportWidth = mapNodes.offsetWidth;
-                    const trackWidth = track.offsetWidth || (mapNodes.offsetHeight * (5760 / 1552));
+                    const trackWidth = track.offsetWidth || (mapNodes.offsetHeight * (3240 / 540));
                     
                     const pos = MAP_NODE_POSITIONS[currentRun.nodeIndex] || { x: 0.5 };
                     let targetX = pos.x * trackWidth;
@@ -248,6 +284,7 @@
                     
                     const hpPerc = Math.max(0, Math.min(100, (m.currentHp / m.hp) * 100));
                     let hpColor = hpPerc > 50 ? '#22c55e' : hpPerc > 25 ? '#eab308' : '#ef4444';
+                    const mEnergy = m.energy !== undefined ? m.energy : (m.startingEnergy !== undefined ? m.startingEnergy : 1);
                     const elementIcon = getElementIcon(m.type);
                     
                     slot.innerHTML = `
@@ -277,7 +314,7 @@
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                                 <img src="Art/EN.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="EN" />
                                 <div class="energy-blocks" style="display: flex; gap: 4px; flex: 1;">
-                                    ${Array.from({length: 3}).map((_, idx) => `<div style="flex: 1; height: 6px; background-color: ${idx < 1 ? '#00a8ff' : '#222'}; border-radius: 2px;"></div>`).join('')}
+                                    ${(m.isBoss ? [1,2,3,4,5] : [1,2,3]).map(i => `<div style="flex: 1; height: 6px; background-color: ${mEnergy >= i ? '#00a8ff' : '#222'}; border-radius: 2px;"></div>`).join('')}
                                 </div>
                             </div>
                         </div>
@@ -337,7 +374,7 @@
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                                 <img src="Art/EN.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="EN" />
                                 <div class="energy-blocks" style="display: flex; gap: 4px; flex: 1;">
-                                    ${Array.from({length: 3}).map((_, i) => `<div style="flex: 1; height: 8px; background-color: ${i < (m.startingEnergy !== undefined ? m.startingEnergy : 1) ? '#00a8ff' : '#222'}; border-radius: 2px; border: 1px solid #000;"></div>`).join('')}
+                                    ${(m.isBoss ? [1,2,3,4,5] : [1,2,3]).map(i => `<div style="flex: 1; height: 8px; background-color: ${(m.energy !== undefined ? m.energy : (m.startingEnergy !== undefined ? m.startingEnergy : 1)) >= i ? '#00a8ff' : '#222'}; border-radius: 2px; border: 1px solid #000;"></div>`).join('')}
                                 </div>
                             </div>
                         </div>

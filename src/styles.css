@@ -239,7 +239,8 @@ html, body {
         .select-slot {
             position: relative;
             width: 280px;
-            min-height: 250px;
+            height: 280px;
+            flex-shrink: 0;
             border: 2px dashed #888;
             border-radius: 10px;
             display: flex;
@@ -249,6 +250,7 @@ html, body {
             background: rgba(0,0,0,0.2);
             transition: all 0.2s;
             margin-bottom: 15px;
+            overflow: hidden;
         }
 
         .select-slot:hover {
@@ -260,6 +262,9 @@ html, body {
             border: 2px dashed rgba(255, 255, 255, 0.4);
             background: rgba(0,0,0,0.4);
             justify-content: flex-start;
+            height: auto;
+            min-height: 280px;
+            overflow: visible;
         }
 
         /* Map Styles */
@@ -268,7 +273,7 @@ html, body {
             flex-direction: row;
             align-items: center;
             gap: 0;
-            padding: 150px 20px;
+            padding: 0;
             overflow-x: auto;
             width: 100%;
             scroll-behavior: smooth;
@@ -706,7 +711,8 @@ html, body {
 
         .merge-slot {
             width: 280px;
-            min-height: 250px;
+            height: 280px;
+            flex-shrink: 0;
             border: 2px dashed #444;
             border-radius: 15px;
             display: flex;
@@ -714,6 +720,7 @@ html, body {
             justify-content: center;
             align-items: center;
             background: #222;
+            overflow: hidden;
         }
 
         .merge-slot.filled {
@@ -721,6 +728,10 @@ html, body {
             border-color: var(--accent);
             background: var(--card-bg);
             flex-direction: column;
+            justify-content: flex-start;
+            height: auto;
+            min-height: 280px;
+            overflow: visible;
         }
 
         .merge-plus {
