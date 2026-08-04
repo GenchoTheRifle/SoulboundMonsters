@@ -23,12 +23,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Overlay Art/ from art-fixed
-        run: |
-          git fetch origin art-fixed:art-fixed
-          rm -rf Art
-          git checkout art-fixed -- Art
-          echo "Art/ now contains $(ls Art | wc -l) files from art-fixed"
+      # Disabled: Art/ is no longer overlaid from art-fixed; main now has the art it needs.
+      # - name: Overlay Art/ from art-fixed
+      #   run: |
+      #     git fetch origin art-fixed:art-fixed
+      #     rm -rf Art
+      #     git checkout art-fixed -- Art
+      #     echo "Art/ now contains $(ls Art | wc -l) files from art-fixed"
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
@@ -37,4 +38,4 @@ jobs:
           publish_dir: .
           publish_branch: gh-pages
           force_orphan: true
-          exclude_assets: '.github,node_modules,fix_*.js,fix_*.cjs,update_*.js,update_*.cjs,reorder_*.cjs,split*.cjs'
+          exclude_assets: '.github,node_modules,fix_*.js,fix_*.cjs,update_*.js,update_*.cjs,reorder_*.cjs,split*.cjs,Dockerfile,docker-compose.yml,.dockerignore'

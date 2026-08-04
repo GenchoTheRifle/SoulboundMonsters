@@ -282,7 +282,7 @@
                 const htmlContent = `
                     <div style="display:flex; flex-direction:column; align-items:center; margin: 15px 0;">
                         <div style="width:200px; height:200px; margin-bottom:10px;">
-                            ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
+                            ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" style="max-width:100%; max-height:100%; object-fit:contain;" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
                         </div>
                         <strong style="font-size:24px; color: var(--accent);">${outcome.name}</strong>
                     </div>
