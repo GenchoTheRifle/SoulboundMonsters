@@ -5,6 +5,12 @@
             maxActReached: 1
         };
 
+        function getMapRoadBackground(arcId) {
+            if (arcId === 'arc2') return "url('Art/Forest Road.png')";
+            if (arcId === 'arc3') return "url('Art/Laboratory Road.png')";
+            return "url('Art/Cave_Road_red_dots.png')";
+        }
+
         function getMapBackground(arcId) {
             if (arcId === 'arc2') return "url('Art/Forest Map.png')";
             if (arcId === 'arc3') return "url('Art/Laboratory Map.png')";

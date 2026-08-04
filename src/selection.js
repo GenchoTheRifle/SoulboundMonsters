@@ -22,17 +22,17 @@
                     
                     const hpPerc = 100;
                     let hpColor = '#22c55e';
-                    const elementIcon = getElementIcon(s.type);
+                    
                     slot.innerHTML = `
                         <div class="monster-art-container" style="pointer-events: none;">
                             <div class="art-content" style="position: relative;">
-                                ${s.art.includes('.png') ? `<img src="${s.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${s.art}</div>`}
+                                ${s.art.includes(".png") ? `<img src="${s.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${s.art}</div>`}
                             </div>
-                            <div class="shadow-ellipse"></div>
+                            <div class="shadow-ellipse ${getShadowClass(s.name)}"></div>
                         </div>
                         <div class="stats-container" style="position: relative; padding-top: 10px; z-index: 10; width: 100%; box-sizing: border-box; pointer-events: none;">
                             <div class="type-icon-container" style="position: absolute; top: -10px; right: -10px; z-index: 11;">
-                                <img src="${elementIcon}" style="width: 24px; height: 24px; filter: drop-shadow(0px 0px 2px #000);" alt="${s.type}" />
+                                ${getTypeIconHtml(s.type, 40)}
                             </div>
                             <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
                                 ${s.name}
@@ -373,7 +373,7 @@
                     extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #e6c200; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: black; border: 1px solid #ffee58; z-index: 10;">Balanced</div>`;
                 }
                 
-                let elementIcon = `<img src="Art/${s.type}.png" style="width: 24px; height: 24px; position: absolute; top: 5px; right: 5px; filter: drop-shadow(0px 0px 2px #000);" alt="${s.type}" />`;
+                let elementIcon = `<div style="position: absolute; top: 5px; right: 5px; filter: drop-shadow(0px 0px 2px #000);">${getTypeIconHtml(s.type, 40)}</div>`;
                 
                 btn.innerHTML = `
                     ${extraLabels}

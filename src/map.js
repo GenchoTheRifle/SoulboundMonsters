@@ -21,8 +21,8 @@
             
             const logo = document.createElement('img');
             logo.src = 'Art/Title.png';
-            logo.style.width = '600px';
-            logo.style.maxWidth = '80vw';
+            logo.style.width = '900px';
+            logo.style.maxWidth = '95vw';
             logo.style.transform = 'translateY(-50px)';
             logo.style.opacity = '0';
             logo.style.transition = 'all 1s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -101,51 +101,103 @@
         }
 
         function renderMap() {
-            const bgElement = document.getElementById('map-bg');
-            if (bgElement && currentRun.arcId) bgElement.style.backgroundImage = getMapBackground(currentRun.arcId);
-
-            const container = document.getElementById('map-nodes');
-            container.innerHTML = '';
-            
-            // Generate vertical offsets
-            const offsets = [];
-            for (let i = 0; i < currentRun.nodes.length; i++) {
-                const pattern = [0, -100, 80, -60, 120, -80, 60];
-                offsets.push(pattern[i % pattern.length]);
+            const screenMap = document.getElementById('screen-map');
+            if (screenMap && currentRun.arcId) {
+                // Remove background from screenMap
+                screenMap.style.background = 'none';
             }
 
+            const trackImg = document.getElementById('map-track-img');
+            if (trackImg && currentRun.arcId) {
+                let bgPath = getMapRoadBackground(currentRun.arcId);
+                // Extract url path from url('...')
+                let match = bgPath.match(/url\('?([^']*)'?\)/);
+                if (match && match[1]) {
+                    trackImg.src = match[1];
+                }
+            }
+
+            const container = document.getElementById('map-nodes-container');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const MAP_NODE_POSITIONS = [
+                { x: 0.11797, y: 0.46103 },
+                { x: 0.18151, y: 0.49195 },
+                { x: 0.25268, y: 0.50228 },
+                { x: 0.33464, y: 0.47648 },
+                { x: 0.39817, y: 0.34248 },
+                { x: 0.47318, y: 0.35788 },
+                { x: 0.56484, y: 0.46230 },
+                { x: 0.66173, y: 0.51641 },
+                { x: 0.74505, y: 0.45457 },
+                { x: 0.91067, y: 0.46233 }
+            ];
+
             currentRun.nodes.forEach((n, i) => {
+                const pos = MAP_NODE_POSITIONS[i] || { x: 0.5, y: 0.5 };
                 const nodeWrapper = document.createElement('div');
                 nodeWrapper.className = 'node-container';
+                nodeWrapper.style.position = 'absolute';
+                nodeWrapper.style.left = `${pos.x * 100}%`;
+                nodeWrapper.style.top = `${pos.y * 100}%`;
+                nodeWrapper.style.transform = 'translate(-50%, -50%)';
+                nodeWrapper.style.display = 'flex';
+                nodeWrapper.style.flexDirection = 'column';
+                nodeWrapper.style.alignItems = 'center';
                 
+                
+
                 const div = document.createElement('div');
                 div.className = `node ${i === currentRun.nodeIndex ? 'active' : ''} ${i < currentRun.nodeIndex ? 'completed' : ''}`;
-                div.innerText = n.type === 'boss' ? 'BOSS' : (n.type === 'combat' ? 'Battle' : 'Merge');
-                
-                // We don't need scale(1.1) here because it's in CSS for .node.active
-                div.style.transform = `translateY(${offsets[i]}px)`;
-                
-                nodeWrapper.appendChild(div);
-
-                if (i < currentRun.nodes.length - 1) {
-                    const line = document.createElement('div');
-                    line.className = `node-line ${i < currentRun.nodeIndex ? 'completed' : ''}`;
-                    
-                    const y1 = offsets[i];
-                    const y2 = offsets[i+1];
-                    const dy = y2 - y1;
-                    const dx = 250; // min-width of node-container
-                    const length = Math.sqrt(dx*dx + dy*dy);
-                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                    
-                    line.style.width = `${length}px`;
-                    line.style.left = '125px'; // start from center of current node
-                    line.style.top = `calc(50% + ${y1}px)`;
-                    line.style.transformOrigin = 'left center';
-                    line.style.transform = `rotate(${angle}deg)`;
-                    
-                    nodeWrapper.appendChild(line);
+                let iconSrc = '';
+                let nodeText = '';
+                if (n.type === 'boss') {
+                    iconSrc = 'Art/Boss_Icon.png';
+                    nodeText = 'Boss';
+                } else if (n.type === 'combat') {
+                    iconSrc = 'Art/Fight_Icon.png';
+                    nodeText = 'Battle';
+                } else {
+                    iconSrc = 'Art/Fight_Icon.png'; // placeholder for merge per user request
+                    nodeText = 'Merge';
                 }
+                
+                const isCompleted = i < currentRun.nodeIndex;
+                const isActive = i === currentRun.nodeIndex;
+                const isUpcoming = i > currentRun.nodeIndex;
+
+                let filterStr = '';
+                let textColor = 'white';
+
+                if (isCompleted) {
+                    filterStr = 'grayscale(100%) brightness(50%) drop-shadow(0 0 15px lime)';
+                    textColor = '#22c55e'; // Green
+                } else if (isActive) {
+                    filterStr = 'drop-shadow(0 0 15px yellow)';
+                    textColor = 'yellow';
+                } else if (isUpcoming) {
+                    if (n.type === 'merge') {
+                        filterStr = 'drop-shadow(0 0 15px #3b82f6)';
+                        textColor = '#3b82f6'; // Blue
+                    } else {
+                        filterStr = 'drop-shadow(0 0 15px red)';
+                        textColor = 'red';
+                    }
+                }
+
+                div.innerHTML = `
+                    <div style="position:absolute; top:-35px; left:50%; transform:translateX(-50%); color:${textColor}; font-size:24px; font-weight:bold; text-shadow:2px 2px 2px black, 0 0 5px black; white-space:nowrap; z-index:10;">${nodeText}</div>
+                    <img src="${iconSrc}" style="width: 80%; height: 80%; object-fit: contain; filter: ${filterStr}; transition: filter 0.3s;" />
+                `;
+                div.style.background = 'transparent';
+                div.style.border = 'none';
+                div.style.boxShadow = 'none';
+                div.style.width = '120px';
+                div.style.height = '120px';
+                div.style.transform = isActive ? 'scale(1.2)' : 'scale(1)';
+
+                nodeWrapper.appendChild(div);
 
                 container.appendChild(nodeWrapper);
             });
@@ -154,14 +206,27 @@
 
             // Auto-scroll to current node
             setTimeout(() => {
-                const activeNode = container.children[currentRun.nodeIndex];
-                if (activeNode) {
-                    const scrollLeft = activeNode.offsetLeft - container.offsetWidth / 2 + activeNode.offsetWidth / 2;
-                    container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+                const mapNodes = document.getElementById('map-nodes');
+                const track = document.getElementById('map-track');
+                if (mapNodes && track) {
+                    const viewportWidth = mapNodes.offsetWidth;
+                    const trackWidth = track.offsetWidth || (mapNodes.offsetHeight * (5760 / 1552));
+                    
+                    const pos = MAP_NODE_POSITIONS[currentRun.nodeIndex] || { x: 0.5 };
+                    let targetX = pos.x * trackWidth;
+                    
+                    // Center the targetX in the viewport
+                    // Center the targetX in the viewport
+                    let scrollLeft = targetX - (viewportWidth / 2);
+                    
+                    // Clamp it so we don't scroll past the edges
+                    scrollLeft = Math.max(0, Math.min(trackWidth - viewportWidth, scrollLeft));
+                    
+                    mapNodes.scrollTo({ left: scrollLeft, behavior: 'smooth' });
                 }
             }, 100);
 
-            updateMapPartyUI();
+            updateTeamUI();
         }
 
         window.updateTeamUI = function() {
@@ -191,7 +256,7 @@
                             <div class="art-content" style="position: relative;">
                                 ${m.art.includes('.png') ? `<img src="${m.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${m.art}</div>`}
                             </div>
-                            <div class="shadow-ellipse"></div>
+                            <div class="shadow-ellipse ${getShadowClass(m.name)}"></div>
                         </div>
                         <div class="stats-container" style="position: relative; padding-top: 10px; z-index: 10; width: 100%; box-sizing: border-box; pointer-events: none;">
                             <div class="type-icon-container" style="position: absolute; top: -10px; right: -10px; z-index: 11;">
@@ -228,14 +293,27 @@
             const statsGrid = document.getElementById('team-stats-grid');
             if (statsGrid) {
                 statsGrid.innerHTML = '';
-                currentRun.party.forEach((m, idx) => {
-                    if (!m) return;
-                    
+                const visualOrder = [2, 0, 3, 1];
+                visualOrder.forEach(idx => {
+                    const m = currentRun.party[idx];
                     const btn = document.createElement('div');
                     btn.className = 'collection-square';
-                    
-                    btn.style.width = '100%'; btn.style.aspectRatio = '1 / 1'; btn.style.height = 'auto';
+                    btn.style.aspectRatio = 'auto'; 
+                    btn.style.height = '100%';
+                    btn.style.width = '100%';
                     btn.style.position = 'relative';
+                    btn.style.minHeight = '0';
+                    btn.style.minWidth = '0';
+                    btn.style.overflow = 'hidden';
+                    
+                    if (!m) {
+                        btn.style.opacity = '0.3';
+                        btn.style.border = '2px dashed #444';
+                        btn.style.background = 'transparent';
+                        btn.style.pointerEvents = 'none';
+                        statsGrid.appendChild(btn);
+                        return;
+                    }
                     
                     const types = (Array.isArray(m.type) ? m.type : [m.type]).filter(Boolean);
                     const typeHtml = types.map(t => {
@@ -244,9 +322,9 @@
                     }).join('');
                     
                     btn.innerHTML = `
-                        <div style="height:200px; display:flex; justify-content:center; align-items:center; margin-bottom:10px;">${renderArt(m.art, 160)}</div>
-                        <strong style="font-size: 24px; text-shadow: 1px 1px 2px black;">${m.name}</strong>
-                        <div style="display: flex; flex-direction: column; width: 100%; padding: 0 10px; margin-top: 10px;">
+                        <div class="monster-art" style="flex: 1; min-height: 0; display:flex; justify-content:center; align-items:center; margin-bottom:5px;">${renderArt(m.art, 120)}</div>
+                        <strong style="font-size: 20px; text-shadow: 1px 1px 2px black; margin-bottom: 5px;">${m.name}</strong>
+                        <div style="display: flex; flex-direction: column; width: 100%; padding: 0 10px; margin-top: auto;">
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                                 <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
                                 <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 12px; background: #222; border-radius: 6px; overflow: hidden; border: 1px solid #000;">
@@ -259,7 +337,7 @@
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                                 <img src="Art/EN.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="EN" />
                                 <div class="energy-blocks" style="display: flex; gap: 4px; flex: 1;">
-                                    ${Array.from({length: 3}).map((_, idx) => `<div style="flex: 1; height: 8px; background-color: ${idx < (m.startingEnergy !== undefined ? m.startingEnergy : 1) ? '#00a8ff' : '#222'}; border-radius: 2px; border: 1px solid #000;"></div>`).join('')}
+                                    ${Array.from({length: 3}).map((_, i) => `<div style="flex: 1; height: 8px; background-color: ${i < (m.startingEnergy !== undefined ? m.startingEnergy : 1) ? '#00a8ff' : '#222'}; border-radius: 2px; border: 1px solid #000;"></div>`).join('')}
                                 </div>
                             </div>
                         </div>
@@ -304,60 +382,15 @@
             updateTeamUI();
         }
 
-        function updateMapPartyUI() {
-            for (let i = 0; i < 4; i++) {
-                const slot = document.getElementById(`map-party-slot-${i}`);
-                if (!slot) continue;
-                const m = currentRun.party[i];
-                if (m) {
-                    slot.innerHTML = `
-                        <div draggable="true" ondragstart="dragStartMap(event, ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
-                            <div style="width:140px; height:140px; margin-bottom:5px; pointer-events:none;">
-                                ${renderArt(m.art, 120)}
-                            </div>
-                            <strong style="font-size:18px; text-align:center; pointer-events:none;">${m.name}</strong>
-                        </div>
-                    `;
-                    slot.classList.add('filled');
-                } else {
-                    slot.innerHTML = '';
-                    slot.classList.remove('filled');
-                }
-            }
-        }
+        
+        
 
-        function openMapTeamModal() {
-            updateMapPartyUI();
-            document.getElementById('modal-map-team').style.display = 'flex';
-        }
-
-        function dragStartMap(ev, index) {
-            ev.dataTransfer.setData("index", index);
-        }
-
-        window.dropMapParty = function(ev) {
-            ev.preventDefault();
-            const sourceIndexStr = ev.dataTransfer.getData("index");
-            if (!sourceIndexStr) return;
-            const sourceIndex = parseInt(sourceIndexStr);
-            
-            let targetSlot = ev.target.closest('.select-slot');
-            if (!targetSlot) return;
-            const targetIndex = parseInt(targetSlot.getAttribute('data-slot'));
-
-            // Swap in party
-            const temp = currentRun.party[sourceIndex];
-            currentRun.party[sourceIndex] = currentRun.party[targetIndex];
-            currentRun.party[targetIndex] = temp;
-            
-            updateMapPartyUI();
-        }
-
-        function proceedToNode() {
-            const node = currentRun.nodes[currentRun.nodeIndex];
-            if (node.type === 'combat' || node.type === 'boss') {
-                initCombat(node);
-            } else if (node.type === 'merge') {
-                initMerge();
-            }
-        }
+window.proceedToNode = function() {
+    if (!currentRun || currentRun.nodeIndex >= currentRun.nodes.length) return;
+    const node = currentRun.nodes[currentRun.nodeIndex];
+    if (node.type === 'combat' || node.type === 'boss') {
+        if (typeof initCombat === 'function') initCombat(node);
+    } else if (node.type === 'merge') {
+        if (typeof initMerge === 'function') initMerge();
+    }
+}

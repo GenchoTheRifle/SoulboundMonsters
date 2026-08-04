@@ -55,7 +55,7 @@
                 <div><span style="color:#fcc419; display:inline-block; width:60px;">SPD:</span> ${monster.spd}</div>
             `;
             
-            const moves = monster.moves || [];
+            const moves = (monster.moves || []).slice().sort((a, b) => (a.t || '').localeCompare(b.t || ''));
             
             document.getElementById('col-detail-moves').innerHTML = moves.map(m => {
                 const typeIcon = getTypeIconHtml(m.t, 16);

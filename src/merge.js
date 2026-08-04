@@ -22,22 +22,23 @@
             if (m && !mergeSlots.includes(m)) {
                 slot.classList.add('filled');
                 slot.classList.add('combatant');
+                slot.classList.add('combatant');
                 
                 const hpPerc = Math.max(0, Math.min(100, (m.currentHp / m.hp) * 100));
                 let hpColor = hpPerc > 50 ? '#22c55e' : hpPerc > 25 ? '#eab308' : '#ef4444';
-                const elementIcon = getElementIcon(m.type);
+                
                 
                 slot.innerHTML = `
                     <div draggable="true" ondragstart="dragStart(event, 'party', ${i})" style="width:100%; height:100%; position: absolute; top:0; left:0; z-index: 20; cursor:grab;"></div>
                     <div class="monster-art-container" style="pointer-events: none;">
                         <div class="art-content" style="position: relative;">
-                            ${m.art.includes('.png') ? `<img src="${m.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${m.art}</div>`}
+                            ${m.art.includes(".png") ? `<img src="${m.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${m.art}</div>`}
                         </div>
-                        <div class="shadow-ellipse"></div>
+                        <div class="shadow-ellipse ${getShadowClass(m.name)}"></div>
                     </div>
                     <div class="stats-container" style="position: relative; padding-top: 10px; z-index: 10; width: 100%; box-sizing: border-box; pointer-events: none;">
                         <div class="type-icon-container" style="position: absolute; top: -10px; right: -10px; z-index: 11;">
-                            <img src="${elementIcon}" style="width: 24px; height: 24px; filter: drop-shadow(0px 0px 2px #000);" alt="${m.type}" />
+                            ${getTypeIconHtml(m.type, 40)}
                         </div>
                         <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
                             ${m.name}
@@ -73,14 +74,18 @@
                 slot.classList.add('filled');
                 slot.innerHTML = `
                     <div draggable="true" ondragstart="dragStart(event, 'merge', ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
-                        <div style="width:140px; height:140px; margin-bottom:5px; pointer-events:none;">
-                            ${renderArt(s.art, 120)}
+                        <div class="monster-art-container" style="pointer-events: none; ">
+                            <div class="art-content" style="position: relative;">
+                                ${s.art.includes(".png") ? `<img src="${s.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${s.art}</div>`}
+                            </div>
+                            <div class="shadow-ellipse ${getShadowClass(s.name)}"></div>
                         </div>
                         <strong style="font-size:18px; text-align:center; pointer-events:none;">${s.name}</strong>
                     </div>
                 `;
             } else {
                 slot.classList.remove('filled');
+                slot.classList.remove('combatant');
                 slot.innerHTML = '+';
             }
         });
@@ -103,8 +108,13 @@
                 if (isUnlocked) {
                     outcomeDiv.innerHTML = `
                         <h4 style="margin: 0 0 10px 0; color: #aaa;">OUTCOME</h4>
-                        <div style="width: 240px; height: 240px; pointer-events: none;">
-                            ${renderArt(outcome.art, 240)}
+                        <div class="combatant" style="pointer-events: none;">
+                            <div class="monster-art-container" style="pointer-events: none; ">
+                                <div class="art-content" style="position: relative;">
+                                    ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
+                                </div>
+                                <div class="shadow-ellipse ${getShadowClass(outcome.name)}"></div>
+                            </div>
                         </div>
                         <strong style="font-size: 30px; margin-top: 10px; color: var(--accent);">${outcome.name}</strong>
                     `;
@@ -272,7 +282,7 @@
                 const htmlContent = `
                     <div style="display:flex; flex-direction:column; align-items:center; margin: 15px 0;">
                         <div style="width:200px; height:200px; margin-bottom:10px;">
-                            ${renderArt(outcome.art, 200)}
+                            ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
                         </div>
                         <strong style="font-size:24px; color: var(--accent);">${outcome.name}</strong>
                     </div>

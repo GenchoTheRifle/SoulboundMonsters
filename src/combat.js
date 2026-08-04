@@ -23,6 +23,8 @@
             showScreen('screen-combat');
             combatState.log = ["Combat Started!"];
             combatState.targetingMove = null;
+            combatState.activeUnit = null;
+            combatState.ended = false;
             combatState.firstKilledEnemy = null;
             combatState.turnJustStarted = true;
             combatState.ended = false;
@@ -140,23 +142,68 @@
             updateCombatUI();
             nextTurn();
         }
-        function calculateTurnOrder(isMidCombat = false) {
-            const all = [...currentRun.party, ...combatState.enemies].filter(u => u && u.currentHp > 0);
-            all.sort((a, b) => {
-                const spdA = a.spd * (1 + (a.spdMod || 0));
-                const spdB = b.spd * (1 + (b.spdMod || 0));
-                return spdB - spdA;
-            });
+        function calculateTimeline(activeUnit = null) {
+            let timeline = [];
+            let all = [...currentRun.party, ...combatState.enemies].filter(u => u && u.currentHp > 0);
             
-            if (isMidCombat && currentRun.turnOrder) {
-                const currentUnit = currentRun.turnOrder[currentRun.activeTurnIndex];
-                currentRun.turnOrder = all;
-                const newIndex = currentRun.turnOrder.findIndex(u => u === currentUnit);
-                currentRun.activeTurnIndex = newIndex !== -1 ? newIndex : 0;
-            } else {
-                currentRun.turnOrder = all;
-                currentRun.activeTurnIndex = 0;
+            all.forEach(u => {
+                if (u.turnMeter === undefined) u.turnMeter = 0;
+            });
+
+            if (activeUnit) timeline.push(activeUnit);
+
+            let simMeters = new Map();
+            all.forEach(u => simMeters.set(u, u.turnMeter));
+
+            let loopCount = 0;
+            while(timeline.length < 7 && loopCount < 1000) {
+                loopCount++;
+                let readyUnits = all.filter(u => simMeters.get(u) >= 100);
+                if (readyUnits.length > 0) {
+                    readyUnits.sort((a, b) => simMeters.get(b) - simMeters.get(a));
+                    let nextUnit = readyUnits[0];
+                    timeline.push(nextUnit);
+                    simMeters.set(nextUnit, simMeters.get(nextUnit) - 100);
+                } else {
+                    all.forEach(u => {
+                        let spd = u.spd * (1 + (u.spdMod || 0));
+                        if(spd < 1) spd = 1;
+                        simMeters.set(u, simMeters.get(u) + spd);
+                    });
+                }
             }
+            currentRun.timeline = timeline;
+        }
+
+        function pullNextUnit() {
+            let all = [...currentRun.party, ...combatState.enemies].filter(u => u && u.currentHp > 0);
+            if (all.length === 0) return null;
+            let loopCount = 0;
+            while(loopCount < 1000) {
+                loopCount++;
+                let readyUnits = all.filter(u => (u.turnMeter || 0) >= 100);
+                if (readyUnits.length > 0) {
+                    readyUnits.sort((a, b) => (b.turnMeter || 0) - (a.turnMeter || 0));
+                    let unit = readyUnits[0];
+                    unit.turnMeter -= 100;
+                    return unit;
+                } else {
+                    all.forEach(u => {
+                        let spd = u.spd * (1 + (u.spdMod || 0));
+                        if(spd < 1) spd = 1;
+                        u.turnMeter = (u.turnMeter || 0) + spd;
+                    });
+                }
+            }
+            return null;
+        }
+
+        function calculateTurnOrder(isMidCombat = false) {
+            if (!isMidCombat) {
+                const all = [...currentRun.party, ...combatState.enemies].filter(u => u && u.currentHp > 0);
+                all.forEach(u => u.turnMeter = 0);
+            }
+            calculateTimeline(combatState.activeUnit);
         }
 
         
@@ -299,7 +346,11 @@
         }
 
         function updateCombatUI() {
-            const unit = currentRun.turnOrder[currentRun.activeTurnIndex];
+            if (!combatState.activeUnit) {
+                combatState.activeUnit = pullNextUnit();
+                calculateTimeline(combatState.activeUnit);
+            }
+            const unit = combatState.activeUnit;
             if (!unit) return;
 
             const enemyTeam = document.getElementById('enemy-team');
@@ -340,15 +391,53 @@
 
             const turnOrderEl = document.getElementById('turn-order');
             turnOrderEl.innerHTML = '';
-            currentRun.turnOrder.forEach((u, i) => {
-                if (u.currentHp <= 0) return;
-                const div = document.createElement('div');
-                const isAlly = !u.isEnemy;
-                div.className = `turn-icon ${isAlly ? 'ally' : 'enemy'} ${i === currentRun.activeTurnIndex ? 'active' : ''}`;
-                div.innerHTML = renderArt(u.art, 30);
-                div.title = u.name;
-                turnOrderEl.appendChild(div);
-            });
+            
+            // Render arrow pointing at first icon
+            const arrow = document.createElement('div');
+            arrow.className = 'timeline-arrow';
+            turnOrderEl.appendChild(arrow);
+            
+            if (currentRun.timeline) {
+                currentRun.timeline.forEach((u, i) => {
+                    if (u.currentHp <= 0 && i !== 0) return; // Keep active unit even if dead during their turn
+                    const div = document.createElement('div');
+                    const isAlly = !u.isEnemy;
+                    div.className = `turn-icon ${isAlly ? 'ally' : 'enemy'} ${i === 0 ? 'active' : ''}`;
+                    const portraitSide = u.isBoss ? 'Boss' : (isAlly ? 'Ally' : 'Enemy');
+                    let baseName = u.name;
+                    if (baseName === "Ultimate Drone") baseName = "Ultimate Spark Bot";
+                    const formattedName = baseName.replace(/[ \-]/g, '_');
+                    const img = document.createElement('img');
+                    img.src = `Art/${formattedName}_${portraitSide}_Portrait.png`;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    img.style.imageRendering = 'auto';
+                    img.style.borderRadius = '50%';
+                    img.draggable = false;
+                    img.onerror = () => {
+                        div.innerHTML = renderArt(u.art, 50);
+                    };
+                    div.appendChild(img);
+                    div.title = u.name;
+                    div.style.position = 'relative';
+                    div.onmouseenter = () => {
+                        const idx = u.isEnemy ? combatState.enemies.indexOf(u) : currentRun.party.indexOf(u);
+                        const teamEl = document.getElementById(u.isEnemy ? 'enemy-team' : 'player-team');
+                        if (teamEl && teamEl.children[idx]) {
+                            teamEl.children[idx].classList.add('timeline-hover');
+                        }
+                    };
+                    div.onmouseleave = () => {
+                        const idx = u.isEnemy ? combatState.enemies.indexOf(u) : currentRun.party.indexOf(u);
+                        const teamEl = document.getElementById(u.isEnemy ? 'enemy-team' : 'player-team');
+                        if (teamEl && teamEl.children[idx]) {
+                            teamEl.children[idx].classList.remove('timeline-hover');
+                        }
+                    };
+                    turnOrderEl.appendChild(div);
+                });
+            }
 
             const energy = unit.energy;
             document.getElementById('energy-display').innerHTML = `<div style="display:flex; justify-content:center; align-items:center; gap:5px;"><img src="Art/EN.png" style="width:24px;height:24px;filter:drop-shadow(1px 1px 1px black);" alt="EN" /><span style="font-size:24px; font-weight:bold; color:white; text-shadow:1px 1px 2px black;">${energy}</span></div>`;
@@ -413,7 +502,7 @@
                 }
             }
 
-            div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargeting ? (isTargetable ? 'targetable' : 'not-targetable') : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''}`;
+            div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargeting ? (isTargetable ? 'targetable' : 'not-targetable') : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''} name-${u.name.replace(/\s+/g, '-').toLowerCase()}`;
             const hpPerc = Math.max(0, (u.currentHp / u.hp) * 100);
             let hpColor = '#ff6b6b';
             if (hpPerc > 66) hpColor = '#51cf66';
@@ -437,7 +526,7 @@
                     let html = `<div style="position:relative; display:inline-block;">
                         <img src="${src}" style="${style}" title="${title}" />`;
                     if (turns !== undefined && turns > 0) {
-                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:12px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:2;">${turns}</div>`;
+                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:2;">${turns}</div>`;
                     }
                     html += `</div>`;
                     return html;
@@ -447,7 +536,7 @@
                     let html = `<div style="position:relative; display:inline-flex; align-items:center; justify-content:center; background:#333; border-radius:5px; border: 1px solid #777; width:40px; height:40px; ${style}" title="${title}">
                         <span style="font-size:24px;">${emoji}</span>`;
                     if (turns !== undefined && turns > 0) {
-                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:12px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:2;">${turns}</div>`;
+                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:2;">${turns}</div>`;
                     }
                     html += `</div>`;
                     return html;
@@ -466,7 +555,7 @@
                     if (atkBuff) statusHtml += renderIcon('Art/Buff DMG.png', goodStyle, 'ATK Up', atkBuff.turns);
                     
                     const spdBuff = u.buffs.find(b => b.type === 'spd_buff' || b.type === 'spd_buff_pct');
-                    if (spdBuff) statusHtml += renderIcon('Art/Buff SPD.png', goodStyle, 'SPD Up', spdBuff.turns);
+                    if (spdBuff) statusHtml += renderIcon('Art/Buff Energy.png', goodStyle, 'SPD Up', spdBuff.turns);
 
                     const lifestealBuff = u.buffs.find(b => b.type === 'lifesteal_buff');
                     if (lifestealBuff) statusHtml += renderIcon('Art/Lifesteal.png', goodStyle, 'Lifesteal', lifestealBuff.turns);
@@ -497,12 +586,15 @@
             const iconPosition = u.isEnemy ? 'right: -10px;' : 'left: -10px;';
             const hasTaunt = u.buffs && u.buffs.some(b => b.type === 'taunt');
 
+            
+let shadowClass = getShadowClass(u.name);
+
             if (!div.querySelector('.hp-fill') || !div.querySelector('.hp-text')) {
                 div.innerHTML = `
                     <div class="monster-art-container" style="position: relative;">
                         <div class="art-content" style="animation-delay: -${index * 0.4}s">${artHtml}</div>
                         <img src="Art/Taunt_1.png" class="taunt-circle" style="display: ${hasTaunt ? 'block' : 'none'};" />
-                        <div class="shadow-ellipse"></div>
+                        <div class="shadow-ellipse ${shadowClass}"></div>
                         <div class="status-container" style="position: absolute; bottom: 0; left: 0; width: 100%; display:flex; justify-content:center; gap:4px; z-index: 10;">
                             ${statusHtml}
                         </div>
@@ -526,13 +618,17 @@
                         <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                             <img src="Art/EN.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="EN" />
                             <div class="energy-blocks" style="display: flex; gap: 4px; flex: 1;">
-                                ${[1, 2, 3].map(i => `<div style="flex: 1; height: 6px; background-color: ${u.energy >= i ? '#00a8ff' : '#222'}; border-radius: 2px; transition: background-color 0.3s ease;"></div>`).join('')}
+                                ${(u.isBoss ? [1,2,3,4,5] : [1,2,3]).map(i => `<div style="flex: 1; height: 6px; background-color: ${u.energy >= i ? '#00a8ff' : '#222'}; border-radius: 2px; transition: background-color 0.3s ease;"></div>`).join('')}
                             </div>
                         </div>
                     </div>
                 `;
             } else {
                 div.querySelector('.art-content').innerHTML = artHtml;
+                const shadowEl = div.querySelector('.shadow-ellipse');
+                if (shadowEl) {
+                    shadowEl.className = `shadow-ellipse ${shadowClass}`;
+                }
                 
                 const tauntCircle = div.querySelector('.taunt-circle');
                 if (tauntCircle) tauntCircle.style.display = hasTaunt ? 'block' : 'none';
@@ -558,7 +654,7 @@
 
                 const energyBlocksEl = div.querySelector('.energy-blocks');
                 if (energyBlocksEl) {
-                    energyBlocksEl.innerHTML = [1, 2, 3].map(i => `<div style="flex: 1; height: 6px; background-color: ${u.energy >= i ? '#00a8ff' : '#222'}; border-radius: 2px; transition: background-color 0.3s ease;"></div>`).join('');
+                    energyBlocksEl.innerHTML = (u.isBoss ? [1,2,3,4,5] : [1,2,3]).map(i => `<div style="flex: 1; height: 6px; background-color: ${u.energy >= i ? '#00a8ff' : '#222'}; border-radius: 2px; transition: background-color 0.3s ease;"></div>`).join('');
                 }
             }
 
@@ -639,7 +735,12 @@
                 return;
             }
 
-            const unit = currentRun.turnOrder[currentRun.activeTurnIndex];
+            if (!combatState.activeUnit) {
+                combatState.activeUnit = pullNextUnit();
+                calculateTimeline(combatState.activeUnit);
+            }
+            const unit = combatState.activeUnit;
+
             if (!unit || unit.currentHp <= 0) {
                 advanceTurn();
                 return;
@@ -761,12 +862,15 @@
             combatState.targetingMove = null;
             combatState.isPlayerTurn = false;
             updateCombatUI();
-            const unit = currentRun.turnOrder[currentRun.activeTurnIndex];
+            
+            const unit = combatState.activeUnit;
             if (unit && unit.currentHp > 0) {
                 if (unit.skipEnergyGeneration) {
                     unit.skipEnergyGeneration = false;
                 } else {
-                    unit.energy = Math.min(3, unit.energy + 1);
+                    const maxE = unit.isBoss ? 5 : 3;
+                    const gainE = unit.isBoss ? 2 : 1;
+                    unit.energy = Math.min(maxE, unit.energy + gainE);
                 }
                 
                 // Decay buffs and debuffs at turn end
@@ -785,8 +889,28 @@
                     unit.debuffs = unit.debuffs.filter(d => d.turns > 0);
                 }
             }
-            currentRun.activeTurnIndex = (currentRun.activeTurnIndex + 1) % currentRun.turnOrder.length;
-            nextTurn();
+
+            const turnOrderEl = document.getElementById('turn-order');
+            if (turnOrderEl && turnOrderEl.children.length > 0) {
+                const arrow = turnOrderEl.querySelector('.timeline-arrow');
+                const icons = Array.from(turnOrderEl.querySelectorAll('.turn-icon'));
+                if (icons.length > 0) {
+                    icons[0].style.animation = 'fadeOutLeft 0.5s forwards';
+                }
+                
+                const slideIcons = icons.slice(1);
+                slideIcons.forEach(icon => {
+                    icon.style.animation = 'slideLeft 0.5s forwards';
+                });
+
+                setTimeout(() => {
+                    combatState.activeUnit = null;
+                    nextTurn();
+                }, 500);
+            } else {
+                combatState.activeUnit = null;
+                nextTurn();
+            }
         }
 
         function renderMoveControls(unit) {
@@ -794,32 +918,35 @@
             container.innerHTML = '';
             
             const currentEnergy = unit.energy;
+            const moveCount = unit.moves.length;
+            container.style.gridTemplateColumns = `repeat(${moveCount}, 1fr)`;
 
-            unit.moves.forEach(m => {
+            const isManyMoves = moveCount > 2;
+
+            const nameSize = '20px';
+            const descSize = isManyMoves ? '10px' : '14px';
+            const costSize = '18px';
+            const iconSize = '20px';
+            const elementIconSize = '32px';
+
+            const displayMoves = [...unit.moves].sort((a, b) => (a.t || '').localeCompare(b.t || ''));
+            displayMoves.forEach(m => {
                 const btn = document.createElement('button');
                 const moveType = m.t || '';
                 btn.className = `move-btn ${moveType.toLowerCase()}`;
                 
-                // Override flex column to stack header (name/cost) and description
-                btn.style.flexDirection = 'column';
-                btn.style.alignItems = 'stretch';
-                btn.style.justifyContent = 'center';
-                btn.style.gap = '5px';
-
                 const isTargetingThis = combatState.targetingMove === m;
                 if (isTargetingThis) btn.style.background = 'gold';
                 
                 btn.disabled = currentEnergy < m.c;
                 btn.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-                        <div style="display:flex; flex-direction:row; align-items:center; gap: 5px;">
-                            <span style="font-weight:bold; font-size:16px;">${m.n}</span>
-                            <span style="display:flex; align-items:center;">${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="width:20px; height:20px;" alt="${moveType}" />` : moveType}</span>
+                    ${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="position: absolute; top: -10px; left: -10px; width: ${elementIconSize}; height: ${elementIconSize}; z-index: 5; pointer-events: none; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));" alt="${moveType}" />` : ''}
+                    <div style="display:flex; flex-direction:column; justify-content:flex-start; width:100%; height:100%; padding: 4px; padding-left: 20px; position: relative;">
+                        <span style="font-weight:bold; font-size:${nameSize}; text-align: left; margin-bottom: 2px; width: calc(100% - 10px); display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${m.n}</span>
+                        <div style="font-size:${descSize}; color:rgba(255,255,255,0.85); text-align:left; line-height:1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; width: 100%; padding-right: 20px;">
+                            ${getMoveDescription(m)}
                         </div>
-                        <span class="move-cost" style="position:static;">${m.c} EN</span>
-                    </div>
-                    <div style="font-size:12px; color:rgba(255,255,255,0.7); text-align:left; line-height:1.2;">
-                        ${getMoveDescription(m)}
+                        <span class="move-cost" style="position: absolute; bottom: 4px; right: 4px; font-size:${costSize}; display:flex; align-items:center; gap:2px; font-weight:bold;  padding: 2px 6px; border-radius: 6px; z-index: 3;">${m.c} <img src="Art/EN.png" style="width:${iconSize}; height:${iconSize};"></span>
                     </div>
                 `;
                 btn.onclick = () => {
@@ -919,7 +1046,8 @@
                         const biteAnimEl = document.createElement('img');
                         biteAnimEl.src = "Art/Bite_1.png";
                         biteAnimEl.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;";
-                        targetEl.appendChild(biteAnimEl);
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(biteAnimEl);
                         
                         // Play animation concurrently with the damage step
                         (async () => {
@@ -932,7 +1060,7 @@
                             }
                             
                             // Squish target when bitten
-                            const bScale = t.isBoss ? 2.0 : 1.0;
+                            const bScale = 1.0;
                             artContainer.animate([
                                 { transform: `scale(${bScale}, ${bScale})` },
                                 { transform: `scale(${bScale * 1.2}, ${bScale * 0.8})` },
@@ -969,7 +1097,7 @@
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Snipe_1.png";
                         animEl.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1.5); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;";
-                        targetEl.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
                         
                         // Play animation concurrently with the damage step
                         (async () => {
@@ -1018,7 +1146,8 @@
                         const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
                         
                         spitAnimEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX}), calc(-50% + ${startY})) ${flip}; width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
-                        targetEl.appendChild(spitAnimEl);
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(spitAnimEl);
                         
                         // Play animation concurrently with the damage step
                         (async () => {
@@ -1064,7 +1193,7 @@
                         const endX = attacker.isEnemy ? 80 : -80;
                         
                         animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX}px), calc(-50% - 100px)) scale(1.5) ${flip}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;`;
-                        targetEl.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1109,8 +1238,9 @@
                                           animEl1.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX1}px), calc(-50% - 100px)) scale(1.5) ${flip1}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
                         animEl2.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX2}px), calc(-50% - 100px)) scale(1.5) ${flip2}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
                         
-                        targetEl.appendChild(animEl1);
-                        targetEl.appendChild(animEl2);
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(animEl1);
+                        artContainer.appendChild(animEl2);
                         
                         (async () => {
                             animEl1.animate([
@@ -1218,7 +1348,7 @@
                                 await new Promise(r => setTimeout(r, 60));
                             }
                             
-                            const bScale = t.isBoss ? 2.0 : 1.0;
+                            const bScale = 1.0;
                             artContainer.animate([
                                 { transform: `scale(${bScale}, ${bScale})` },
                                 { transform: `scale(${bScale * 1.1}, ${bScale * 0.9})` },
@@ -1252,7 +1382,7 @@
                             
                             await new Promise(r => setTimeout(r, 350));
                             
-                            const bScale = t.isBoss ? 2.0 : 1.0;
+                            const bScale = 1.0;
                             artContainer.animate([
                                 { transform: `translate(0, 0) scale(${bScale}, ${bScale})` },
                                 { transform: `translate(0, 20px) scale(${bScale * 1.2}, ${bScale * 0.7})` },
@@ -1297,7 +1427,7 @@
                                 { opacity: 0, transform: `translate(calc(-50% + ${endX}), -50%) ${flip} scale(1.3)` }
                             ], { duration: 500, delay: 300, fill: 'forwards' });
 
-                            const bScale = t.isBoss ? 'scale(2.0, 2.0)' : 'scale(1.0, 1.0)';
+                            const bScale = 'scale(1.0, 1.0)';
                             artContainer.animate([
                                 { transform: `translate(0, 0) ${bScale}`, offset: 0 },
                                 { transform: `translate(${attacker.isEnemy ? '-20px' : '20px'}, 0) ${bScale}`, offset: 0.15 },
@@ -1395,7 +1525,7 @@
                         const animEl = document.createElement('img');
                         animEl.src = "Art/StunBolt_1.png";
                         animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:340px; height:340px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
-                        targetEl.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1448,7 +1578,7 @@
                                 const offsetX = (Math.random() - 0.5) * 80;
                                 const offsetY = (Math.random() - 0.5) * 80;
                                 animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8); width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
-                                targetEl.appendChild(animEl);
+                                const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
                                 
                                 animEl.animate([
                                     { opacity: 0, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(1.5)` }, 
@@ -1483,7 +1613,7 @@
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Zap_1.png";
                         animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
-                        targetEl.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1532,7 +1662,7 @@
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Shockwave_1.png";
                         animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #ffea00) brightness(1.2);`;
-                        targetEl.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1584,7 +1714,7 @@
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Buff_1.png";
                         animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #51cf66);`;
-                        targetEl.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1608,7 +1738,7 @@
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Debuff_1.png";
                         animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff4444);`;
-                        targetEl.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1689,7 +1819,7 @@
                             const targetEl = getElementForUnit(t);
                             if (targetEl) {
                                 const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
-                                const baseScale = t.isBoss ? 2.0 : 1.0;
+                                const baseScale = 1.0;
                                 artContainer.animate([
                                     { transform: `scale(${baseScale}, ${baseScale})` },
                                     { transform: `scale(${baseScale * 1.2}, ${baseScale * 0.8})` },
@@ -1742,7 +1872,7 @@
                             if (overchargeBuffs.length > 0) {
                                 const chance = overchargeBuffs[0].value || 0.2;
                                 if (Math.random() < chance) {
-                                    attacker.energy = Math.min(3, attacker.energy + 1);
+                                    attacker.energy = Math.min(attacker.isBoss ? 5 : 3, attacker.energy + 1);
                                     showFloatingText(attacker, "+1 EN", "#00a8ff");
                                     combatLog(`${attacker.name} gained bonus energy from Overcharge!`);
                                 }
@@ -1841,12 +1971,7 @@
                         t.sleep = (t.sleep || 0) + eff.turns;
                         combatLog(`${t.name} fell asleep!`);
                         
-                        if (move.n === "Spore" || move.n === "Giant Spore" || move.n === "Slumber Sludge") {
-                            applyStatus(true, 'atk_debuff_pct', 0.2, eff.turns);
-                            recalcMods(t);
-                            combatLog(`${t.name}'s ATK was lowered by sleep!`);
-                        }
-                    } else if (eff.type.includes('poison')) {
+} else if (eff.type.includes('poison')) {
                         let poisonDmg = 0;
                         if (eff.type === 'poison_pct') {
                             poisonDmg = Math.floor(t.hp * eff.value);
@@ -2163,12 +2288,12 @@
                 }
                 
                 btn.innerHTML = `
-                    <div style="width:100px; height:100px; margin-bottom:5px;">
-                        ${renderArt(m.art, 90)}
-                    </div>
-                    <strong>${m.name}</strong>
-                    <div style="font-size: 0.9em; margin-top: 5px; color: #ffeb3b;">HP: ${m.currentHp} / ${m.hp}</div>
-                    <button style="margin-top: 5px; width: 100%;">Replace</button>
+                    <button style="width: 100%; height: 100%; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0;">
+                        <div style="width:140px; height:140px; margin-bottom:5px; pointer-events:none;">
+                            ${renderArt(m.art, 120)}
+                        </div>
+                        <strong style="font-size:18px; text-align:center; pointer-events:none; color: white; text-shadow: 1px 1px 2px black;">${m.name}</strong>
+                    </button>
                 `;
                 btn.querySelector('button').onclick = () => {
                     currentRun.party[idx] = recruit;
