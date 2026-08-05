@@ -31,7 +31,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.3,
+            "value": 0.35,
             "turns": 3,
             "target": "self"
           }
@@ -65,7 +65,7 @@
           "p": 0,
           "effect": {
             "type": "heal_pct",
-            "value": 0.15,
+            "value": 0.18,
             "target": "ally"
           }
         }
@@ -282,8 +282,8 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 10,
-            "turns": 3,
+            "value": 5,
+            "turns": 2,
             "target": "self"
           }
         }
@@ -350,7 +350,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.4,
+            "value": 0.45,
             "turns": 3,
             "target": "self"
           }
@@ -398,7 +398,7 @@
           "p": 0,
           "effect": {
             "type": "guard_pct",
-            "value": 0.5,
+            "value": 0.6,
             "turns": 1,
             "target": "self"
           }
@@ -500,7 +500,7 @@
           "ranged": true,
           "effect": {
             "type": "poison_flat",
-            "value": 8,
+            "value": 10,
             "turns": 3,
             "target": "all_enemies"
           }
@@ -706,7 +706,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.3,
+            "value": 0.35,
             "turns": 3,
             "target": "self"
           }
@@ -718,7 +718,7 @@
           "p": 0,
           "effect": {
             "type": "heal_pct",
-            "value": 0.15,
+            "value": 0.18,
             "target": "ally"
           }
         }
@@ -766,7 +766,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.3,
+            "value": 0.35,
             "turns": 3,
             "target": "self"
           }
@@ -822,7 +822,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.3,
+            "value": 0.35,
             "turns": 3,
             "target": "self"
           }
@@ -884,7 +884,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.3,
+            "value": 0.35,
             "turns": 3,
             "target": "self"
           }
@@ -939,7 +939,7 @@
           "p": 0,
           "effect": {
             "type": "guard_pct",
-            "value": 0.5,
+            "value": 0.4,
             "turns": 1,
             "target": "self"
           }
@@ -951,7 +951,7 @@
           "p": 0,
           "effect": {
             "type": "heal_pct",
-            "value": 0.15,
+            "value": 0.18,
             "target": "ally"
           }
         }
@@ -999,7 +999,7 @@
           "p": 0,
           "effect": {
             "type": "guard_pct",
-            "value": 0.5,
+            "value": 0.4,
             "turns": 1,
             "target": "self"
           }
@@ -1055,7 +1055,7 @@
           "p": 0,
           "effect": {
             "type": "guard_pct",
-            "value": 0.5,
+            "value": 0.4,
             "turns": 1,
             "target": "self"
           }
@@ -1117,7 +1117,7 @@
           "p": 0,
           "effect": {
             "type": "guard_pct",
-            "value": 0.5,
+            "value": 0.4,
             "turns": 1,
             "target": "self"
           }
@@ -1227,7 +1227,7 @@
           "p": 0,
           "effect": {
             "type": "heal_pct",
-            "value": 0.15,
+            "value": 0.18,
             "target": "ally"
           }
         },
@@ -1288,7 +1288,7 @@
           "p": 0,
           "effect": {
             "type": "heal_pct",
-            "value": 0.15,
+            "value": 0.18,
             "target": "ally"
           }
         },
@@ -1592,7 +1592,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.3,
+            "value": 0.35,
             "turns": 3,
             "target": "self"
           }
@@ -1651,7 +1651,7 @@
           "p": 0,
           "effect": {
             "type": "heal_pct",
-            "value": 0.15,
+            "value": 0.18,
             "target": "ally"
           }
         }
@@ -1927,7 +1927,7 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 5,
+            "value": 8,
             "turns": 3,
             "target": "self"
           }
@@ -1936,7 +1936,7 @@
           "n": "Root Crush",
           "c": 2,
           "t": "Nature",
-          "p": 1.5,
+          "p": 1.2,
           "melee": false,
           "hits": 1,
           "effect": {
@@ -1977,7 +1977,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.3,
+            "value": 0.35,
             "turns": 3,
             "target": "self"
           }
@@ -1996,8 +1996,8 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 10,
-            "turns": 3,
+            "value": 5,
+            "turns": 2,
             "target": "self"
           }
         }
@@ -2051,8 +2051,8 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 10,
-            "turns": 3,
+            "value": 5,
+            "turns": 2,
             "target": "self"
           }
         }
@@ -2087,7 +2087,7 @@
           "p": 0,
           "effect": {
             "type": "heal_pct",
-            "value": 0.15,
+            "value": 0.18,
             "target": "ally"
           }
         },
@@ -2105,8 +2105,8 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 10,
-            "turns": 3,
+            "value": 5,
+            "turns": 2,
             "target": "self"
           }
         }
@@ -2167,8 +2167,8 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 10,
-            "turns": 3,
+            "value": 5,
+            "turns": 2,
             "target": "self"
           }
         }
@@ -2228,8 +2228,8 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 10,
-            "turns": 3,
+            "value": 5,
+            "turns": 2,
             "target": "self"
           }
         }
@@ -2284,8 +2284,8 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 10,
-            "turns": 3,
+            "value": 5,
+            "turns": 2,
             "target": "self"
           }
         }
@@ -2339,8 +2339,8 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 10,
-            "turns": 3,
+            "value": 5,
+            "turns": 2,
             "target": "self"
           }
         }
@@ -2429,7 +2429,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.3,
+            "value": 0.35,
             "turns": 3,
             "target": "self"
           }
@@ -2547,7 +2547,7 @@
           "p": 0,
           "effect": {
             "type": "heal_pct",
-            "value": 0.15,
+            "value": 0.18,
             "target": "ally"
           }
         },
@@ -2853,8 +2853,8 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 10,
-            "turns": 3,
+            "value": 5,
+            "turns": 2,
             "target": "self"
           }
         },
@@ -2953,7 +2953,7 @@
       "name": "Colossal Treant",
       "type": "Nature",
       "hp": 300,
-      "spd": 20,
+      "spd": 18,
       "matk": 20,
       "mdef": 15,
       "ratk": 0,
@@ -2973,7 +2973,7 @@
           "p": 0,
           "effect": {
             "type": "brambles",
-            "value": 5,
+            "value": 8,
             "turns": 3,
             "target": "self"
           }
@@ -2982,7 +2982,7 @@
           "n": "Root Crush",
           "c": 2,
           "t": "Nature",
-          "p": 1.5,
+          "p": 0.8,
           "melee": true,
           "hits": 1,
           "effect": {
@@ -2999,7 +2999,8 @@
           "p": 0,
           "effect": {
             "type": "heal_pct",
-            "value": 0.15,
+            "value": 0.18,
+            "maxHeal": 25,
             "target": "ally"
           }
         }

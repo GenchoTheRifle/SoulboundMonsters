@@ -360,7 +360,7 @@
                     }).join('');
                     
                     btn.innerHTML = `
-                        <div class="monster-art" style="flex: 1; min-height: 0; display:flex; justify-content:center; align-items:center; margin-bottom:5px;">${renderArt(m.art, 120)}</div>
+                        <div class="monster-art" style="flex: 1; min-height: 0; min-width: 0; width: 100%; display:flex; justify-content:center; align-items:center; margin-bottom:5px; overflow:hidden;">${m.art.includes('.png') ? `<img src="${m.art}" style="max-width:100%; max-height:100%; object-fit:contain; image-rendering: pixelated;" draggable="false" />` : `<div style="font-size:100px; line-height:1;">${m.art}</div>`}</div>
                         <strong style="font-size: 20px; text-shadow: 1px 1px 2px black; margin-bottom: 5px;">${m.name}</strong>
                         <div style="display: flex; flex-direction: column; width: 100%; padding: 0 10px; margin-top: auto;">
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">

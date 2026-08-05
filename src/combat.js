@@ -1,4 +1,7 @@
 // --- COMBAT ENGINE ---
+        // Merge-tier moves that share a base move's status icon but show the Ability Evolution badge.
+        const EVOLVED_MOVES = new Set(['Colossal Thorns', 'Crimson Lifesteal', 'Heavy Counter', 'Alpha Howl', 'Elder Guard', 'Giant Poison Cloud']);
+
         let combatState = {
             enemies: [],
             log: [],
@@ -11,6 +14,24 @@
         };
 
         let isExecutingMove = false;
+
+        const _spritePreloadCache = new Map();
+        function preloadSprite(src) {
+            if (!_spritePreloadCache.has(src)) {
+                const img = new Image();
+                img.src = src;
+                const promise = img.decode ? img.decode().catch(() => {}) : new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+                _spritePreloadCache.set(src, promise);
+            }
+            return _spritePreloadCache.get(src);
+        }
+        function preloadSpriteFrames(prefix, start, end) {
+            const promises = [];
+            for (let i = start; i <= end; i++) {
+                promises.push(preloadSprite(`Art/${prefix}_${i}.png`));
+            }
+            return Promise.all(promises);
+        }
 
         function initCombat(node) {
             isExecutingMove = false;
@@ -209,6 +230,60 @@
         }
 
         
+        function energyGainHtml(amount) {
+            return `+${amount} <img src="Art/EN.png" style="width:32px; height:32px; vertical-align:middle; filter: drop-shadow(1px 1px 1px black);" alt="EN">`;
+        }
+
+        async function playSoulCollectVFX(fromUnit, toUnit, amount) {
+            const arenaEl = document.getElementById('combat-arena');
+            const fromEl = getElementForUnit(fromUnit);
+            const toEl = getElementForUnit(toUnit);
+            if (!arenaEl || !fromEl || !toEl) {
+                showFloatingText(toUnit, energyGainHtml(amount), "#00a8ff");
+                return;
+            }
+
+            const arenaRect = arenaEl.getBoundingClientRect();
+            const fromRect = (fromEl.querySelector('.monster-art-container') || fromEl).getBoundingClientRect();
+            const toRect = (toEl.querySelector('.monster-art-container') || toEl).getBoundingClientRect();
+            const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080) || 1;
+
+            const fromX = (fromRect.left + fromRect.width / 2 - arenaRect.left) / scale;
+            const fromY = (fromRect.top + fromRect.height / 2 - arenaRect.top) / scale;
+            const toX = (toRect.left + toRect.width / 2 - arenaRect.left) / scale;
+            const toY = (toRect.top + toRect.height / 2 - arenaRect.top) / scale;
+            const holdY = fromY - 40;
+            const midX = (fromX + toX) / 2;
+            const midY = Math.min(holdY, toY) - 100;
+
+            const orb = document.createElement('img');
+            orb.src = "Art/EN.png";
+            orb.style.cssText = `position:absolute; left:${fromX}px; top:${fromY}px; width:36px; height:36px; z-index:200; pointer-events:none; filter: drop-shadow(0 0 6px #00a8ff) drop-shadow(0 0 14px #00a8ff);`;
+            arenaEl.appendChild(orb);
+
+            // Phase 1: pop out of the dead unit and hover over its head, wiggling in place
+            const holdAnim = orb.animate([
+                { left: `${fromX}px`, top: `${fromY}px`, transform: 'translate(-50%, -50%) scale(0.6)', opacity: 0 },
+                { left: `${fromX}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1.15)', opacity: 1, offset: 0.2 },
+                { left: `${fromX - 16}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.4 },
+                { left: `${fromX + 16}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.6 },
+                { left: `${fromX - 16}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.8 },
+                { left: `${fromX}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 1 }
+            ], { duration: 900, easing: 'ease-in-out', fill: 'forwards' });
+            await holdAnim.finished;
+
+            // Phase 2: fly into the killer, slowed down for visibility
+            const flyAnim = orb.animate([
+                { left: `${fromX}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+                { left: `${midX}px`, top: `${midY}px`, transform: 'translate(-50%, -50%) scale(1.05)', opacity: 1, offset: 0.55 },
+                { left: `${toX}px`, top: `${toY}px`, transform: 'translate(-50%, -50%) scale(0.4)', opacity: 0.7 }
+            ], { duration: 950, easing: 'ease-in-out', fill: 'forwards' });
+            await flyAnim.finished;
+
+            if (orb.parentNode) orb.parentNode.removeChild(orb);
+            showFloatingText(toUnit, energyGainHtml(amount), "#00a8ff");
+        }
+
         function showFloatingText(unit, text, color) {
             const teamPrefix = unit.isEnemy ? 'enemy' : 'player';
             let index = -1;
@@ -251,13 +326,10 @@
             artContainer.appendChild(animEl);
             
             const maxFrames = type === 'Hemorrhage' ? 8 : 7;
-            
-            // Preload images to avoid flickering
-            for (let i = 2; i <= maxFrames; i++) {
-                const img = new Image();
-                img.src = `Art/${type}_${i}.png`;
-            }
-            
+
+            // Wait for all frames to be decoded before swapping between them, to avoid stutter
+            await preloadSpriteFrames(type, 2, maxFrames);
+
             if (type === 'Hemorrhage') {
                 animEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, fill: 'forwards' });
                 animEl.style.transform = 'translate(-50%, -50%) scale(0.5)';
@@ -451,6 +523,12 @@
                 const canEndTurn = combatState.isPlayerTurn && !combatState.ended;
                 endTurnBtn.disabled = !canEndTurn;
                 endTurnBtn.style.display = canEndTurn ? 'block' : 'none';
+
+                const hasOtherMove = canEndTurn && unit.moves && unit.moves.some(m => energy >= m.c);
+                endTurnBtn.classList.toggle('only-option-pulse', canEndTurn && !hasOtherMove);
+
+                const isTargetingBasicAttack = !!(combatState.targetingMove && combatState.targetingMove.isBasicAttack);
+                endTurnBtn.style.background = isTargetingBasicAttack ? 'gold' : '';
             }
         }
 
@@ -525,9 +603,12 @@
                 const goodStyle = 'width:40px; height:40px; filter: drop-shadow(0 0 5px rgba(0,255,0,0.8));';
                 const badStyle = 'width:40px; height:40px; filter: drop-shadow(0 0 5px rgba(255,0,0,0.8));';
                 
-                const renderIcon = (src, style, title, turns) => {
+                const renderIcon = (src, style, title, turns, evolved) => {
                     let html = `<div style="position:relative; display:inline-block;">
                         <img src="${src}" style="${style}" title="${title}" />`;
+                    if (evolved) {
+                        html += `<img src="Art/Ability Evolution.png" style="position:absolute; top:-4px; left:-4px; width:16px; height:16px; z-index:3; filter: drop-shadow(0 0 3px rgba(50,150,255,0.9));" title="Evolved" />`;
+                    }
                     if (turns !== undefined && turns > 0) {
                         html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:2;">${turns}</div>`;
                     }
@@ -545,7 +626,7 @@
                     return html;
                 };
 
-                if (u.poison > 0) statusHtml += renderIcon('Art/Poison.png', badStyle, 'Poisoned', u.poisonTurns);
+                if (u.poison > 0) statusHtml += renderIcon('Art/Poison.png', badStyle, 'Poisoned', u.poisonTurns, u.poisonEvolved);
                 if (u.toxin > 0) statusHtml += renderIcon('Art/Toxin.png', badStyle, 'Toxin', u.toxinTurns);
                 if (u.sleep > 0) statusHtml += renderIcon('Art/Sleep.png', badStyle, 'Sleeping', u.sleep);
                 if (u.stunned > 0) statusHtml += renderIcon('Art/Stun.png', badStyle, 'Stunned', u.stunned);
@@ -555,22 +636,22 @@
                     if (regenBuff) statusHtml += renderIcon('Art/Regen.png', goodStyle, 'Regen', regenBuff.turns);
                     
                     const atkBuff = u.buffs.find(b => b.type === 'atk_buff' || b.type === 'atk_buff_pct');
-                    if (atkBuff) statusHtml += renderIcon('Art/Buff DMG.png', goodStyle, 'ATK Up', atkBuff.turns);
-                    
+                    if (atkBuff) statusHtml += renderIcon('Art/Buff DMG.png', goodStyle, 'ATK Up', atkBuff.turns, atkBuff.evolved);
+
                     const spdBuff = u.buffs.find(b => b.type === 'spd_buff' || b.type === 'spd_buff_pct');
                     if (spdBuff) statusHtml += renderIcon('Art/Buff Energy.png', goodStyle, 'SPD Up', spdBuff.turns);
 
                     const lifestealBuff = u.buffs.find(b => b.type === 'lifesteal_buff');
-                    if (lifestealBuff) statusHtml += renderIcon('Art/Lifesteal.png', goodStyle, 'Lifesteal', lifestealBuff.turns);
+                    if (lifestealBuff) statusHtml += renderIcon('Art/Lifesteal.png', goodStyle, 'Lifesteal', lifestealBuff.turns, lifestealBuff.evolved);
 
                     const overchargeBuff = u.buffs.find(b => b.type === 'overcharge_buff');
                     if (overchargeBuff) statusHtml += renderIcon('Art/Buff Energy.png', goodStyle, 'Overcharge', overchargeBuff.turns);
 
                     const bramblesBuff = u.buffs.find(b => b.type === 'brambles');
-                    if (bramblesBuff) statusHtml += renderIcon('Art/Thorns.png', goodStyle, 'Thorns', bramblesBuff.turns);
+                    if (bramblesBuff) statusHtml += renderIcon('Art/Thorns.png', goodStyle, 'Thorns', bramblesBuff.turns, bramblesBuff.evolved);
 
                     const counterBuff = u.buffs.find(b => b.type === 'counter');
-                    if (counterBuff) statusHtml += renderIcon('Art/Counter.png', goodStyle, 'Counter', counterBuff.turns);
+                    if (counterBuff) statusHtml += renderIcon('Art/Counter.png', goodStyle, 'Counter', counterBuff.turns, counterBuff.evolved);
 
                     const tauntBuff = u.buffs.find(b => b.type === 'taunt');
                     if (tauntBuff) statusHtml += renderIcon('Art/Taunt.png', goodStyle, 'Taunt', tauntBuff.turns);
@@ -581,7 +662,11 @@
                     if (atkDebuff) statusHtml += renderIcon('Art/Debuff DMG.png', badStyle, 'ATK Down', atkDebuff.turns);
                 }
 
-                if (u.defMod > 0) statusHtml += renderIcon('Art/Guard.png', goodStyle, 'Guarded');
+                if (u.defMod > 0) {
+                    const guardBuffs = (u.buffs || []).filter(b => b.type.includes('guard'));
+                    const guardBuff = guardBuffs[guardBuffs.length - 1];
+                    statusHtml += renderIcon('Art/Guard.png', goodStyle, 'Guarded', undefined, guardBuff && guardBuff.evolved);
+                }
             }
 
             const typeIconHtml = getTypeIconHtml(types, 40);
@@ -889,7 +974,10 @@ let shadowClass = getShadowClass(u.name);
                 if (unit.gainEnergyOnAdvance) {
                     const maxE = unit.isBoss ? 5 : 3;
                     const gainE = unit.isBoss ? 2 : 1;
+                    const before = unit.energy;
                     unit.energy = Math.min(maxE, unit.energy + gainE);
+                    const actualGain = unit.energy - before;
+                    if (actualGain > 0) showFloatingText(unit, energyGainHtml(actualGain), "#00a8ff");
                 }
                 unit.gainEnergyOnAdvance = false;
 
@@ -944,7 +1032,7 @@ let shadowClass = getShadowClass(u.name);
             const isManyMoves = moveCount > 2;
 
             const nameSize = '20px';
-            const descSize = isManyMoves ? '10px' : '14px';
+            const descSize = isManyMoves ? '12px' : '16px';
             const costSize = '18px';
             const iconSize = '20px';
             const elementIconSize = '32px';
@@ -959,14 +1047,21 @@ let shadowClass = getShadowClass(u.name);
                 if (isTargetingThis) btn.style.background = 'gold';
                 
                 btn.disabled = currentEnergy < m.c;
+                const isAoE = m.effect && (m.effect.target === 'all_enemies' || m.effect.target === 'all_allies');
+                let categoryLabel, categoryColor;
+                if (isAoE) { categoryLabel = 'AoE'; categoryColor = '#b19cd9'; }
+                else if (!m.p) { categoryLabel = 'Utility'; categoryColor = '#ff9ff3'; }
+                else if (m.melee) { categoryLabel = 'Melee'; categoryColor = '#ff6b6b'; }
+                else { categoryLabel = 'Ranged'; categoryColor = '#339af0'; }
                 btn.innerHTML = `
                     ${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="position: absolute; top: -10px; left: -10px; width: ${elementIconSize}; height: ${elementIconSize}; z-index: 5; pointer-events: none; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));" alt="${moveType}" />` : ''}
                     <div style="display:flex; flex-direction:column; justify-content:flex-start; width:100%; height:100%; padding: 4px; padding-left: 20px; position: relative;">
+                        <span style="position: absolute; top: 2px; right: 6px; font-size: 11px; font-weight: 600; color: ${categoryColor}; z-index: 4;">${categoryLabel}</span>
                         <span style="font-weight:bold; font-size:${nameSize}; text-align: left; margin-bottom: 2px; width: calc(100% - 10px); display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${m.n}</span>
                         <div style="font-size:${descSize}; color:rgba(255,255,255,0.85); text-align:left; line-height:1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; width: 100%; padding-right: 20px;">
                             ${getMoveDescription(m)}
                         </div>
-                        <span class="move-cost" style="position: absolute; bottom: 4px; right: 4px; font-size:${costSize}; display:flex; align-items:center; gap:2px; font-weight:bold;  padding: 2px 6px; border-radius: 6px; z-index: 3;">${m.c} <img src="Art/EN.png" style="width:${iconSize}; height:${iconSize};"></span>
+                        <span class="move-cost" style="position: absolute; bottom: 4px; right: 4px; font-size:${costSize}; display:flex; align-items:center; gap:2px; font-weight:bold; background: rgba(30,30,32,0.65); border: 1px solid rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 6px; z-index: 3;">${m.c} <img src="Art/EN.png" style="width:${iconSize}; height:${iconSize};"></span>
                     </div>
                 `;
                 btn.onclick = () => {
@@ -1070,12 +1165,14 @@ let shadowClass = getShadowClass(u.name);
                         biteAnimEl.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;";
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
                         artContainer.appendChild(biteAnimEl);
-                        
+                        const bitePreload = preloadSpriteFrames('Bite', 2, 5);
+
                         // Play animation concurrently with the damage step
                         (async () => {
                             const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
                             biteAnimEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, fill: 'forwards' });
                             await new Promise(r => setTimeout(r, 75)); // Stay on frame 1
+                            await bitePreload;
                             for (let frame = 2; frame <= 5; frame++) {
                                 await new Promise(r => setTimeout(r, 60)); // Fast close
                                 if (biteAnimEl) biteAnimEl.src = `Art/Bite_${frame}.png`;
@@ -1170,7 +1267,8 @@ let shadowClass = getShadowClass(u.name);
                         spitAnimEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX}), calc(-50% + ${startY})) ${flip}; width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
                         artContainer.appendChild(spitAnimEl);
-                        
+                        const spitPreload = preloadSpriteFrames(animPrefix, 2, 2);
+
                         // Play animation concurrently with the damage step
                         (async () => {
                             spitAnimEl.animate([
@@ -1180,7 +1278,8 @@ let shadowClass = getShadowClass(u.name);
                             ], { duration: 300, easing: 'ease-in', fill: 'forwards' });
                             
                             await new Promise(r => setTimeout(r, 300));
-                            
+                            await spitPreload;
+
                             spitAnimEl.src = `Art/${animPrefix}_2.png`;
                             spitAnimEl.style.width = "250px";
                             spitAnimEl.style.height = "250px";
@@ -1362,9 +1461,11 @@ let shadowClass = getShadowClass(u.name);
                         animEl.style.cssText = "position:absolute; bottom:-30px; left:50%; transform:translate(-50%, 0); width:320px; height:auto; z-index:100; pointer-events:none; opacity: 1;";
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
                         artContainer.appendChild(animEl);
-                        
+                        const rootCrushPreload = preloadSpriteFrames('RootCrush', 2, 6);
+
                         (async () => {
                             animEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, fill: 'forwards' });
+                            await rootCrushPreload;
                             for (let frame = 1; frame <= 6; frame++) {
                                 if (animEl) animEl.src = `Art/RootCrush_${frame}.png`;
                                 await new Promise(r => setTimeout(r, 60));
@@ -1476,13 +1577,15 @@ let shadowClass = getShadowClass(u.name);
                         animEl.style.cssText = `position:absolute; top:65%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
                         artContainer.appendChild(animEl);
-                        
+                        const echoPreload = preloadSpriteFrames('Echo', 2, 7);
+
                         (async () => {
                             animEl.animate([
                                 { opacity: 0, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(0.8)` },
                                 { opacity: 1, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.1)` },
                                 { opacity: 1, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0)` }
                             ], { duration: 200, easing: 'ease-out', fill: 'forwards' });
+                            await echoPreload;
 
                             for (let i = 1; i <= 7; i++) {
                                 animEl.src = `Art/Echo_${i}.png`;
@@ -1511,12 +1614,14 @@ let shadowClass = getShadowClass(u.name);
                         animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.5); width:200px; height:200px; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
                         artContainer.appendChild(animEl);
-                        
+                        const hemorrhagePreload = preloadSpriteFrames('Hemorrhage', 2, 8);
+
                         (async () => {
                             animEl.animate([
                                 { transform: 'translate(-50%, -50%) scale(0.5)' },
                                 { transform: 'translate(-50%, -50%) scale(1.6)' }
                             ], { duration: 5 * 80, easing: 'ease-out', fill: 'forwards' });
+                            await hemorrhagePreload;
 
                             for (let i = 1; i <= 5; i++) {
                                 animEl.src = `Art/Hemorrhage_${i}.png`;
@@ -1896,7 +2001,7 @@ let shadowClass = getShadowClass(u.name);
                                 const chance = overchargeBuffs[0].value || 0.2;
                                 if (Math.random() < chance) {
                                     attacker.energy = Math.min(attacker.isBoss ? 5 : 3, attacker.energy + 1);
-                                    showFloatingText(attacker, "+1 EN", "#00a8ff");
+                                    showFloatingText(attacker, energyGainHtml(1), "#00a8ff");
                                     combatLog(`${attacker.name} gained bonus energy from Overcharge!`);
                                 }
                             }
@@ -1921,6 +2026,8 @@ let shadowClass = getShadowClass(u.name);
                     const eff = move.effect;
                     // If the attack was countered, its effects bounce back onto the attacker instead of landing on the counterer.
                     const fxTarget = anyCountered ? attacker : t;
+                    // Evolved (merge-tier) moves show the Ability Evolution badge on their shared status icon.
+                    const isEvolvedMove = EVOLVED_MOVES.has(move.n);
                     function applyStatus(isDebuff, bType, bValue, bTurns) {
                         const list = isDebuff ? (fxTarget.debuffs = fxTarget.debuffs || []) : (fxTarget.buffs = fxTarget.buffs || []);
                         const existing = list.find(b => b.type === bType);
@@ -1932,8 +2039,9 @@ let shadowClass = getShadowClass(u.name);
                             }
                             existing.isNew = true;
                             if (bValue !== undefined) existing.value = Math.max(existing.value || 0, bValue);
+                            if (isEvolvedMove) existing.evolved = true;
                         } else {
-                            list.push({ type: bType, value: bValue, turns: bTurns, isNew: true });
+                            list.push({ type: bType, value: bValue, turns: bTurns, isNew: true, evolved: isEvolvedMove });
                         }
                     }
                     function recalcMods(unit) {
@@ -1982,6 +2090,7 @@ let shadowClass = getShadowClass(u.name);
                         let amount = 0;
                         if (eff.type === 'heal_pct') {
                             amount = Math.floor(attacker.hp * eff.value);
+                            if (eff.maxHeal) amount = Math.min(amount, eff.maxHeal);
                         } else {
                             amount = eff.value || Math.floor((attacker.matk + attacker.ratk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
                         }
@@ -2003,6 +2112,7 @@ let shadowClass = getShadowClass(u.name);
                         } else {
                             poisonDmg = eff.value || 8;
                         }
+                        if (poisonDmg >= (fxTarget.poison || 0)) fxTarget.poisonEvolved = isEvolvedMove;
                         fxTarget.poison = Math.max(fxTarget.poison || 0, poisonDmg);
                         fxTarget.poisonTurns = eff.turns;
                         combatLog(anyCountered ? `${fxTarget.name} was poisoned by the reflected attack!` : `${fxTarget.name} was poisoned!`);
@@ -2030,7 +2140,7 @@ let shadowClass = getShadowClass(u.name);
                     const maxE = attacker.isBoss ? 5 : 3;
                     if (attacker.energy < maxE) {
                         attacker.energy = Math.min(maxE, attacker.energy + 1);
-                        showFloatingText(attacker, "+1 EN", "#00a8ff");
+                        playSoulCollectVFX(t, attacker, 1);
                         combatLog(`${attacker.name} gained 1 energy for the kill!`);
                     }
                 }
@@ -2083,7 +2193,14 @@ let shadowClass = getShadowClass(u.name);
         }
 
         function calculateDamage(attacker, move, target) {
-            if (move.isBasicAttack) return 5;
+            if (move.isBasicAttack) {
+                // Flat base damage, unaffected by matk/ratk - but still scales with
+                // status effects like ATK Up/Down (atkMod) and Guard (defMod).
+                const atkMod = attacker.atkMod || 0;
+                const defMod = target.defMod || 0;
+                const dmg = 5 * (1 + atkMod) * (1 - defMod);
+                return Math.max(1, Math.round(dmg));
+            }
 
             const moveType = move.t;
             const targetTypes = Array.isArray(target.type) ? target.type : [target.type];
@@ -2189,14 +2306,35 @@ let shadowClass = getShadowClass(u.name);
             const hpPct = unit.currentHp / unit.hp;
             const livingParty = currentRun.party.filter(p => p && p.currentHp > 0);
 
-            // 1. Heal up when hurt, instead of attacking into a losing trade.
+            // 1. Take a kill if one is available - finishing off the party is worth more than
+            // topping off its own HP, even while hurt.
+            const attackMovesForKillCheck = affordableMoves.filter(m => m.p > 0);
+            let bestKill = null; // { move, target, killCount }
+            for (const m of attackMovesForKillCheck) {
+                const isAoe = m.effect && m.effect.target === 'all_enemies';
+                if (isAoe) {
+                    const killCount = livingParty.filter(p => calculateDamage(unit, m, p) >= p.currentHp).length;
+                    if (killCount > 0 && (!bestKill || killCount > bestKill.killCount)) {
+                        bestKill = { move: m, target: null, killCount };
+                    }
+                } else if (!bestKill || bestKill.killCount < 1) {
+                    const killTarget = livingParty.find(p => calculateDamage(unit, m, p) >= p.currentHp);
+                    if (killTarget) bestKill = { move: m, target: killTarget, killCount: 1 };
+                }
+            }
+            if (bestKill) {
+                executeMove(unit, bestKill.move, bestKill.target || undefined);
+                return;
+            }
+
+            // 2. Heal up when hurt, instead of attacking into a losing trade.
             const healMove = affordableMoves.find(m => m.effect && (m.effect.type === 'heal_pct' || m.effect.type === 'heal_flat'));
             if (healMove && hpPct <= 0.5) {
                 executeMove(unit, healMove);
                 return;
             }
 
-            // 2. Weaken the party with a debuff if it isn't already applied to someone.
+            // 3. Weaken the party with a debuff if it isn't already applied to someone.
             const debuffMove = affordableMoves.find(m => m.effect && m.effect.type.includes('debuff'));
             if (debuffMove) {
                 const alreadyDebuffed = livingParty.some(p => p.debuffs && p.debuffs.some(d => d.type === debuffMove.effect.type));
@@ -2206,7 +2344,7 @@ let shadowClass = getShadowClass(u.name);
                 }
             }
 
-            // 3. Set up with a self-buff/utility move (Taunt, Counter, Savage Stance...) before it's needed,
+            // 4. Set up with a self-buff/utility move (Taunt, Counter, Savage Stance...) before it's needed,
             // but not while critically low - that turn is better spent healing next time around.
             // Checks every buff move, not just the first one, so an already-active buff doesn't
             // block a different, still-unused one (e.g. Counter is up but Taunt isn't yet).
@@ -2218,7 +2356,7 @@ let shadowClass = getShadowClass(u.name);
                 }
             }
 
-            // 4. Otherwise, attack - favor an AoE move while there's more than one target to hit.
+            // 5. Otherwise, attack - favor an AoE move while there's more than one target to hit.
             const attackMoves = affordableMoves.filter(m => m.p > 0);
             if (attackMoves.length > 0) {
                 const aoeMoves = attackMoves.filter(m => m.effect && m.effect.target === 'all_enemies');

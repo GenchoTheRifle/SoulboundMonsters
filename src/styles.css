@@ -461,6 +461,14 @@ html, body {
             margin-bottom: 20px;
         }
 
+        .combatant.boss.name-colossal-treant {
+            /* .team.boss-team centers this element, which halves the effect of margin-top
+               adjustments (half the added margin just grows the centered box upward too).
+               Use `top` instead since relative-position offsets apply after centering and
+               aren't cancelled out - this is what actually pushes it further down the screen. */
+            top: 90px;
+        }
+
         .combatant.boss .monster-art-container > .art-content {
     scale: 2.0;
     transform-origin: bottom center;
@@ -652,14 +660,20 @@ html, body {
 
         .energy-display {
             font-size: 24px;
-            background: #74787dcc;
-            border: 1px solid #5a6067;
+            background: rgba(30,30,32,0.65);
+            border: 1px solid rgba(255,255,255,0.15);
             padding: 10px;
             border-radius: 8px;
             text-align: center;
             color: #00a8ff;
             font-weight: bold;
             text-shadow: 1px 1px 2px #000;
+            flex: none;
+            height: calc(50% - 5px);
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .move-btn {
@@ -694,6 +708,7 @@ html, body {
         .move-btn.beast { border-left-width: 8px; border-left-color: var(--beast); }
         .move-btn.nature { border-left-width: 8px; border-left-color: var(--nature); }
         .move-btn.mech { border-left-width: 8px; border-left-color: var(--mech); }
+        .move-btn.basic-attack { border-left-width: 8px; border-left-color: #339af0; }
 
         .move-cost {
             font-size: 14px;
@@ -957,6 +972,15 @@ html, body {
 @keyframes bounceHover {
     0%, 100% { transform: translateX(-50%) translateY(0); }
     50% { transform: translateX(-50%) translateY(5px); }
+}
+
+@keyframes onlyOptionPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7); }
+    50% { transform: scale(1.06); box-shadow: 0 0 12px 4px rgba(217, 119, 6, 0.7); }
+}
+
+.only-option-pulse {
+    animation: onlyOptionPulse 1s ease-in-out infinite;
 }
 
 .timeline-hover::before {
