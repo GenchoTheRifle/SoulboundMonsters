@@ -23,13 +23,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Disabled: Art/ is no longer overlaid from art-fixed; main now has the art it needs.
-      # - name: Overlay Art/ from art-fixed
-      #   run: |
-      #     git fetch origin art-fixed:art-fixed
-      #     rm -rf Art
-      #     git checkout art-fixed -- Art
-      #     echo "Art/ now contains $(ls Art | wc -l) files from art-fixed"
+      # public/Art is the single source of truth for art assets in the repo. index.html and
+      # src/*.js reference paths like "Art/foo.png" (no leading slash), so the static publish
+      # needs a top-level Art/ directory — materialize it here from public/Art at deploy time
+      # rather than keeping a duplicate copy committed to main.
+      - name: Materialize Art/ from public/Art
+        run: |
+          cp -r public/Art Art
+          echo "Art/ now contains $(ls Art | wc -l) files from public/Art"
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4

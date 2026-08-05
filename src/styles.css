@@ -457,7 +457,7 @@ html, body {
 
         .combatant.boss {
             /* Keep container normal scale, push it down slightly */
-            margin-top: 60px;
+            margin-top: 115px;
             margin-bottom: 20px;
         }
 
@@ -466,8 +466,11 @@ html, body {
     transform-origin: bottom center;
 }
 .combatant.boss .monster-art-container > .shadow-ellipse {
-    transform: translateX(-50%);
-    scale: 2.0;
+    /* translateX(-50%) and scale must be combined in one transform: a separate
+       `scale` property re-anchors to the pre-translate center and drags the
+       shadow off to the side. */
+    transform: translateX(-50%) scale(2.0);
+    transform-origin: bottom center;
 }
 .combatant.boss .monster-art-container {
     margin-bottom: 40px;
@@ -841,10 +844,10 @@ html, body {
 
 .monster-art-container .taunt-circle {
     position: absolute !important;
-    bottom: -65px;
+    bottom: -72px;
     left: 50%;
     transform: translateX(-50%);
-    width: 176px;
+    width: 196px;
     height: auto;
     z-index: 1;
     animation: tauntPulse 1s infinite alternate;
@@ -910,13 +913,16 @@ html, body {
 
 .select-slot.combatant .art-content { animation: idleBob 2s ease-in-out infinite !important; }
 
-.combatant.boss .status-container {
-    transform: scale(0.5);
-    transform-origin: bottom center;
+.combatant.name-heavy-robot .monster-art-container .taunt-circle {
+    bottom: -95px !important;
 }
 
-.combatant.name-heavy-robot .monster-art-container .taunt-circle {
-    bottom: -85px !important;
+.combatant.boss.name-heavy-robot .monster-art-container .taunt-circle {
+    width: 392px !important;
+    height: 392px !important;
+    max-width: none !important;
+    max-height: none !important;
+    bottom: -190px !important;
 }
 
 @keyframes slideLeft {

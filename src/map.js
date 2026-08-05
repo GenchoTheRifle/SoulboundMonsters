@@ -226,6 +226,7 @@
                     ${isActive ? `<div class="node-active-arrow">&#9660;</div>` : ''}
                     <div style="position:absolute; top:-35px; left:50%; transform:translateX(-50%); color:${textColor}; font-size:24px; font-weight:bold; text-shadow:2px 2px 2px black, 0 0 5px black; white-space:nowrap; z-index:10;">${nodeText}</div>
                     <img src="${iconSrc}" style="width: 80%; height: 80%; object-fit: contain; filter: ${filterStr}; transition: filter 0.3s;" />
+                    ${isCompleted ? `<img src="Art/Victory.png" style="position:absolute; top:0; right:0; width: 36%; height: 36%; object-fit: contain; filter: drop-shadow(1px 1px 2px black); z-index: 11;" />` : ''}
                 `;
                 div.style.background = 'transparent';
                 div.style.border = 'none';

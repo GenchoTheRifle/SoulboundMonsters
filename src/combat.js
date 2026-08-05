@@ -408,6 +408,7 @@
                     const portraitSide = u.isBoss ? 'Boss' : (isAlly ? 'Ally' : 'Enemy');
                     let baseName = u.name;
                     if (baseName === "Ultimate Drone") baseName = "Ultimate Spark Bot";
+                    if (baseName === "Crimson Bat") baseName = "Mega Bat";
                     const formattedName = baseName.replace(/[ \-]/g, '_');
                     const img = document.createElement('img');
                     img.src = `Art/${formattedName}_${portraitSide}_Portrait.png`;
@@ -1058,6 +1059,7 @@ let shadowClass = getShadowClass(u.name);
                 if (!t || t.currentHp <= 0) continue;
 
                 let animDelay = 0;
+                let anyCountered = false;
 
                 if (move.n.includes("Bite")) {
                     animDelay = 490; // 250 + 4*60
@@ -1802,6 +1804,7 @@ let shadowClass = getShadowClass(u.name);
                             const counterBuffIdx = t.buffs.findIndex(b => b.type === 'counter');
                             if (counterBuffIdx !== -1) {
                                 countered = true;
+                                anyCountered = true;
                                 const counterBuff = t.buffs[counterBuffIdx];
                                 const counterDamage = Math.floor(damage * counterBuff.value);
                                 t.buffs.splice(counterBuffIdx, 1); // remove counter after hit
@@ -1916,8 +1919,10 @@ let shadowClass = getShadowClass(u.name);
                 // Effects
                 if (move.effect && move.effect.type) {
                     const eff = move.effect;
+                    // If the attack was countered, its effects bounce back onto the attacker instead of landing on the counterer.
+                    const fxTarget = anyCountered ? attacker : t;
                     function applyStatus(isDebuff, bType, bValue, bTurns) {
-                        const list = isDebuff ? (t.debuffs = t.debuffs || []) : (t.buffs = t.buffs || []);
+                        const list = isDebuff ? (fxTarget.debuffs = fxTarget.debuffs || []) : (fxTarget.buffs = fxTarget.buffs || []);
                         const existing = list.find(b => b.type === bType);
                         if (existing) {
                             if (bType === 'taunt' || bType === 'counter') {
@@ -1946,16 +1951,16 @@ let shadowClass = getShadowClass(u.name);
 
                     if (eff.type.includes('debuff')) {
                         applyStatus(true, eff.type, eff.value, eff.turns);
-                        recalcMods(t);
-                        combatLog(`${t.name}'s stats were lowered!`);
+                        recalcMods(fxTarget);
+                        combatLog(anyCountered ? `${fxTarget.name}'s stats were lowered by the reflected attack!` : `${fxTarget.name}'s stats were lowered!`);
                     } else if (eff.type.includes('buff') || eff.type.includes('guard') || eff.type.includes('savage_stance') || eff.type.includes('regen') || eff.type === 'brambles' || eff.type === 'counter' || eff.type === 'taunt' || move.n === 'Ultimate Overcharge' || move.n === 'Overcharge') {
                         if (eff.type === 'savage_stance' || eff.type === 'savage_stance_pct') {
                             applyStatus(false, 'atk_buff_pct', eff.atk_value, eff.atk_turns);
                             applyStatus(false, 'guard_pct', eff.guard_value, eff.guard_turns);
-                            combatLog(`${t.name} entered Savage Stance!`);
+                            combatLog(`${fxTarget.name} entered Savage Stance!`);
                         } else if (eff.type === 'overcharge_buff') {
                             applyStatus(false, 'overcharge_buff', eff.value || 0.2, eff.turns || 3);
-                            combatLog(`${t.name} is Overcharged!`);
+                            combatLog(`${fxTarget.name} is Overcharged!`);
                         } else {
                             const turns = move.n === 'Overcharge' ? 3 : eff.turns;
                             let appliedType = eff.type;
@@ -1965,14 +1970,14 @@ let shadowClass = getShadowClass(u.name);
                                 appliedValue = Math.floor(attacker.hp * eff.value);
                             }
                             applyStatus(false, appliedType, appliedValue, turns);
-                            if (eff.type.includes('regen')) combatLog(`${t.name} gained Health Regen!`);
-                            else if (eff.type === 'lifesteal_buff') combatLog(`${t.name} gained Lifesteal!`);
-                            else if (eff.type === 'brambles') combatLog(`${t.name} gained Thorns!`);
-                            else if (eff.type === 'counter') combatLog(`${t.name} prepared to Counter!`);
-                            else if (eff.type === 'taunt') combatLog(`${t.name} is Taunting enemies!`);
-                            else combatLog(`${t.name} boosted stats!`);
+                            if (eff.type.includes('regen')) combatLog(`${fxTarget.name} gained Health Regen!`);
+                            else if (eff.type === 'lifesteal_buff') combatLog(`${fxTarget.name} gained Lifesteal!`);
+                            else if (eff.type === 'brambles') combatLog(`${fxTarget.name} gained Thorns!`);
+                            else if (eff.type === 'counter') combatLog(`${fxTarget.name} prepared to Counter!`);
+                            else if (eff.type === 'taunt') combatLog(`${fxTarget.name} is Taunting enemies!`);
+                            else combatLog(`${fxTarget.name} boosted stats!`);
                         }
-                        recalcMods(t);
+                        recalcMods(fxTarget);
                     } else if (eff.type.includes('heal')) {
                         let amount = 0;
                         if (eff.type === 'heal_pct') {
@@ -1985,32 +1990,32 @@ let shadowClass = getShadowClass(u.name);
                         playHealVFX(t);
                         combatLog(`${t.name} was healed for ${amount}!`);
                     } else if (eff.type === 'stun' && Math.random() < eff.chance) {
-                        t.stunned = (t.stunned || 0) + eff.turns;
-                        combatLog(`${t.name} was stunned!`);
+                        fxTarget.stunned = (fxTarget.stunned || 0) + eff.turns;
+                        combatLog(anyCountered ? `${fxTarget.name} was stunned by the reflected attack!` : `${fxTarget.name} was stunned!`);
                     } else if (eff.type === 'sleep' && Math.random() < eff.chance) {
-                        t.sleep = (t.sleep || 0) + eff.turns;
-                        combatLog(`${t.name} fell asleep!`);
-                        
+                        fxTarget.sleep = (fxTarget.sleep || 0) + eff.turns;
+                        combatLog(anyCountered ? `${fxTarget.name} fell asleep from the reflected attack!` : `${fxTarget.name} fell asleep!`);
+
 } else if (eff.type.includes('poison')) {
                         let poisonDmg = 0;
                         if (eff.type === 'poison_pct') {
-                            poisonDmg = Math.floor(t.hp * eff.value);
+                            poisonDmg = Math.floor(fxTarget.hp * eff.value);
                         } else {
                             poisonDmg = eff.value || 8;
                         }
-                        t.poison = Math.max(t.poison || 0, poisonDmg);
-                        t.poisonTurns = eff.turns;
-                        combatLog(`${t.name} was poisoned!`);
+                        fxTarget.poison = Math.max(fxTarget.poison || 0, poisonDmg);
+                        fxTarget.poisonTurns = eff.turns;
+                        combatLog(anyCountered ? `${fxTarget.name} was poisoned by the reflected attack!` : `${fxTarget.name} was poisoned!`);
                     } else if (eff.type.includes('toxin')) {
                         let toxinDmg = 0;
                         if (eff.type === 'toxin_pct') {
-                            toxinDmg = Math.floor(t.hp * eff.value);
+                            toxinDmg = Math.floor(fxTarget.hp * eff.value);
                         } else {
                             toxinDmg = eff.value || 8;
                         }
-                        t.toxin = Math.max(t.toxin || 0, toxinDmg);
-                        t.toxinTurns = eff.turns;
-                        combatLog(`${t.name} was inflicted with Toxin!`);
+                        fxTarget.toxin = Math.max(fxTarget.toxin || 0, toxinDmg);
+                        fxTarget.toxinTurns = eff.turns;
+                        combatLog(anyCountered ? `${fxTarget.name} was inflicted with Toxin by the reflected attack!` : `${fxTarget.name} was inflicted with Toxin!`);
                     }
                 }
 
@@ -2078,6 +2083,8 @@ let shadowClass = getShadowClass(u.name);
         }
 
         function calculateDamage(attacker, move, target) {
+            if (move.isBasicAttack) return 5;
+
             const moveType = move.t;
             const targetTypes = Array.isArray(target.type) ? target.type : [target.type];
 
@@ -2122,6 +2129,11 @@ let shadowClass = getShadowClass(u.name);
                 return;
             }
 
+            if (unit.isBoss) {
+                bossAI(unit);
+                return;
+            }
+
             const affordableMoves = unit.moves.filter(m => m.c <= unit.energy);
 
             // AI logic:
@@ -2144,6 +2156,79 @@ let shadowClass = getShadowClass(u.name);
 
                 executeMove(unit, move);
             }
+        }
+
+        // A buff effect can end up stored under a different `type` than the move that granted it
+        // (e.g. Savage Stance grants 'atk_buff_pct' + 'guard_pct', regen_pct is stored as 'regen') -
+        // this mirrors that remapping so the AI can correctly tell if it's already active.
+        function isBuffEffectActive(unit, effect) {
+            if (!unit.buffs) return false;
+            if (effect.type === 'savage_stance_pct' || effect.type === 'savage_stance') {
+                return unit.buffs.some(b => b.type === 'atk_buff_pct' || b.type === 'guard_pct');
+            }
+            const checkType = effect.type === 'regen_pct' ? 'regen' : effect.type;
+            return unit.buffs.some(b => b.type === checkType);
+        }
+
+        function bossAI(unit) {
+            const holdBackForEnergy = unit.energy <= 1 && Math.random() < 0.5;
+            const affordableMoves = holdBackForEnergy ? [] : unit.moves.filter(m => m.c <= unit.energy);
+
+            if (affordableMoves.length === 0) {
+                executeMove(unit, {
+                    n: "Basic Attack",
+                    t: ELEMENTS.NEUTRAL,
+                    p: 0.5,
+                    c: 0,
+                    melee: true,
+                    isBasicAttack: true
+                });
+                return;
+            }
+
+            const hpPct = unit.currentHp / unit.hp;
+            const livingParty = currentRun.party.filter(p => p && p.currentHp > 0);
+
+            // 1. Heal up when hurt, instead of attacking into a losing trade.
+            const healMove = affordableMoves.find(m => m.effect && (m.effect.type === 'heal_pct' || m.effect.type === 'heal_flat'));
+            if (healMove && hpPct <= 0.5) {
+                executeMove(unit, healMove);
+                return;
+            }
+
+            // 2. Weaken the party with a debuff if it isn't already applied to someone.
+            const debuffMove = affordableMoves.find(m => m.effect && m.effect.type.includes('debuff'));
+            if (debuffMove) {
+                const alreadyDebuffed = livingParty.some(p => p.debuffs && p.debuffs.some(d => d.type === debuffMove.effect.type));
+                if (!alreadyDebuffed) {
+                    executeMove(unit, debuffMove);
+                    return;
+                }
+            }
+
+            // 3. Set up with a self-buff/utility move (Taunt, Counter, Savage Stance...) before it's needed,
+            // but not while critically low - that turn is better spent healing next time around.
+            // Checks every buff move, not just the first one, so an already-active buff doesn't
+            // block a different, still-unused one (e.g. Counter is up but Taunt isn't yet).
+            if (hpPct > 0.3) {
+                const buffMove = affordableMoves.find(m => m.p === 0 && m.effect && !m.effect.type.includes('debuff') && !m.effect.type.includes('heal') && !isBuffEffectActive(unit, m.effect));
+                if (buffMove) {
+                    executeMove(unit, buffMove);
+                    return;
+                }
+            }
+
+            // 4. Otherwise, attack - favor an AoE move while there's more than one target to hit.
+            const attackMoves = affordableMoves.filter(m => m.p > 0);
+            if (attackMoves.length > 0) {
+                const aoeMoves = attackMoves.filter(m => m.effect && m.effect.target === 'all_enemies');
+                const pool = (livingParty.length > 1 && aoeMoves.length > 0) ? aoeMoves : attackMoves;
+                pool.sort((a, b) => (b.p * (1 + b.c * 0.15)) - (a.p * (1 + a.c * 0.15)));
+                executeMove(unit, pool[0]);
+                return;
+            }
+
+            executeMove(unit, affordableMoves[Math.floor(Math.random() * affordableMoves.length)]);
         }
 
         function combatLog(msg) {

@@ -1532,7 +1532,7 @@
           "n": "Hemorrhage",
           "c": 2,
           "t": "Beast",
-          "p": 0.9,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "atk_debuff_pct",
@@ -1936,7 +1936,7 @@
           "n": "Root Crush",
           "c": 2,
           "t": "Nature",
-          "p": 1,
+          "p": 1.5,
           "melee": false,
           "hits": 1,
           "effect": {
@@ -2888,14 +2888,14 @@
     "mega_bat": {
       "id": "mega_bat",
       "unlocks": "bat",
-      "name": "Mega Bat",
+      "name": "Crimson Bat",
       "type": "Beast",
       "hp": 200,
       "matk": 0,
       "mdef": 6,
       "ratk": 13,
       "rdef": 9,
-      "spd": 14,
+      "spd": 20,
       "startingEnergy": 1,
       "art": "Art/Mega Bat.png",
       "moves": [
@@ -2922,13 +2922,27 @@
           "n": "Hemorrhage",
           "c": 2,
           "t": "Beast",
-          "p": 0.9,
+          "p": 1.2,
           "ranged": true,
           "effect": {
             "type": "atk_debuff_pct",
             "value": 0.25,
             "turns": 2,
             "target": "enemy"
+          }
+        },
+        {
+          "n": "Savage Stance",
+          "c": 2,
+          "t": "Beast",
+          "p": 0,
+          "effect": {
+            "type": "savage_stance_pct",
+            "atk_value": 0.4,
+            "atk_turns": 4,
+            "guard_value": 0.4,
+            "guard_turns": 1,
+            "target": "self"
           }
         }
       ]
@@ -2939,29 +2953,54 @@
       "name": "Colossal Treant",
       "type": "Nature",
       "hp": 300,
-      "spd": 4,
+      "spd": 20,
       "matk": 20,
       "mdef": 15,
       "ratk": 0,
       "rdef": 12,
       "moves": [
         {
-          "n": "Earthquake",
-          "c": 2,
+          "n": "Colossal Slam",
+          "c": 1,
           "t": "Nature",
-          "p": 1.5,
+          "p": 1.2,
           "melee": true
         },
         {
-          "n": "Deep Roots",
+          "n": "Colossal Thorns",
           "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "regen_flat",
-            "value": 20,
+            "type": "brambles",
+            "value": 5,
             "turns": 3,
             "target": "self"
+          }
+        },
+        {
+          "n": "Root Crush",
+          "c": 2,
+          "t": "Nature",
+          "p": 1.5,
+          "melee": true,
+          "hits": 1,
+          "effect": {
+            "type": "stun",
+            "chance": 0.15,
+            "turns": 1,
+            "target": "all_enemies"
+          }
+        },
+        {
+          "n": "Heal",
+          "c": 2,
+          "t": "Nature",
+          "p": 0,
+          "effect": {
+            "type": "heal_pct",
+            "value": 0.15,
+            "target": "ally"
           }
         }
       ],
@@ -2974,29 +3013,54 @@
       "name": "Heavy Robot",
       "type": "Mech",
       "hp": 250,
-      "spd": 10,
+      "spd": 20,
       "matk": 25,
       "mdef": 12,
       "ratk": 0,
       "rdef": 10,
       "moves": [
         {
-          "n": "Giga Punch",
+          "n": "Heavy Punch",
           "c": 1,
           "t": "Mech",
-          "p": 1.3,
+          "p": 1.2,
           "melee": true
         },
         {
-          "n": "Overdrive",
+          "n": "Heavy Counter",
           "c": 2,
           "t": "Mech",
           "p": 0,
           "effect": {
-            "type": "atk_buff_pct",
-            "value": 0.5,
-            "turns": 3,
+            "type": "counter",
+            "value": 2,
+            "turns": 1,
             "target": "self"
+          }
+        },
+        {
+          "n": "Taunt",
+          "c": 1,
+          "t": "Mech",
+          "p": 0,
+          "effect": {
+            "type": "taunt",
+            "desc": "Forces attacks. If backline, Melee can still hit.",
+            "turns": 1,
+            "target": "self"
+          }
+        },
+        {
+          "n": "Shockwave",
+          "c": 3,
+          "t": "Mech",
+          "p": 1.2,
+          "ranged": true,
+          "effect": {
+            "type": "stun",
+            "chance": 0.2,
+            "turns": 1,
+            "target": "all_enemies"
           }
         }
       ],
