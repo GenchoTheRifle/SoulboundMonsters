@@ -33,6 +33,29 @@
             return Promise.all(promises);
         }
 
+        // Picks enemy pool keys for a fight while avoiding all-same-element lineups,
+        // which otherwise let a single elemental disadvantage auto-lose the whole fight.
+        // 1 enemy: unconstrained. 2 enemies: forced to differ. 3 enemies: at least 2 distinct types.
+        function pickEnemyKeysWithElementDiversity(pool, count) {
+            const typeOf = (key) => {
+                const t = STARTERS[key].type;
+                return Array.isArray(t) ? t.join(',') : t;
+            };
+            const keys = [];
+            for (let i = 0; i < count; i++) {
+                let candidatePool = pool;
+                if (count === 2 && i === 1) {
+                    const filtered = pool.filter(k => typeOf(k) !== typeOf(keys[0]));
+                    if (filtered.length > 0) candidatePool = filtered;
+                } else if (count === 3 && i === 2 && typeOf(keys[0]) === typeOf(keys[1])) {
+                    const filtered = pool.filter(k => typeOf(k) !== typeOf(keys[0]));
+                    if (filtered.length > 0) candidatePool = filtered;
+                }
+                keys.push(candidatePool[Math.floor(Math.random() * candidatePool.length)]);
+            }
+            return keys;
+        }
+
         function initCombat(node) {
             isExecutingMove = false;
             
@@ -101,8 +124,9 @@
                     toxin: 0
                 });
             } else {
+                const enemyKeys = pickEnemyKeysWithElementDiversity(pool, enemyCount);
                 for (let i = 0; i < enemyCount; i++) {
-                    const key = pool[Math.floor(Math.random() * pool.length)];
+                    const key = enemyKeys[i];
                     const base = STARTERS[key];
                     
                     // Enemies do not scale, they start with full base stats.
@@ -2187,7 +2211,7 @@ let shadowClass = getShadowClass(u.name);
                 if (moveType === ELEMENTS.MECH && bt === ELEMENTS.NATURE) tier -= 1;
                 if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.MECH) tier -= 1;
             });
-            if (tier > 0) return 1.5;
+            if (tier > 0) return 1.25;
             if (tier < 0) return 0.75;
             return 1.0;
         }
