@@ -146,7 +146,7 @@ html, body {
 
         .collection-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(6, minmax(0, 1fr));
             gap: 15px;
             padding: 10px;
             align-content: start;
@@ -186,6 +186,47 @@ html, body {
             transform: none;
         }
 
+        /* 9-slice frame test: Collection screen cards only */
+        .collection-grid .collection-square {
+            background: transparent;
+            border-radius: 0;
+            padding: 10px;
+            border-style: solid;
+            border-color: transparent;
+            border-width: 18px;
+            border-image-source: url('/Art/Nine Cut.png');
+            border-image-slice: 49 55 55 50 fill;
+            border-image-repeat: stretch;
+            min-width: 0;
+        }
+
+        .collection-grid .collection-square .monster-art img {
+            max-width: 180px;
+            max-height: 180px;
+        }
+
+        .collection-grid .collection-square strong {
+            color: #333;
+        }
+
+        .collection-grid .collection-square .collection-type-icon {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 2;
+            pointer-events: none;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+        }
+
+        .collection-grid .collection-square:hover {
+            border-color: transparent;
+            filter: brightness(1.15);
+        }
+
+        .collection-grid .collection-square.locked:hover {
+            filter: grayscale(1);
+        }
+
         .monster-card {
             background: var(--card-bg);
             border-radius: 10px;
@@ -214,19 +255,6 @@ html, body {
         .type-nature { background: var(--nature); color: black; }
         .type-mech { background: var(--mech); color: black; }
         .type-neutral { background: var(--neutral); color: black; }
-
-        .stats-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            margin-top: 5px;
-        }
-
-        .moves-list {
-            margin-top: 8px;
-            font-size: 11px;
-            color: #aaa;
-        }
 
         /* Run Selection */
         .selection-container {
@@ -803,6 +831,120 @@ html, body {
             width: fit-content;
         }
 
+        /* 9-slice frame: shared monster detail card, used by the collection
+           details popup and the starter-selection stat popups */
+        .monster-detail-card {
+            background: transparent;
+            border-radius: 0;
+            border-style: solid;
+            border-color: transparent;
+            border-width: 36px;
+            border-image-source: url('/Art/Nine Cut.png');
+            border-image-slice: 49 55 55 50 fill;
+            border-image-repeat: stretch;
+        }
+
+        /* Monster detail card layout: art + name on top (element icon pinned
+           to the corner), stats in the bottom-left box, moves in the
+           bottom-right box - both stretched to the same height. */
+        .detail-top {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .detail-type-icon {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+        }
+
+        .detail-bottom {
+            display: flex;
+            align-items: stretch;
+            gap: 20px;
+        }
+
+        .detail-bottom-stats,
+        .detail-bottom-moves {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .stats-row {
+            flex: 1;
+            font-size: 20px;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            text-align: left;
+        }
+
+        /* Collection modal: art column left, stats+moves column right */
+        .detail-columns {
+            display: flex;
+            gap: 20px;
+        }
+
+        .detail-column-art {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .detail-column-stats {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-column-stats > .stats-row {
+            margin-bottom: 20px;
+        }
+
+        .detail-section-label {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .moves-list {
+            flex: 1;
+            font-size: 18px;
+            color: #fff;
+            text-align: left;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        /* Collection detail modal has room to grow, so let all moves show
+           at once instead of scrolling within the box. */
+        #modal-collection-details .moves-list {
+            max-height: none;
+            overflow-y: visible;
+        }
+
         #modal-list {
             max-height: 90vh;
             overflow-y: auto; overflow-x: hidden;
@@ -813,14 +955,28 @@ html, body {
             text-align: center;
         }
 
+        #modal-confirm #confirm-title,
+        #modal-confirm #confirm-message {
+            color: #333;
+        }
+
         #modal-confirm .modal-content {
             text-align: center;
+            background: transparent;
+            border-radius: 0;
+            border-style: solid;
+            border-color: transparent;
+            border-width: 22px;
+            border-image-source: url('/Art/Nine Cut.png');
+            border-image-slice: 49 55 55 50 fill;
+            border-image-repeat: stretch;
+            box-shadow: none;
         }
 
         .confirm-btns {
             display: flex;
             gap: 10px;
-            
+
             margin-top: 20px;
         }
 
@@ -1006,4 +1162,130 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: flex-end;
+}
+
+/* 9-slice frame: Starter select cards (first-time setup) */
+#first-time-list .collection-square {
+    background: transparent;
+    border-radius: 0;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 22px;
+    border-image-source: url('/Art/Nine Cut.png');
+    border-image-slice: 49 55 55 50 fill;
+    border-image-repeat: stretch;
+}
+
+#first-time-list .collection-square:hover {
+    border-color: transparent;
+    filter: brightness(1.15);
+}
+
+/* 9-slice panel: Settings menu popup */
+.nine-cut-panel {
+    background: transparent;
+    border-radius: 0;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 22px;
+    border-image-source: url('/Art/Nine Cut.png');
+    border-image-slice: 49 55 55 50 fill;
+    border-image-repeat: stretch;
+}
+
+/* 9-slice button: CONFIRM (and other primary actions) */
+.nine-cut-button {
+    background: transparent;
+    border-radius: 0;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 20px 32px;
+    border-image-source: url('/Art/Nine Cut Button.png');
+    border-image-slice: 70 180 70 180 fill;
+    border-image-repeat: stretch;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.nine-cut-button:hover:not(:disabled) {
+    filter: brightness(1.15);
+}
+
+.nine-cut-button:disabled {
+    filter: grayscale(1);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Starter stat popups: slide in from the side each starter was picked into,
+   reusing the same .monster-detail-card popup as the collection screen */
+.starter-stat-popup {
+    position: absolute;
+    top: 50%;
+    width: 460px;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.starter-stat-popup-left {
+    left: 20px;
+    transform: translateY(-50%) translateX(-40px);
+}
+
+.starter-stat-popup-right {
+    right: 20px;
+    transform: translateY(-50%) translateX(40px);
+}
+
+.starter-stat-popup.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.starter-stat-popup-left.visible {
+    transform: translateY(-50%) translateX(0);
+}
+
+.starter-stat-popup-right.visible {
+    transform: translateY(-50%) translateX(0);
+}
+
+/* .modal-content caps width at 400px for the centered collection modal;
+   the side popups have their own (narrower still, but fixed) width, so lift
+   that cap - otherwise the card doesn't fill its popup and only looks flush
+   against whichever edge the popup's own box happens to start from. */
+.starter-stat-popup .monster-detail-card {
+    max-width: none;
+    border-width: 22px;
+    padding: 14px;
+}
+
+.starter-stat-popup .detail-top {
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.starter-stat-popup .detail-bottom {
+    gap: 12px;
+}
+
+.starter-stat-popup .stats-row {
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    padding: 12px;
+    gap: 8px;
+}
+
+.starter-stat-popup .detail-section-label {
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+
+.starter-stat-popup .moves-list {
+    font-size: 13px;
+    padding: 12px;
 }

@@ -19,49 +19,47 @@
             return `<div style="font-size:${size}px; line-height:1;">${art}</div>`;
         }
 
-        function openCollectionDetails(monster, isDiscovered, isMerge) {
-            if (!isDiscovered) return;
-            
-            document.getElementById('col-detail-name').innerText = monster.name;
-            
+        function buildTypeIconHtml(monster) {
             const types = (Array.isArray(monster.type) ? monster.type : [monster.type]).filter(Boolean);
-            
-            let typeIconHtml = '';
+
             if (types.length === 2) {
-                if (types.includes('Beast') && types.includes('Mech')) typeIconHtml = `<img src="Art/BeastMech.png" style="width:48px; height:48px;" title="Beast/Mech" />`;
-                else if (types.includes('Mech') && types.includes('Nature')) typeIconHtml = `<img src="Art/MechNature.png" style="width:48px; height:48px;" title="Mech/Nature" />`;
-                else if (types.includes('Nature') && types.includes('Beast')) typeIconHtml = `<img src="Art/NatureBeast.png" style="width:48px; height:48px;" title="Nature/Beast" />`;
+                if (types.includes('Beast') && types.includes('Mech')) return `<img src="Art/BeastMech.png" style="width:48px; height:48px;" title="Beast/Mech" />`;
+                if (types.includes('Mech') && types.includes('Nature')) return `<img src="Art/MechNature.png" style="width:48px; height:48px;" title="Mech/Nature" />`;
+                if (types.includes('Nature') && types.includes('Beast')) return `<img src="Art/NatureBeast.png" style="width:48px; height:48px;" title="Nature/Beast" />`;
             } else if (types.length === 1) {
                 const icon = getElementIcon(types[0]);
-                if (icon) typeIconHtml = `<img src="${icon}" style="width:48px; height:48px;" title="${types[0]}" />`;
+                if (icon) return `<img src="${icon}" style="width:48px; height:48px;" title="${types[0]}" />`;
             }
-            
-            document.getElementById('col-detail-types').innerHTML = typeIconHtml;
-            
-            document.getElementById('col-detail-art').innerHTML = renderArt(monster.art, 200);
-            
+            return '';
+        }
+
+        // HP/EN use their icon instead of a text label; the other stat labels are bolded.
+        function buildStatsListHtml(monster) {
             const matk = monster.matk !== undefined ? monster.matk : (monster.atk || 10);
             const mdef = monster.mdef !== undefined ? monster.mdef : 5;
             const ratk = monster.ratk !== undefined ? monster.ratk : (monster.atk || 10);
             const rdef = monster.rdef !== undefined ? monster.rdef : 5;
+            const energy = monster.startingEnergy !== undefined ? monster.startingEnergy : 1;
 
-            document.getElementById('col-detail-stats').innerHTML = `
-                <div><span style="color:#51cf66; display:inline-block; width:60px;">HP:</span> ${monster.hp}</div>
-                <div><span style="color:#00a8ff; display:inline-block; width:60px;">EN:</span> ${monster.startingEnergy !== undefined ? monster.startingEnergy : 1}</div>
-                <div><span style="color:#ff6b6b; display:inline-block; width:60px;">MATK:</span> ${matk}</div>
-                <div><span style="color:#ff6b6b; display:inline-block; width:60px;">MDEF:</span> ${mdef}%</div>
-                <div><span style="color:#339af0; display:inline-block; width:60px;">RATK:</span> ${ratk}</div>
-                <div><span style="color:#339af0; display:inline-block; width:60px;">RDEF:</span> ${rdef}%</div>
-                <div><span style="color:#fcc419; display:inline-block; width:60px;">SPD:</span> ${monster.spd}</div>
+            return `
+                <div><img src="Art/HP.png" style="width:16px; height:16px; vertical-align:middle; filter: drop-shadow(1px 1px 1px black);" alt="HP" /> ${monster.hp}</div>
+                <div><img src="Art/EN.png" style="width:16px; height:16px; vertical-align:middle; filter: drop-shadow(1px 1px 1px black);" alt="EN" /> ${energy}</div>
+                <div><strong style="color:#ff6b6b; display:inline-block; width:60px;">MATK:</strong> ${matk}</div>
+                <div><strong style="color:#ff6b6b; display:inline-block; width:60px;">MDEF:</strong> ${mdef}%</div>
+                <div><strong style="color:#339af0; display:inline-block; width:60px;">RATK:</strong> ${ratk}</div>
+                <div><strong style="color:#339af0; display:inline-block; width:60px;">RDEF:</strong> ${rdef}%</div>
+                <div><strong style="color:#fcc419; display:inline-block; width:60px;">SPD:</strong> ${monster.spd}</div>
             `;
-            
+        }
+
+        function buildMovesListHtml(monster) {
             const moves = (monster.moves || []).slice().sort((a, b) => (a.t || '').localeCompare(b.t || ''));
-            
-            document.getElementById('col-detail-moves').innerHTML = moves.map(m => {
+
+            return moves.map(m => {
                 const typeIcon = getTypeIconHtml(m.t, 16);
                 let moveCategory = '';
                 const isAoE = m.effect && (m.effect.target === 'all_enemies' || m.effect.target === 'all_allies');
-                
+
                 if (isAoE) {
                     moveCategory = '<span style="color:#b19cd9; font-size:12px;">[AoE]</span>';
                 } else if (!m.p) {
@@ -71,23 +69,92 @@
                 } else {
                     moveCategory = '<span style="color:#339af0; font-size:12px;">[Ranged]</span>';
                 }
-                
+
                 let description = getMoveDescription(m);
 
                 return `<div style="margin-bottom: 10px;">
                     <strong>${m.n}</strong> ${typeIcon} (${m.c} EN) ${moveCategory}
-                    <div style="font-size: 14px; color: #ccc; margin-left: 20px; margin-top: 4px;">- ${description}</div>
+                    <div style="font-size: 14px; color: #fff; margin-left: 20px; margin-top: 4px;">- ${description}</div>
                 </div>`;
             }).join('');
-            
-            if (isMerge) {
-                const p1 = STARTERS[monster.parents[0]];
-                const p2 = STARTERS[monster.parents[1]];
-                document.getElementById('col-detail-parents').innerText = `Parents: ${p1.name} + ${p2.name}`;
-            } else {
-                document.getElementById('col-detail-parents').innerText = '';
-            }
-            
+        }
+
+        function buildParentsHtml(monster, isMerge) {
+            if (!isMerge) return '';
+
+            const p1 = STARTERS[monster.parents[0]];
+            const p2 = STARTERS[monster.parents[1]];
+            return `
+                <div style="font-size: 14px; color: #fff; margin-bottom: 8px;">Parents</div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 14px;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        ${renderArt(p1.art, 60)}
+                        <span style="font-size: 14px; color: #fff; margin-top: 4px;">${p1.name}</span>
+                    </div>
+                    <div style="font-size: 20px; color: #fff;">+</div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        ${renderArt(p2.art, 60)}
+                        <span style="font-size: 14px; color: #fff; margin-top: 4px;">${p2.name}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Collection screen's monster detail popup: art/name/type column on the
+        // left, stats + moves column on the right.
+        function buildCollectionDetailHtml(monster, isMerge) {
+            const typeIconHtml = buildTypeIconHtml(monster);
+            const statsHtml = buildStatsListHtml(monster);
+            const movesHtml = buildMovesListHtml(monster);
+            const parentsHtml = buildParentsHtml(monster, isMerge);
+
+            return `
+                <div class="detail-columns">
+                    <div class="detail-column-art">
+                        <h2 style="font-size: 24px; margin: 0 0 10px 0; text-align: center; color: #fff;">${monster.name}</h2>
+                        <div class="type-container" style="margin-bottom: 20px; display: flex; justify-content: center;">${typeIconHtml}</div>
+                        <div class="monster-art" style="display: flex; justify-content: center; align-items: center; margin-bottom: 20px;">${renderArt(monster.art, 240)}</div>
+                        <div style="font-size: 18px; color: #fff; text-align: center;">${parentsHtml}</div>
+                    </div>
+                    <div class="detail-column-stats">
+                        <div class="stats-row">${statsHtml}</div>
+                        <div class="detail-section-label">Moves</div>
+                        <div class="moves-list">${movesHtml}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Starter-selection stat popup: art/name on top (element icon pinned to
+        // the corner), stats in the bottom-left box, moves in the bottom-right box.
+        function buildStarterPopupDetailHtml(monster, artSize = 190) {
+            const typeIconHtml = buildTypeIconHtml(monster);
+            const statsHtml = buildStatsListHtml(monster);
+            const movesHtml = buildMovesListHtml(monster);
+
+            return `
+                <div class="detail-top">
+                    <div class="detail-type-icon">${typeIconHtml}</div>
+                    <h2 style="font-size: 24px; margin: 0 0 10px 0; text-align: center; color: #fff;">${monster.name}</h2>
+                    <div class="monster-art" style="display: flex; justify-content: center; align-items: center;">${renderArt(monster.art, artSize)}</div>
+                </div>
+                <div class="detail-bottom">
+                    <div class="detail-bottom-stats">
+                        <div class="detail-section-label">Stats</div>
+                        <div class="stats-row">${statsHtml}</div>
+                    </div>
+                    <div class="detail-bottom-moves">
+                        <div class="detail-section-label">Moves</div>
+                        <div class="moves-list">${movesHtml}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openCollectionDetails(monster, isDiscovered, isMerge) {
+            if (!isDiscovered) return;
+
+            document.getElementById('col-detail-body').innerHTML = buildCollectionDetailHtml(monster, isMerge);
             document.getElementById('modal-collection-details').style.display = 'flex';
         }
 
@@ -105,6 +172,7 @@
                     
                     if (unlocked) {
                         card.innerHTML = `
+                            <div class="collection-type-icon">${getTypeIconHtml(s.type, 40)}</div>
                             <div class="monster-art">${renderArt(s.art, 200)}</div>
                             <strong>${s.name}</strong>
                         `;
@@ -125,6 +193,7 @@
                     
                     if (discovered) {
                         card.innerHTML = `
+                            <div class="collection-type-icon">${getTypeIconHtml(m.type, 40)}</div>
                             <div class="monster-art">${renderArt(m.art, 200)}</div>
                             <strong>${m.name}</strong>
                         `;

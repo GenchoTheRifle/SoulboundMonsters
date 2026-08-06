@@ -240,7 +240,10 @@
             modal.style.display = 'flex';
         }
 
-        let firstTimeSelection = [];
+        // Index 0 = left popup slot, index 1 = right popup slot. Kept as fixed
+        // slots (rather than a plain selection list) so deselecting one starter
+        // doesn't shift the other one's popup to the opposite side.
+        let firstTimeSlots = [null, null];
 
         window.playClicked = function() {
             if (window.isStartingPlay) return;
@@ -358,7 +361,7 @@
                 btn.style.cursor = 'pointer';
                 btn.style.transition = 'all 0.2s';
                 
-                const isSelected = firstTimeSelection.includes(id);
+                const isSelected = firstTimeSlots.includes(id);
                 if (isSelected) {
                     btn.style.borderColor = '#ffcc00';
                     btn.style.boxShadow = '0 0 15px #ffcc00';
@@ -387,23 +390,53 @@
                 list.appendChild(btn);
             });
             
-            document.getElementById('btn-confirm-first-time').disabled = firstTimeSelection.length !== 2;
+            document.getElementById('btn-confirm-first-time').disabled = firstTimeSlots.filter(Boolean).length !== 2;
+
+            renderStarterStatPopups();
+        }
+
+        function renderStarterStatPopups() {
+            const leftPopup = document.getElementById('starter-popup-left');
+            const rightPopup = document.getElementById('starter-popup-right');
+            if (!leftPopup || !rightPopup) return;
+
+            const leftId = firstTimeSlots[0];
+            const rightId = firstTimeSlots[1];
+
+            if (leftId && STARTERS[leftId]) {
+                leftPopup.querySelector('.monster-detail-card').innerHTML = buildStarterPopupDetailHtml(STARTERS[leftId]);
+                leftPopup.classList.add('visible');
+            } else {
+                leftPopup.classList.remove('visible');
+            }
+
+            if (rightId && STARTERS[rightId]) {
+                rightPopup.querySelector('.monster-detail-card').innerHTML = buildStarterPopupDetailHtml(STARTERS[rightId]);
+                rightPopup.classList.add('visible');
+            } else {
+                rightPopup.classList.remove('visible');
+            }
         }
 
         window.toggleFirstTimeStarter = function(id) {
-            if (firstTimeSelection.includes(id)) {
-                firstTimeSelection = firstTimeSelection.filter(s => s !== id);
+            const slotIndex = firstTimeSlots.indexOf(id);
+            if (slotIndex !== -1) {
+                // Deselecting: clear only this starter's own slot, leave the other side alone.
+                firstTimeSlots[slotIndex] = null;
             } else {
-                if (firstTimeSelection.length < 2) {
-                    firstTimeSelection.push(id);
+                // Selecting: drop into the first empty slot (left, then right).
+                const emptyIndex = firstTimeSlots.indexOf(null);
+                if (emptyIndex !== -1) {
+                    firstTimeSlots[emptyIndex] = id;
                 }
             }
             renderFirstTimeStarters();
         }
 
         window.confirmFirstTime = function() {
-            if (firstTimeSelection.length === 2) {
-                gameState.unlockedStarters = [...firstTimeSelection];
+            const chosen = firstTimeSlots.filter(Boolean);
+            if (chosen.length === 2) {
+                gameState.unlockedStarters = chosen;
                 saveGame();
                 
                 const fadeOut = document.getElementById('first-time-fade-out');
@@ -428,7 +461,7 @@
                     discoveredMerges: [],
                     maxActReached: 1
                 };
-                firstTimeSelection = [];
+                firstTimeSlots = [null, null];
                 playClicked();
             });
         }
