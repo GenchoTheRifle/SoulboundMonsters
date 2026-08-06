@@ -268,14 +268,14 @@
             }
 
             const arenaRect = arenaEl.getBoundingClientRect();
-            const fromRect = (fromEl.querySelector('.monster-art-container') || fromEl).getBoundingClientRect();
-            const toRect = (toEl.querySelector('.monster-art-container') || toEl).getBoundingClientRect();
+            const fromPoint = getArtCenterPoint(fromEl);
+            const toPoint = getArtCenterPoint(toEl);
             const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080) || 1;
 
-            const fromX = (fromRect.left + fromRect.width / 2 - arenaRect.left) / scale;
-            const fromY = (fromRect.top + fromRect.height / 2 - arenaRect.top) / scale;
-            const toX = (toRect.left + toRect.width / 2 - arenaRect.left) / scale;
-            const toY = (toRect.top + toRect.height / 2 - arenaRect.top) / scale;
+            const fromX = (fromPoint.x - arenaRect.left) / scale;
+            const fromY = (fromPoint.y - arenaRect.top) / scale;
+            const toX = (toPoint.x - arenaRect.left) / scale;
+            const toY = (toPoint.y - arenaRect.top) / scale;
             const holdY = fromY - 40;
             const midX = (fromX + toX) / 2;
             const midY = Math.min(holdY, toY) - 100;
@@ -343,10 +343,10 @@
                 return;
             }
             
+            const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
             const animEl = document.createElement('img');
             animEl.src = `Art/${type}_1.png`;
-            animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1.6); width:200px; height:200px; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
-            const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+            animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1.6); width:200px; height:200px; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
             artContainer.appendChild(animEl);
             
             const maxFrames = type === 'Hemorrhage' ? 8 : 7;
@@ -422,10 +422,10 @@
                     const healEl = document.createElement('img');
                     healEl.src = "Art/Heal_1.png";
                     
-                    const randomX = Math.random() * 80 - 40; 
-                    const randomY = Math.random() * 80 - 40; 
-                    
-                    healEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px)) scale(0.5); width:80px; height:80px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 5px #51cf66);`;
+                    const randomX = Math.random() * 80 - 40;
+                    const randomY = Math.random() * 80 - 40;
+                    const impactTop = getImpactTopPercent(unitEl);
+                    healEl.style.cssText = `position:absolute; top:${impactTop}%; left:50%; transform:translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px)) scale(0.5); width:80px; height:80px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 5px #51cf66);`;
                     unitEl.appendChild(healEl);
                     
                     const anim = healEl.animate([
@@ -987,23 +987,26 @@ let shadowClass = getShadowClass(u.name);
             renderMoveControls(unit);
         }
 
+        function applyEnergyOnAdvance(unit) {
+            if (!unit || !unit.gainEnergyOnAdvance) return;
+            const maxE = unit.isBoss ? 5 : 3;
+            const gainE = unit.isBoss ? 2 : 1;
+            const before = unit.energy;
+            unit.energy = Math.min(maxE, unit.energy + gainE);
+            const actualGain = unit.energy - before;
+            if (actualGain > 0) showFloatingText(unit, energyGainHtml(actualGain), "#00a8ff");
+            unit.gainEnergyOnAdvance = false;
+        }
+
         function advanceTurn() {
             if (combatState.ended) return;
             combatState.targetingMove = null;
             combatState.isPlayerTurn = false;
             updateCombatUI();
-            
+
             const unit = combatState.activeUnit;
             if (unit && unit.currentHp > 0) {
-                if (unit.gainEnergyOnAdvance) {
-                    const maxE = unit.isBoss ? 5 : 3;
-                    const gainE = unit.isBoss ? 2 : 1;
-                    const before = unit.energy;
-                    unit.energy = Math.min(maxE, unit.energy + gainE);
-                    const actualGain = unit.energy - before;
-                    if (actualGain > 0) showFloatingText(unit, energyGainHtml(actualGain), "#00a8ff");
-                }
-                unit.gainEnergyOnAdvance = false;
+                applyEnergyOnAdvance(unit);
 
                 // Decay buffs and debuffs at turn end
                 if (unit.buffs) {
@@ -1116,6 +1119,89 @@ let shadowClass = getShadowClass(u.name);
             return null;
         }
 
+        // The 280x280 art box bottom-aligns every sprite (.monster-art-container in styles.css uses
+        // align-items: flex-end), so a monster whose art doesn't fill the box sits low inside it while
+        // a full-height/floating one fills the box top-to-bottom. Hitting literal box-center misses low
+        // over short monsters. We measure each art file's actual opaque pixel bounds once (cached by
+        // src) and use that as the true vertical anchor for impact VFX instead of a flat 50%.
+        const _artHitFractionCache = new Map();
+        function ensureArtHitFraction(src) {
+            if (!src || _artHitFractionCache.has(src)) return;
+            _artHitFractionCache.set(src, 0.5); // default matches old box-center behavior until measured
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const w = img.naturalWidth, h = img.naturalHeight;
+                    if (!w || !h) return;
+                    const maxDim = 128;
+                    const scale = Math.min(1, maxDim / Math.max(w, h));
+                    const cw = Math.max(1, Math.round(w * scale));
+                    const ch = Math.max(1, Math.round(h * scale));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = cw;
+                    canvas.height = ch;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, cw, ch);
+                    const data = ctx.getImageData(0, 0, cw, ch).data;
+                    const alphaThreshold = 20;
+                    let minY = -1, maxY = -1;
+                    for (let y = 0; y < ch; y++) {
+                        let rowHasOpaque = false;
+                        for (let x = 0; x < cw; x++) {
+                            if (data[(y * cw + x) * 4 + 3] > alphaThreshold) { rowHasOpaque = true; break; }
+                        }
+                        if (rowHasOpaque) {
+                            if (minY === -1) minY = y;
+                            maxY = y;
+                        }
+                    }
+                    if (maxY >= 0) {
+                        _artHitFractionCache.set(src, ((minY + maxY) / 2) / ch);
+                    }
+                } catch (e) {
+                    // Tainted/undecodable canvas - keep the 0.5 fallback already cached above.
+                }
+            };
+            img.src = src;
+        }
+
+        // Real on-screen point where a monster's visible art is centered, using the opaque-pixel
+        // fraction above mapped onto the actual rendered <img> rect. Falls back to the art box's own
+        // center (old behavior) if there's no image yet (e.g. emoji-art placeholder) or before the
+        // async pixel scan for this src resolves.
+        function getArtCenterPoint(containerEl) {
+            if (!containerEl) return null;
+            const artBox = containerEl.classList && containerEl.classList.contains('monster-art-container')
+                ? containerEl
+                : containerEl.querySelector('.monster-art-container');
+            const boxRect = (artBox || containerEl).getBoundingClientRect();
+            const img = artBox && artBox.querySelector('.art-content img');
+            if (!img) {
+                return { x: boxRect.left + boxRect.width / 2, y: boxRect.top + boxRect.height / 2 };
+            }
+            ensureArtHitFraction(img.src);
+            const frac = _artHitFractionCache.get(img.src) ?? 0.5;
+            const imgRect = img.getBoundingClientRect();
+            if (!imgRect.height) {
+                return { x: boxRect.left + boxRect.width / 2, y: boxRect.top + boxRect.height / 2 };
+            }
+            return { x: imgRect.left + imgRect.width / 2, y: imgRect.top + frac * imgRect.height };
+        }
+
+        // Percentage (relative to positionEl, the element VFX are positioned/appended against) to use
+        // in place of a hardcoded "top: 50%" so effects land on the monster's actual art rather than
+        // the middle of its (possibly mostly-empty) bounding box. extraOffset preserves any deliberate
+        // extra downward nudge a specific animation already had (e.g. a lower-body hit).
+        function getImpactTopPercent(positionEl, extraOffset = 0) {
+            if (!positionEl) return 50 + extraOffset;
+            const point = getArtCenterPoint(positionEl);
+            const posRect = positionEl.getBoundingClientRect();
+            if (!point || !posRect.height) return 50 + extraOffset;
+            const percent = ((point.y - posRect.top) / posRect.height) * 100 + extraOffset;
+            if (!isFinite(percent)) return 50 + extraOffset;
+            return Math.min(92, Math.max(8, percent));
+        }
+
         async function executeMove(attacker, move, target) {
             if (isExecutingMove) return;
             if (attacker.energy < move.c) return;
@@ -1186,8 +1272,8 @@ let shadowClass = getShadowClass(u.name);
                     if (targetEl) {
                         const biteAnimEl = document.createElement('img');
                         biteAnimEl.src = "Art/Bite_1.png";
-                        biteAnimEl.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;";
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        biteAnimEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;`;
                         artContainer.appendChild(biteAnimEl);
                         const bitePreload = preloadSpriteFrames('Bite', 2, 5);
 
@@ -1239,8 +1325,9 @@ let shadowClass = getShadowClass(u.name);
                     if (targetEl) {
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Snipe_1.png";
-                        animEl.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1.5); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;";
-                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1.5); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;`;
+                        artContainer.appendChild(animEl);
                         
                         // Play animation concurrently with the damage step
                         (async () => {
@@ -1288,8 +1375,9 @@ let shadowClass = getShadowClass(u.name);
                         const endY = '-50px';
                         const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
                         
-                        spitAnimEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX}), calc(-50% + ${startY})) ${flip}; width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        const spitImpactTop = getImpactTopPercent(artContainer);
+                        spitAnimEl.style.cssText = `position:absolute; top:${spitImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX}), calc(-50% + ${startY})) ${flip}; width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
                         artContainer.appendChild(spitAnimEl);
                         const spitPreload = preloadSpriteFrames(animPrefix, 2, 2);
 
@@ -1337,9 +1425,11 @@ let shadowClass = getShadowClass(u.name);
                         const startX = attacker.isEnemy ? -80 : 80;
                         const endX = attacker.isEnemy ? 80 : -80;
                         
-                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX}px), calc(-50% - 100px)) scale(1.5) ${flip}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;`;
-                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
-                        
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        const maulImpactTop = getImpactTopPercent(artContainer);
+                        animEl.style.cssText = `position:absolute; top:${maulImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX}px), calc(-50% - 100px)) scale(1.5) ${flip}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;`;
+                        artContainer.appendChild(animEl);
+
                         (async () => {
                             animEl.animate([
                                 { opacity: 0, transform: `translate(calc(-50% + ${startX}px), calc(-50% - 100px)) scale(1.5) ${flip}` },
@@ -1380,10 +1470,11 @@ let shadowClass = getShadowClass(u.name);
                         const endX1 = attacker.isEnemy ? 80 : -80;
                         const startX2 = attacker.isEnemy ? 80 : -80;
                         const endX2 = attacker.isEnemy ? -80 : 80;
-                                          animEl1.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX1}px), calc(-50% - 100px)) scale(1.5) ${flip1}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
-                        animEl2.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${startX2}px), calc(-50% - 100px)) scale(1.5) ${flip2}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
-                        
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        const devourImpactTop = getImpactTopPercent(artContainer);
+                        animEl1.style.cssText = `position:absolute; top:${devourImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX1}px), calc(-50% - 100px)) scale(1.5) ${flip1}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
+                        animEl2.style.cssText = `position:absolute; top:${devourImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX2}px), calc(-50% - 100px)) scale(1.5) ${flip2}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
+
                         artContainer.appendChild(animEl1);
                         artContainer.appendChild(animEl2);
                         
@@ -1516,8 +1607,8 @@ let shadowClass = getShadowClass(u.name);
                     if (targetEl) {
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Slam_1.png";
-                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1.1); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1.1); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         artContainer.appendChild(animEl);
                         
                         (async () => {
@@ -1557,10 +1648,10 @@ let shadowClass = getShadowClass(u.name);
                         const startX = attacker.isEnemy ? '150px' : '-150px';
                         const endX = attacker.isEnemy ? '50px' : '-50px';
                         
-                        animEl.style.cssText = `position:absolute; top:65%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer, 15)}%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         artContainer.appendChild(animEl);
-                        
+
                         (async () => {
                             const punchAnim = animEl.animate([
                                 { opacity: 0, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(0.8)` },
@@ -1598,8 +1689,8 @@ let shadowClass = getShadowClass(u.name);
                         const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
                         const startX = attacker.isEnemy ? '90px' : '-90px';
                         
-                        animEl.style.cssText = `position:absolute; top:65%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer, 15)}%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         artContainer.appendChild(animEl);
                         const echoPreload = preloadSpriteFrames('Echo', 2, 7);
 
@@ -1635,8 +1726,8 @@ let shadowClass = getShadowClass(u.name);
                     if (targetEl) {
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Hemorrhage_1.png";
-                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.5); width:200px; height:200px; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(0.5); width:200px; height:200px; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         artContainer.appendChild(animEl);
                         const hemorrhagePreload = preloadSpriteFrames('Hemorrhage', 2, 8);
 
@@ -1675,8 +1766,9 @@ let shadowClass = getShadowClass(u.name);
                     if (targetEl) {
                         const animEl = document.createElement('img');
                         animEl.src = "Art/StunBolt_1.png";
-                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:340px; height:340px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
-                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:340px; height:340px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
+                        artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1728,8 +1820,9 @@ let shadowClass = getShadowClass(u.name);
                                 animEl.src = "Art/Snipe_1.png";
                                 const offsetX = (Math.random() - 0.5) * 80;
                                 const offsetY = (Math.random() - 0.5) * 80;
-                                animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8); width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
-                                const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
+                                const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                                animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8); width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
+                                artContainer.appendChild(animEl);
                                 
                                 animEl.animate([
                                     { opacity: 0, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(1.5)` }, 
@@ -1763,8 +1856,9 @@ let shadowClass = getShadowClass(u.name);
                     if (targetEl) {
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Zap_1.png";
-                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
-                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
+                        artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1812,8 +1906,9 @@ let shadowClass = getShadowClass(u.name);
                     if (targetEl) {
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Shockwave_1.png";
-                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #ffea00) brightness(1.2);`;
-                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #ffea00) brightness(1.2);`;
+                        artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1864,8 +1959,9 @@ let shadowClass = getShadowClass(u.name);
                     if (targetEl) {
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Buff_1.png";
-                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #51cf66);`;
-                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #51cf66);`;
+                        artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -1888,8 +1984,9 @@ let shadowClass = getShadowClass(u.name);
                     if (targetEl) {
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Debuff_1.png";
-                        animEl.style.cssText = `position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff4444);`;
-                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl; artContainer.appendChild(animEl);
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff4444);`;
+                        artContainer.appendChild(animEl);
                         
                         (async () => {
                             animEl.animate([
@@ -2171,7 +2268,11 @@ let shadowClass = getShadowClass(u.name);
             }
 
             updateCombatUI();
-            
+
+            // The killing blow can end combat before advanceTurn() normally runs,
+            // so apply any pending basic-attack energy bonus now or it's lost.
+            applyEnergyOnAdvance(attacker);
+
             // Check win/loss immediately after move
             if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
                 combatLog("Victory!");
