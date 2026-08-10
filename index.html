@@ -132,7 +132,7 @@
                 </div>
             </button>
             
-            <button onclick="showScreen('screen-menu')" style="position: absolute; bottom: 20px; left: 20px; z-index: 20; font-size: 30px; padding: 15px 50px; border-radius: 10px;">BACK</button>
+            <button onclick="showScreen('screen-menu')" class="nine-cut-button" style="position: absolute; bottom: 20px; left: 20px; z-index: 20; font-size: 30px; padding: 15px 50px;">BACK</button>
         </div>
 
         <!-- Collection -->
@@ -143,7 +143,7 @@
                 <div id="tab-merges" class="tab" onclick="switchCollectionTab('merges')">MERGES</div>
             </div>
             <div id="collection-list" style="flex: 1; overflow-y: auto;"></div>
-            <button onclick="showScreen('screen-menu')" class="nine-cut-button" style="font-size: 20px; padding: 12px 40px;">BACK</button>
+            <button onclick="closeCollection()" class="nine-cut-button" style="font-size: 20px; padding: 12px 40px;">BACK</button>
         </div>
 
         
@@ -164,12 +164,12 @@
     </div>
     
     <h2 style="position: absolute; top: 20px; left: 20px; z-index: 10; margin: 0; text-shadow: 2px 2px 4px #000;">SELECT 2 STARTERS</h2>
-    <button onclick="showScreen('screen-arcs')" style="position: absolute; bottom: 20px; left: 20px; z-index: 10; width: 150px;">BACK</button>
+    <button onclick="showScreen('screen-arcs')" class="nine-cut-button" style="position: absolute; bottom: 20px; left: 20px; z-index: 10; width: 150px; padding: 12px 20px;">BACK</button>
     
     <div id="selection-drawer" style="position: absolute; top: 0; right: 0; width: 850px; height: 100%; background: rgba(0,0,0,0.85); padding: 20px; z-index: 10; display: flex; flex-direction: column; border-left: 2px solid #444; transition: transform 0.5s;">
         <h3 style="margin-top: 0; text-align: center; font-size: 30px;">Available</h3>
         <div id="selection-list" style="flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px; align-content: stretch; margin-bottom: 20px;" ondrop="dropList(event)" ondragover="allowDrop(event)"></div>
-        <button id="btn-start-run" disabled onclick="startRun()" style="width: 100%; padding: 25px; font-size: 24px;">ENTER MAP</button>
+        <button id="btn-start-run" class="nine-cut-button" disabled onclick="startRun()" style="width: 100%; padding: 25px; font-size: 24px;">ENTER MAP</button>
     </div>
 </div>
 
@@ -183,7 +183,7 @@
     
     <div id="map-viewport" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 55%; max-width: 1300px; border: 3px solid rgba(255,255,255,0.35); border-radius: 16px; overflow: hidden; background: rgba(0,0,0,0.25); box-shadow: 0 0 30px rgba(0,0,0,0.6);">
         <div id="map-nodes" class="map-nodes" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; z-index: 1; scroll-behavior: smooth;">
-            <div id="map-track" style="position: relative; height: 82%; width: max-content;">
+            <div id="map-track" style="position: relative; height: 100%; width: max-content;">
                 <img id="map-track-img" style="height: 100%; min-width: 100%; display: block; pointer-events: none;" />
                 <div id="map-nodes-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
             </div>
@@ -191,8 +191,8 @@
     </div>
     
     <div style="position: absolute; bottom: 20px; z-index: 10; display: flex; gap: 30px; width: 100%; max-width: 600px; padding: 0 20px; box-sizing: border-box; left: 50%; transform: translateX(-50%);">
-        <button onclick="openMapTeamModal()" style="flex: 1; padding: 15px; font-size: 24px; filter: drop-shadow(0 0 5px black);">TEAM FORMATION</button>
-        <button id="btn-continue-node" onclick="proceedToNode()" style="flex: 1; padding: 15px; font-size: 24px; filter: drop-shadow(0 0 5px black);">CONTINUE</button>
+        <button onclick="openMapTeamModal()" class="nine-cut-button" style="flex: 1; padding: 15px; font-size: 24px;">TEAM FORMATION</button>
+        <button id="btn-continue-node" onclick="proceedToNode()" class="nine-cut-button" style="flex: 1; padding: 15px; font-size: 24px;">CONTINUE</button>
     </div>
 </div>
 
@@ -210,7 +210,7 @@
     </div>
     
     <h2 style="position: absolute; top: 20px; left: 20px; z-index: 10; margin: 0; text-shadow: 2px 2px 4px #000;">TEAM FORMATION</h2>
-    <button onclick="closeTeamScreen()" style="position: absolute; bottom: 20px; left: 20px; z-index: 10; width: 150px;">BACK</button>
+    <button onclick="closeTeamScreen()" class="nine-cut-button" style="position: absolute; bottom: 20px; left: 20px; z-index: 10; width: 150px; padding: 12px; font-size: 20px;">BACK</button>
     
     <div id="team-drawer" style="position: absolute; top: 0; right: 0; width: 850px; height: 100%; background: rgba(0,0,0,0.85); padding: 20px; z-index: 10; display: flex; flex-direction: column; border-left: 2px solid #444; box-sizing: border-box;">
         <h3 style="margin-top: 0; text-align: center; font-size: 30px; margin-bottom: 20px;">Team Stats</h3>
@@ -271,9 +271,9 @@
                 <div id="merge-outcome" style="min-height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px;">
                     <!-- Outcome will be rendered here -->
                 </div>
-                <div style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 10px;">
-                    <button id="btn-do-merge" disabled onclick="executeMerge()" style="width: 100%; padding: 25px; font-size: 24px;">MERGE</button>
-                    <button onclick="finishMerge()" style="width: 100%; padding: 25px; font-size: 24px;">DONE / SKIP</button>
+                <div style="margin-top: auto; width: 100%; display: flex; flex-direction: row; gap: 16px;">
+                    <button id="btn-do-merge" class="nine-cut-button" disabled onclick="executeMerge()" style="flex: 1; font-size: 20px;">MERGE</button>
+                    <button id="btn-finish-merge" class="nine-cut-button" onclick="finishMerge()" style="flex: 1; font-size: 20px;">DONE / SKIP</button>
                 </div>
             </div>
         </div>
@@ -282,8 +282,9 @@
             <div class="modal-content">
                 <h3 style="margin-top:0">PAUSE MENU</h3>
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button onclick="closeModal('modal-pause')">RESUME</button>
-                    <button onclick="abandonRun()" style="background: #d32f2f;">ABANDON RUN</button>
+                    <button onclick="closeModal('modal-pause')" class="nine-cut-button">RESUME</button>
+                    <button onclick="openCollectionFromPause()" class="nine-cut-button">COLLECTION</button>
+                    <button onclick="abandonRun()" class="nine-cut-button" style="color: #f99;">ABANDON RUN</button>
                 </div>
             </div>
         </div>
@@ -307,8 +308,8 @@
 
         <div id="modal-element-counter" class="modal" onclick="if(event.target === this) this.style.display='none'">
             <div class="modal-content" style="max-width: 600px; padding: 0; background: transparent; box-shadow: none; border: none; text-align: center; position: relative;">
-                <button onclick="document.getElementById('modal-element-counter').style.display='none'" style="position: absolute; top: -15px; right: -15px; font-size: 24px; width: 40px; height: 40px; border-radius: 50%; background: #333; color: white; border: 2px solid white; cursor: pointer; z-index: 10;">&times;</button>
-                <img src="Art/Element Counter Advanced.png" style="max-width: 100%; border-radius: 15px; border: 2px solid #555; pointer-events: none;" />
+                <img src="Art/X.png" onclick="document.getElementById('modal-element-counter').style.display='none'" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'" style="position: absolute; top: -6px; right: -6px; width: 90px; height: 90px; cursor: pointer; z-index: 10; transition: transform 0.2s;" />
+                <img src="Art/Element Counter Advanced.png" style="max-width: 100%; border-radius: 15px; pointer-events: none;" />
             </div>
         </div>
 
@@ -327,6 +328,18 @@
             <div class="modal-content monster-detail-card" style="max-width: 950px; width: 95%; padding: 25px;">
                 <div id="col-detail-body"></div>
                 <button onclick="closeModal('modal-collection-details')" class="nine-cut-button" style="width:100%; font-size: 18px; padding: 10px; margin-top: 20px;">CLOSE</button>
+            </div>
+        </div>
+
+        <div id="modal-recruitment" class="modal">
+            <div class="modal-content monster-detail-card" style="max-width: 520px; text-align: center; padding: 30px;">
+                <h3 id="recruit-title">RECRUITMENT</h3>
+                <p id="recruit-message"></p>
+                <div class="detail-top" style="margin-bottom: 15px;">
+                    <div class="detail-type-icon" id="recruit-type-icon"></div>
+                    <div class="monster-art" id="recruit-art"></div>
+                </div>
+                <button id="recruit-ok-btn" class="nine-cut-button" style="width:100%; font-size: 18px; padding: 10px;">OK</button>
             </div>
         </div>
     </div>

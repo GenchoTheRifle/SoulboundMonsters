@@ -1,8 +1,26 @@
 // --- COLLECTION ---
         let currentCollectionTab = 'starters';
+        let pauseReturnScreen = null;
+
         function openCollection() {
             showScreen('screen-collection');
             switchCollectionTab('starters');
+        }
+
+        function openCollectionFromPause() {
+            pauseReturnScreen = document.querySelector('.screen.active').id;
+            closeModal('modal-pause');
+            openCollection();
+        }
+
+        function closeCollection() {
+            if (pauseReturnScreen) {
+                showScreen(pauseReturnScreen);
+                pauseReturnScreen = null;
+                openPauseModal();
+            } else {
+                showScreen('screen-menu');
+            }
         }
 
         function switchCollectionTab(tab) {
@@ -155,7 +173,22 @@
             if (!isDiscovered) return;
 
             document.getElementById('col-detail-body').innerHTML = buildCollectionDetailHtml(monster, isMerge);
-            document.getElementById('modal-collection-details').style.display = 'flex';
+            const modal = document.getElementById('modal-collection-details');
+            modal.querySelector('button').onclick = () => closeModal('modal-collection-details');
+            modal.style.display = 'flex';
+        }
+
+        // Reuses the collection detail card to show a merge's outcome monster,
+        // with an onClose callback (e.g. to reset merge slots) instead of the
+        // plain close-only handler used from the collection screen.
+        function showMergeResultDetails(monster, onClose) {
+            document.getElementById('col-detail-body').innerHTML = buildCollectionDetailHtml(monster, !!monster.parents);
+            const modal = document.getElementById('modal-collection-details');
+            modal.querySelector('button').onclick = () => {
+                closeModal('modal-collection-details');
+                if (onClose) onClose();
+            };
+            modal.style.display = 'flex';
         }
 
         function renderCollection() {

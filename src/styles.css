@@ -134,14 +134,25 @@ html, body {
             flex: 1;
             padding: 10px;
             text-align: center;
-            background: #333;
+            background: transparent;
             cursor: pointer;
-            border-bottom: 3px solid transparent;
+            border-style: solid;
+            border-color: transparent;
+            border-width: 14px 24px;
+            border-image-source: url('/Art/Nine Cut Button.png');
+            border-image-slice: 70 180 70 180 fill;
+            border-image-repeat: stretch;
+            margin: 0 4px;
+            filter: brightness(0.75);
+            transition: filter 0.15s;
+        }
+
+        .tab:hover {
+            filter: brightness(0.95);
         }
 
         .tab.active {
-            background: #444;
-            border-bottom-color: var(--accent);
+            filter: brightness(1.25) drop-shadow(0 0 6px var(--accent));
         }
 
         .collection-grid {
@@ -775,30 +786,68 @@ html, body {
             width: 280px;
             height: 280px;
             flex-shrink: 0;
-            border: 2px dashed #444;
-            border-radius: 15px;
+            box-sizing: border-box;
+            background: transparent;
+            border-radius: 0;
+            border-style: solid;
+            border-color: transparent;
+            border-width: 18px;
+            border-image-source: url('/Art/Nine Cut.png');
+            border-image-slice: 49 55 55 50 fill;
+            border-image-repeat: stretch;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: #222;
-            overflow: hidden;
+            overflow: visible;
+            color: #555;
+            font-size: 30px;
+            font-weight: bold;
         }
 
         .merge-slot.filled {
-            border-style: solid;
-            border-color: var(--accent);
-            background: var(--card-bg);
             flex-direction: column;
             justify-content: flex-start;
             height: auto;
             min-height: 280px;
-            overflow: visible;
+        }
+
+        .merge-outcome-box {
+            width: 320px;
+            height: 320px;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            background: transparent;
+            border-radius: 0;
+            border-style: solid;
+            border-color: transparent;
+            border-width: 18px;
+            border-image-source: url('/Art/Nine Cut.png');
+            border-image-slice: 49 55 55 50 fill;
+            border-image-repeat: stretch;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
         }
 
         .merge-plus {
             font-size: 30px;
             font-weight: bold;
+        }
+
+        @keyframes mergeGlowPulse {
+            0%, 100% { box-shadow: 0 0 10px 2px rgba(74, 144, 226, 0.5); }
+            50% { box-shadow: 0 0 26px 8px rgba(74, 144, 226, 0.95); }
+        }
+
+        .nine-cut-button.merge-btn-pulse {
+            animation: mergeGlowPulse 1.4s ease-in-out infinite;
+        }
+
+        #btn-do-merge.merge-btn-pulse {
+            color: var(--accent);
         }
 
         /* Modals */
@@ -973,6 +1022,24 @@ html, body {
             box-shadow: none;
         }
 
+        #modal-pause h3 {
+            color: #333;
+        }
+
+        /* 9-slice frame: Pause menu popup */
+        #modal-pause .modal-content {
+            text-align: center;
+            background: transparent;
+            border-radius: 0;
+            border-style: solid;
+            border-color: transparent;
+            border-width: 22px;
+            border-image-source: url('/Art/Nine Cut.png');
+            border-image-slice: 49 55 55 50 fill;
+            border-image-repeat: stretch;
+            box-shadow: none;
+        }
+
         .confirm-btns {
             display: flex;
             gap: 10px;
@@ -1060,11 +1127,38 @@ html, body {
     animation: arrowAnim 2s infinite ease-in-out;
 }
 
+/* 9-slice frame: Available starters list (run team selection) */
+#selection-list .collection-square {
+    background: transparent;
+    border-radius: 0;
+    padding: 10px;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 18px;
+    border-image-source: url('/Art/Nine Cut.png');
+    border-image-slice: 49 55 55 50 fill;
+    border-image-repeat: stretch;
+    min-width: 0;
+}
+
 #selection-list .collection-square img {
     max-height: 160px;
     max-width: 100%;
     object-fit: contain;
 }
+#team-stats-grid .collection-square {
+    background: transparent;
+    border-radius: 0;
+    padding: 10px;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 18px;
+    border-image-source: url('/Art/Nine Cut.png');
+    border-image-slice: 49 55 55 50 fill;
+    border-image-repeat: stretch;
+    min-width: 0;
+}
+
 #team-stats-grid .collection-square img {
     max-height: 100%;
     max-width: 100%;
@@ -1206,10 +1300,12 @@ html, body {
     color: #fff;
     font-weight: bold;
     cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .nine-cut-button:hover:not(:disabled) {
     filter: brightness(1.15);
+    transform: scale(1.05);
 }
 
 .nine-cut-button:disabled {

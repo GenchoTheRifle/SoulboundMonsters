@@ -56,12 +56,17 @@
             return keys;
         }
 
-        function initCombat(node) {
+        function initCombat(node, opts) {
+            opts = opts || {};
             isExecutingMove = false;
             
             const arenaBg = document.getElementById('combat-arena');
+            let arenaBgUrl = null;
             if (arenaBg && currentRun.arcId) {
-                arenaBg.style.backgroundImage = getMapBackground(currentRun.arcId);
+                const bgCss = getMapBackground(currentRun.arcId);
+                arenaBg.style.backgroundImage = bgCss;
+                const match = /url\(['"]?([^'")]+)['"]?\)/.exec(bgCss);
+                if (match) arenaBgUrl = match[1];
             }
 
             showScreen('screen-combat');
@@ -93,8 +98,8 @@
             let allPool = [...simplePool, ...advancedPool, ...extraEnemies];
 
             let pool = allPool;
-            if (currentRun.nodeIndex <= 3) pool = [...simplePool, ...extraEnemies]; // Nodes 1, 2, 4
-            else if (currentRun.nodeIndex === 4) pool = [...advancedPool, ...extraEnemies]; // Node 5
+            if (currentRun.nodeIndex === 0) pool = [...simplePool]; // Node 1
+            else if (currentRun.nodeIndex === 1) pool = [...simplePool, ...advancedPool]; // Node 2
 
             if (node.type === 'boss') {
                 let bossId = 'mega_bat';
@@ -185,9 +190,35 @@
                 }
             }
 
-            calculateTurnOrder();
-            updateCombatUI();
-            nextTurn();
+            // Preload the arena background and every combatant's sprite before any turns run.
+            // Otherwise a faster enemy's turn (and its attack) can resolve while the arena is
+            // still visually black/blank because its art hasn't finished loading yet.
+            const artUrls = new Set();
+            if (arenaBgUrl) artUrls.add(arenaBgUrl);
+            [...combatState.enemies, ...currentRun.party].forEach(u => {
+                if (u && u.art && (u.art.includes('.png') || u.art.includes('/'))) artUrls.add(u.art);
+            });
+            const assetsReady = Promise.all([...artUrls].map(preloadSprite));
+            const readyTimeout = new Promise(resolve => setTimeout(resolve, 8000));
+            // If we're being launched behind a black transition overlay (e.g. the
+            // "ACT I: THE CAVE" run-start screen), don't let a single turn run until
+            // that overlay has fully faded away - otherwise a faster enemy can land
+            // a hit while the player can't see anything yet.
+            const deferStart = opts.deferStart || Promise.resolve();
+
+            document.getElementById('combat-log').innerHTML = 'Loading battle...';
+
+            Promise.race([assetsReady, readyTimeout]).then(() => {
+                // Render the arena, monsters, and UI as soon as assets are ready, even
+                // while the black transition overlay is still up - that's the whole
+                // point of preloading. Only the first turn (which can let an enemy
+                // attack) waits for the overlay to be gone.
+                calculateTurnOrder();
+                updateCombatUI();
+                return deferStart;
+            }).then(() => {
+                nextTurn();
+            });
         }
         function calculateTimeline(activeUnit = null) {
             let timeline = [];
@@ -1125,44 +1156,53 @@ let shadowClass = getShadowClass(u.name);
         // over short monsters. We measure each art file's actual opaque pixel bounds once (cached by
         // src) and use that as the true vertical anchor for impact VFX instead of a flat 50%.
         const _artHitFractionCache = new Map();
-        function ensureArtHitFraction(src) {
+        function computeArtHitFraction(img, src) {
+            try {
+                const w = img.naturalWidth, h = img.naturalHeight;
+                if (!w || !h) return;
+                const maxDim = 128;
+                const scale = Math.min(1, maxDim / Math.max(w, h));
+                const cw = Math.max(1, Math.round(w * scale));
+                const ch = Math.max(1, Math.round(h * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = cw;
+                canvas.height = ch;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, cw, ch);
+                const data = ctx.getImageData(0, 0, cw, ch).data;
+                const alphaThreshold = 20;
+                let minY = -1, maxY = -1;
+                for (let y = 0; y < ch; y++) {
+                    let rowHasOpaque = false;
+                    for (let x = 0; x < cw; x++) {
+                        if (data[(y * cw + x) * 4 + 3] > alphaThreshold) { rowHasOpaque = true; break; }
+                    }
+                    if (rowHasOpaque) {
+                        if (minY === -1) minY = y;
+                        maxY = y;
+                    }
+                }
+                if (maxY >= 0) {
+                    _artHitFractionCache.set(src, ((minY + maxY) / 2) / ch);
+                }
+            } catch (e) {
+                // Tainted/undecodable canvas - keep the 0.5 fallback already cached above.
+            }
+        }
+        // Takes the actual on-screen <img> (not just its src) so that when it's already loaded/painted
+        // - the normal case, since this is only called on art already rendered in the arena - the scan
+        // runs synchronously right here instead of via a fresh Image()'s onload, which always fires on a
+        // later event-loop tick (even for a cached src) and previously left the very first VFX per src
+        // stuck on the 0.5 fallback.
+        function ensureArtHitFraction(imgEl) {
+            const src = imgEl && imgEl.src;
             if (!src || _artHitFractionCache.has(src)) return;
             _artHitFractionCache.set(src, 0.5); // default matches old box-center behavior until measured
-            const img = new Image();
-            img.onload = () => {
-                try {
-                    const w = img.naturalWidth, h = img.naturalHeight;
-                    if (!w || !h) return;
-                    const maxDim = 128;
-                    const scale = Math.min(1, maxDim / Math.max(w, h));
-                    const cw = Math.max(1, Math.round(w * scale));
-                    const ch = Math.max(1, Math.round(h * scale));
-                    const canvas = document.createElement('canvas');
-                    canvas.width = cw;
-                    canvas.height = ch;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, cw, ch);
-                    const data = ctx.getImageData(0, 0, cw, ch).data;
-                    const alphaThreshold = 20;
-                    let minY = -1, maxY = -1;
-                    for (let y = 0; y < ch; y++) {
-                        let rowHasOpaque = false;
-                        for (let x = 0; x < cw; x++) {
-                            if (data[(y * cw + x) * 4 + 3] > alphaThreshold) { rowHasOpaque = true; break; }
-                        }
-                        if (rowHasOpaque) {
-                            if (minY === -1) minY = y;
-                            maxY = y;
-                        }
-                    }
-                    if (maxY >= 0) {
-                        _artHitFractionCache.set(src, ((minY + maxY) / 2) / ch);
-                    }
-                } catch (e) {
-                    // Tainted/undecodable canvas - keep the 0.5 fallback already cached above.
-                }
-            };
-            img.src = src;
+            if (imgEl.complete && imgEl.naturalWidth) {
+                computeArtHitFraction(imgEl, src);
+            } else {
+                imgEl.addEventListener('load', () => computeArtHitFraction(imgEl, src), { once: true });
+            }
         }
 
         // Real on-screen point where a monster's visible art is centered, using the opaque-pixel
@@ -1179,7 +1219,7 @@ let shadowClass = getShadowClass(u.name);
             if (!img) {
                 return { x: boxRect.left + boxRect.width / 2, y: boxRect.top + boxRect.height / 2 };
             }
-            ensureArtHitFraction(img.src);
+            ensureArtHitFraction(img);
             const frac = _artHitFractionCache.get(img.src) ?? 0.5;
             const imgRect = img.getBoundingClientRect();
             if (!imgRect.height) {
@@ -1267,7 +1307,7 @@ let shadowClass = getShadowClass(u.name);
                 let anyCountered = false;
 
                 if (move.n.includes("Bite")) {
-                    animDelay = 490; // 250 + 4*60
+                    animDelay = 315; // 75 (stay) + 4*60 (fast close) - matches when the mouth visually shuts
                     const targetEl = getElementForUnit(t);
                     if (targetEl) {
                         const biteAnimEl = document.createElement('img');
@@ -1279,7 +1319,6 @@ let shadowClass = getShadowClass(u.name);
 
                         // Play animation concurrently with the damage step
                         (async () => {
-                            const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
                             biteAnimEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, fill: 'forwards' });
                             await new Promise(r => setTimeout(r, 75)); // Stay on frame 1
                             await bitePreload;
@@ -1287,15 +1326,6 @@ let shadowClass = getShadowClass(u.name);
                                 await new Promise(r => setTimeout(r, 60)); // Fast close
                                 if (biteAnimEl) biteAnimEl.src = `Art/Bite_${frame}.png`;
                             }
-                            
-                            // Squish target when bitten
-                            const bScale = 1.0;
-                            artContainer.animate([
-                                { transform: `scale(${bScale}, ${bScale})` },
-                                { transform: `scale(${bScale * 1.2}, ${bScale * 0.8})` },
-                                { transform: `scale(${bScale * 0.9}, ${bScale * 1.1})` },
-                                { transform: `scale(${bScale}, ${bScale})` }
-                            ], { duration: 300, easing: 'ease-out' });
 
                             // Shake
                             biteAnimEl.animate([
@@ -2293,8 +2323,10 @@ let shadowClass = getShadowClass(u.name);
                     setTimeout(() => enemyAI(attacker), 800);
                 }
             } else {
-                // For player, just re-render controls
-                renderMoveControls(attacker);
+                // For player, just re-render controls. Basic Attack's energy gain is already applied
+                // above (killing-blow edge case), so skip re-rendering abilities here or they'd flash
+                // as unlocked for the ~500ms before advanceTurn() ends the turn.
+                if (!move.isBasicAttack) renderMoveControls(attacker);
                 if (attacker.energy === 0 || move.isBasicAttack) {
                     setTimeout(advanceTurn, 500);
                 }
@@ -2535,15 +2567,13 @@ let shadowClass = getShadowClass(u.name);
                         if (emptyIndex !== -1) {
                             currentRun.party[emptyIndex] = recruit;
                             // Unlock in collection
-                            let text = '';
                             if (!gameState.unlockedStarters.includes(recruit.id)) {
                                 gameState.unlockedStarters.push(recruit.id);
                                 saveGame();
-                                text = `Defeated ${recruit.name} joined your party and is now unlocked in your Collection!`;
+                                showMergeResultDetails(recruit, advanceRun);
                             } else {
-                                text = `Defeated ${recruit.name} joined your party!`;
+                                showRecruitmentAlert(recruit, advanceRun);
                             }
-                            showGameAlert("Recruitment", text, advanceRun, artHtml);
                             return;
                         } else {
                             const mergesInParty = currentRun.party.filter(p => p && p.parents).length;
@@ -2683,11 +2713,11 @@ let shadowClass = getShadowClass(u.name);
                         gameState.unlockedStarters.push(recruit.id);
                         saveGame();
                         setTimeout(() => {
-                            showGameAlert("Recruitment", `You replaced ${m.name} with ${recruit.name}. It is now unlocked in your Collection!`, advanceRun, `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; height:200px;">${renderArt(recruit.art, 200)}</div>`);
+                            showMergeResultDetails(recruit, advanceRun);
                         }, 500);
                     } else {
                         setTimeout(() => {
-                            showGameAlert("Recruitment", `You replaced ${m.name} with ${recruit.name}!`, advanceRun, `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; height:200px;">${renderArt(recruit.art, 200)}</div>`);
+                            showRecruitmentAlert(recruit, advanceRun);
                         }, 500);
                     }
                     closeModal('modal-selection');

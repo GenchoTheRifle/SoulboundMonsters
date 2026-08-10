@@ -105,40 +105,64 @@
             
             if (outcome) {
                 btnMerge.disabled = false;
+                btnMerge.classList.add('merge-btn-pulse');
                 const isUnlocked = gameState.discoveredMerges && gameState.discoveredMerges.includes(outcome.name);
-                
+
                 if (isUnlocked) {
                     outcomeDiv.innerHTML = `
                         <h4 style="margin: 0 0 10px 0; color: #aaa;">OUTCOME</h4>
-                        <div class="combatant" style="pointer-events: none;">
-                            <div class="monster-art-container" style="pointer-events: none; ">
+                        <div class="merge-outcome-box">
+                            <div class="monster-art-container" style="pointer-events: none; width: 100%; height: 190px;">
                                 <div class="art-content" style="position: relative;">
-                                    ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
+                                    ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" style="max-height:190px;" />` : `<div style="font-size:110px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
                                 </div>
                                 <div class="shadow-ellipse ${getShadowClass(outcome.name)}"></div>
                             </div>
+                            <strong style="font-size: 22px; margin-top: 8px; color: var(--accent); text-align: center;">${outcome.name}</strong>
+                            <div style="width: 100%; padding: 0 12px; margin-top: 8px;">${getMiniHpEnergyHtml(outcome)}</div>
                         </div>
-                        <strong style="font-size: 30px; margin-top: 10px; color: var(--accent);">${outcome.name}</strong>
                     `;
                 } else {
                     outcomeDiv.innerHTML = `
                         <h4 style="margin: 0 0 10px 0; color: #aaa;">OUTCOME</h4>
-                        <div style="width: 240px; height: 240px; background: rgba(0,0,0,0.5); border: 2px dashed #666; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 64px; color: #666;">
-                            ?
+                        <div class="merge-outcome-box">
+                            <div style="font-size: 88px; color: #666;">?</div>
+                            <strong style="font-size: 20px; margin-top: 14px; color: #ffd700; text-shadow: 1px 1px 2px #000;">NEW MERGE</strong>
                         </div>
-                        <strong style="font-size: 30px; margin-top: 10px; color: #ffd700; text-shadow: 1px 1px 2px #000;">NEW MERGE</strong>
                     `;
                 }
             } else {
                 btnMerge.disabled = true;
+                btnMerge.classList.remove('merge-btn-pulse');
                 outcomeDiv.innerHTML = `
                     <div style="color: #ff4444; font-weight: bold; font-size: 18px;">Incompatible</div>
                 `;
             }
         } else {
             btnMerge.disabled = true;
+            btnMerge.classList.remove('merge-btn-pulse');
             outcomeDiv.innerHTML = '';
         }
+
+        const btnFinish = document.getElementById('btn-finish-merge');
+        if (btnFinish) {
+            btnFinish.classList.toggle('merge-btn-pulse', !hasAnyPossibleMerge());
+        }
+    }
+
+    function hasAnyPossibleMerge() {
+        const alive = currentRun.party.filter(m => m && m.currentHp > 0);
+        for (let i = 0; i < alive.length; i++) {
+            for (let j = i + 1; j < alive.length; j++) {
+                const a = alive[i], b = alive[j];
+                const found = MERGES.find(m =>
+                    (m.parents[0] === a.id && m.parents[1] === b.id) ||
+                    (m.parents[0] === b.id && m.parents[1] === a.id)
+                );
+                if (found) return true;
+            }
+        }
+        return false;
     }
     
     function allowDrop(ev) {
@@ -281,19 +305,10 @@
                     saveGame();
                 }
 
-                const htmlContent = `
-                    <div style="display:flex; flex-direction:column; align-items:center; margin: 15px 0;">
-                        <div style="width:200px; height:200px; margin-bottom:10px;">
-                            ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" style="max-width:100%; max-height:100%; object-fit:contain;" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
-                        </div>
-                        <strong style="font-size:24px; color: var(--accent);">${outcome.name}</strong>
-                    </div>
-                `;
-
-                showGameAlert("Merge Success", `Merged into ${outcome.name}!`, () => {
+                showMergeResultDetails(newMonster, () => {
                     mergeSlots = [null, null];
                     updateMergeUI();
-                }, htmlContent);
+                });
             } else {
                 showGameAlert("Merge Error", "These monsters cannot merge!");
             }

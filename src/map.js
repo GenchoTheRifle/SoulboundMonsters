@@ -45,16 +45,22 @@
             overlay.appendChild(actText);
             
             document.body.appendChild(overlay);
-            
+
+            // Resolves once the black transition overlay has fully faded out and been
+            // removed, so combat can set itself up in the background but must not let
+            // a faster enemy act until the player can actually see the arena.
+            let resolveOverlayGone;
+            const overlayGone = new Promise(resolve => { resolveOverlayGone = resolve; });
+
             // Start animation sequence
             setTimeout(() => {
                 overlay.style.opacity = '1';
-                
+
                 setTimeout(() => {
                     logo.style.transform = 'translateY(0)';
                     logo.style.opacity = '1';
                     actText.style.opacity = '1';
-                    
+
                     // Initialize run state in the background while black screen is up
                     currentRun.party = selectionSlots.map(s => s ? { ...s, currentHp: s.hp } : null);
                     currentRun.arcId = selectedArcId;
@@ -71,8 +77,8 @@
                         { type: 'combat', level: 3 },
                         { type: 'boss' }
                     ];
-                    initCombat(currentRun.nodes[0]);
-                    
+                    initCombat(currentRun.nodes[0], { deferStart: overlayGone });
+
                     const drawer = document.getElementById('selection-drawer');
                     if (drawer) drawer.style.transform = 'translateX(100%)';
                     
@@ -94,6 +100,7 @@
                             if (title) title.style.display = 'block';
                             if (backBtn) backBtn.style.display = 'block';
                             if (selTeam) selTeam.style.opacity = '1';
+                            resolveOverlayGone();
                         }, 800);
                     }, 2500);
                 }, 800);

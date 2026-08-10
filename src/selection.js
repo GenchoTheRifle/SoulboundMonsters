@@ -213,6 +213,23 @@
             modal.style.display = 'flex';
         }
 
+        // Simple "joined your party" popup for recruiting a monster that's
+        // already unlocked in the Collection. First-time unlocks instead go
+        // through showMergeResultDetails to show the full collection card.
+        function showRecruitmentAlert(recruit, onDone) {
+            document.getElementById('recruit-message').innerText = `Defeated ${recruit.name} joined your party!`;
+            document.getElementById('recruit-art').innerHTML = renderArt(recruit.art, 220);
+            document.getElementById('recruit-type-icon').innerHTML = buildTypeIconHtml(recruit);
+
+            const modal = document.getElementById('modal-recruitment');
+            const btn = document.getElementById('recruit-ok-btn');
+            btn.onclick = () => {
+                closeModal('modal-recruitment');
+                if (onDone) onDone();
+            };
+            modal.style.display = 'flex';
+        }
+
         function showGameConfirm(title, message, onYes, onNo, htmlContent = '') {
             document.getElementById('confirm-title').innerText = title;
             document.getElementById('confirm-message').innerText = message;
