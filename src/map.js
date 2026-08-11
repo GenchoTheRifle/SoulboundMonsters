@@ -36,10 +36,10 @@
             actText.innerText = actName;
             actText.style.color = 'white';
             actText.style.fontSize = '36px';
-            actText.style.fontWeight = 'bold';
+            actText.style.fontWeight = 'normal';
             actText.style.letterSpacing = '10px';
             actText.style.marginTop = '40px';
-            actText.style.textShadow = '2px 2px 4px black';
+            actText.style.textShadow = 'var(--outline-thick)';
             actText.style.opacity = '0';
             actText.style.transition = 'opacity 1s ease-in-out 0.5s';
             overlay.appendChild(actText);
@@ -231,7 +231,7 @@
 
                 div.innerHTML = `
                     ${isActive ? `<div class="node-active-arrow">&#9660;</div>` : ''}
-                    <div style="position:absolute; top:-35px; left:50%; transform:translateX(-50%); color:${textColor}; font-size:24px; font-weight:bold; text-shadow:2px 2px 2px black, 0 0 5px black; white-space:nowrap; z-index:10;">${nodeText}</div>
+                    <div style="position:absolute; top:-35px; left:50%; transform:translateX(-50%); color:${textColor}; font-size:24px; font-weight: normal; text-shadow:var(--outline-med); white-space:nowrap; z-index:10;">${nodeText}</div>
                     <img src="${iconSrc}" style="width: 80%; height: 80%; object-fit: contain; filter: ${filterStr}; transition: filter 0.3s;" />
                     ${isCompleted ? `<img src="Art/Victory.png" style="position:absolute; top:0; right:0; width: 36%; height: 36%; object-fit: contain; filter: drop-shadow(1px 1px 2px black); z-index: 11;" />` : ''}
                 `;
@@ -307,14 +307,14 @@
                             <div class="type-icon-container" style="position: absolute; top: -10px; right: -10px; z-index: 11; filter: drop-shadow(0px 0px 2px #000);">
                                 ${getTypeIconHtml(m.type, 40)}
                             </div>
-                            <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
+                            <div class="name" style="text-align: center; color: white; font-weight: normal; font-size: 20px; text-shadow: var(--outline-med); margin-bottom: 4px;">
                                 ${m.name}
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                                 <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
-                                <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 10px; background: #222; border-radius: 5px; overflow: hidden;">
+                                <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 15px; background: #222; border-radius: 6px; overflow: hidden;">
                                     <div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor};"></div>
-                                    <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; pointer-events: none;">
+                                    <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: normal; text-shadow: var(--outline-thin); pointer-events: none;">
                                         ${Math.ceil(m.currentHp)}/${m.hp}
                                     </div>
                                 </div>
@@ -368,13 +368,13 @@
                     
                     btn.innerHTML = `
                         <div class="monster-art" style="flex: 1; min-height: 0; min-width: 0; width: 100%; display:flex; justify-content:center; align-items:center; margin-bottom:5px; overflow:hidden;">${m.art.includes('.png') ? `<img src="${m.art}" style="max-width:100%; max-height:100%; object-fit:contain; image-rendering: pixelated;" draggable="false" />` : `<div style="font-size:100px; line-height:1;">${m.art}</div>`}</div>
-                        <strong style="font-size: 20px; text-shadow: 1px 1px 2px black; margin-bottom: 5px;">${m.name}</strong>
+                        <strong style="font-size: 26px; color: #fff; text-shadow: var(--outline-med); margin-bottom: 5px;">${m.name}</strong>
                         <div style="display: flex; flex-direction: column; width: 100%; padding: 0 10px; margin-top: auto;">
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                                 <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
-                                <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 12px; background: #222; border-radius: 6px; overflow: hidden; border: 1px solid #000;">
+                                <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 17px; background: #222; border-radius: 6px; overflow: hidden; border: 1px solid #000;">
                                     <div class="hp-fill" style="height: 100%; width:${Math.max(0, Math.min(100, (m.currentHp / m.hp) * 100))}%; background-color:${(m.currentHp / m.hp) * 100 > 50 ? '#22c55e' : (m.currentHp / m.hp) * 100 > 25 ? '#eab308' : '#ef4444'};"></div>
-                                    <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px black; pointer-events: none;">
+                                    <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 15px; font-weight: normal; text-shadow: var(--outline-thin); pointer-events: none;">
                                         ${Math.ceil(m.currentHp)}/${m.hp}
                                     </div>
                                 </div>

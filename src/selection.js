@@ -34,14 +34,14 @@
                             <div class="type-icon-container" style="position: absolute; top: -10px; right: -10px; z-index: 11;">
                                 ${getTypeIconHtml(s.type, 40)}
                             </div>
-                            <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
+                            <div class="name" style="text-align: center; color: white; font-weight: normal; font-size: 26px; text-shadow: var(--outline-med); margin-bottom: 4px;">
                                 ${s.name}
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                                 <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
-                                <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 10px; background: #222; border-radius: 5px; margin-top: 5px; overflow: hidden;">
+                                <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 15px; background: #222; border-radius: 6px; margin-top: 5px; overflow: hidden;">
                                     <div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor};"></div>
-                                    <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; pointer-events: none;">
+                                    <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: normal; text-shadow: var(--outline-thin); pointer-events: none;">
                                         ${s.hp}/${s.hp}
                                     </div>
                                 </div>
@@ -387,11 +387,11 @@
                 
                 let extraLabels = '';
                 if (s.id === 'wolf') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #c62828; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid #ff5252; z-index: 10;">Attacker</div>`;
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #c62828; padding: 3px 10px; border-radius: 4px; font-size: 14px; font-weight: normal; border: 1px solid #ff5252; z-index: 10;">Attacker</div>`;
                 } else if (s.id === 'slime') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #1565c0; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid #42a5f5; z-index: 10;">Defender</div>`;
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #1565c0; padding: 3px 10px; border-radius: 4px; font-size: 14px; font-weight: normal; border: 1px solid #42a5f5; z-index: 10;">Defender</div>`;
                 } else if (s.id === 'sentry') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #e6c200; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: black; border: 1px solid #ffee58; z-index: 10;">Balanced</div>`;
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #e6c200; padding: 3px 10px; border-radius: 4px; font-size: 14px; font-weight: normal; color: black; border: 1px solid #ffee58; z-index: 10;">Balanced</div>`;
                 }
                 
                 let elementIcon = `<div style="position: absolute; top: 5px; right: 5px; filter: drop-shadow(0px 0px 2px #000);">${getTypeIconHtml(s.type, 40)}</div>`;
@@ -400,7 +400,7 @@
                     ${extraLabels}
                     ${elementIcon}
                     <div class="monster-art" style="pointer-events:none;">${renderArt(s.art, 140)}</div>
-                    <strong style="font-size: 20px; pointer-events:none;">${s.name}</strong>
+                    <strong style="font-size: 26px; color: #fff; text-shadow: var(--outline-med); pointer-events:none;">${s.name}</strong>
                 `;
                 
                 btn.onclick = () => toggleFirstTimeStarter(id);

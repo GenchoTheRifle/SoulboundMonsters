@@ -570,7 +570,7 @@
             }
 
             const energy = unit.energy;
-            document.getElementById('energy-display').innerHTML = `<div style="display:flex; justify-content:center; align-items:center; gap:5px;"><img src="Art/EN.png" style="width:24px;height:24px;filter:drop-shadow(1px 1px 1px black);" alt="EN" /><span style="font-size:24px; font-weight:bold; color:white; text-shadow:1px 1px 2px black;">${energy}</span></div>`;
+            document.getElementById('energy-display').innerHTML = `<div style="display:flex; justify-content:center; align-items:center; gap:5px;"><img src="Art/EN.png" style="width:24px;height:24px;filter:drop-shadow(1px 1px 1px black);" alt="EN" /><span style="font-size:28px; font-weight: normal; color:white; text-shadow:var(--outline-med);">${energy}</span></div>`;
             document.getElementById('combat-log').innerHTML = combatState.log.slice(-5).join('<br>');
             
             const endTurnBtn = document.getElementById('btn-end-turn');
@@ -665,7 +665,7 @@
                         html += `<img src="Art/Ability Evolution.png" style="position:absolute; top:-4px; left:-4px; width:16px; height:16px; z-index:3; filter: drop-shadow(0 0 3px rgba(50,150,255,0.9));" title="Evolved" />`;
                     }
                     if (turns !== undefined && turns > 0) {
-                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:2;">${turns}</div>`;
+                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
                     }
                     html += `</div>`;
                     return html;
@@ -675,7 +675,7 @@
                     let html = `<div style="position:relative; display:inline-flex; align-items:center; justify-content:center; background:#333; border-radius:5px; border: 1px solid #777; width:40px; height:40px; ${style}" title="${title}">
                         <span style="font-size:24px;">${emoji}</span>`;
                     if (turns !== undefined && turns > 0) {
-                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight:bold; z-index:2;">${turns}</div>`;
+                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
                     }
                     html += `</div>`;
                     return html;
@@ -746,14 +746,14 @@ let shadowClass = getShadowClass(u.name);
                         <div class="type-icon-container" style="position: absolute; top: -10px; ${iconPosition} z-index: 11;">
                             ${typeIconHtml}
                         </div>
-                        <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
+                        <div class="name" style="text-align: center; color: white; font-weight: normal; font-size: 20px; text-shadow: var(--outline-med); margin-bottom: 4px;">
                             ${u.name}
                         </div>
                         <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                             <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
                             <div class="hp-bar" style="flex: 1; position: relative;">
                                 <div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor}; transition: width 1.5s ease-out, background-color 1.5s ease-out;"></div>
-                                <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; pointer-events: none;" data-current-hp="${Math.ceil(u.currentHp)}">
+                                <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: normal; text-shadow: var(--outline-thin); pointer-events: none;" data-current-hp="${Math.ceil(u.currentHp)}">
                                     ${Math.ceil(u.currentHp)}/${u.hp}
                                 </div>
                             </div>
@@ -815,7 +815,7 @@ let shadowClass = getShadowClass(u.name);
                             if (!dmgEl) {
                                 dmgEl = document.createElement('div');
                                 dmgEl.className = 'projected-damage';
-                                dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight:bold; color:#ff4444; z-index:50; text-shadow:2px 2px 4px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black; pointer-events:none;';
+                                dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight: normal; color:#ff4444; z-index:50; text-shadow:var(--outline-thick); pointer-events:none;';
                                 div.appendChild(dmgEl);
                             }
                             // Calculate hit count for total damage preview if it's a multi-hit move
@@ -837,7 +837,7 @@ let shadowClass = getShadowClass(u.name);
                             if (!dmgEl) {
                                 dmgEl = document.createElement('div');
                                 dmgEl.className = 'projected-damage';
-                                dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight:bold; color:#51cf66; z-index:50; text-shadow:2px 2px 4px black, -2px -2px 4px black, 2px -2px 4px black, -2px 2px 4px black; pointer-events:none;';
+                                dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight: normal; color:#51cf66; z-index:50; text-shadow:var(--outline-thick); pointer-events:none;';
                                 div.appendChild(dmgEl);
                             }
                             
@@ -1089,10 +1089,10 @@ let shadowClass = getShadowClass(u.name);
 
             const isManyMoves = moveCount > 2;
 
-            const nameSize = '20px';
-            const descSize = isManyMoves ? '12px' : '16px';
-            const costSize = '18px';
-            const iconSize = '20px';
+            const nameSize = '27px';
+            const descSize = isManyMoves ? '15px' : '18px';
+            const costSize = '23px';
+            const iconSize = '24px';
             const elementIconSize = '32px';
 
             const displayMoves = [...unit.moves].sort((a, b) => (a.t || '').localeCompare(b.t || ''));
@@ -1114,12 +1114,12 @@ let shadowClass = getShadowClass(u.name);
                 btn.innerHTML = `
                     ${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="position: absolute; top: -10px; left: -10px; width: ${elementIconSize}; height: ${elementIconSize}; z-index: 5; pointer-events: none; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));" alt="${moveType}" />` : ''}
                     <div style="display:flex; flex-direction:column; justify-content:flex-start; width:100%; height:100%; padding: 4px; padding-left: 20px; position: relative;">
-                        <span style="position: absolute; top: 2px; right: 6px; font-size: 11px; font-weight: 600; color: ${categoryColor}; z-index: 4;">${categoryLabel}</span>
-                        <span style="font-weight:bold; font-size:${nameSize}; text-align: left; margin-bottom: 2px; width: calc(100% - 10px); display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${m.n}</span>
-                        <div style="font-size:${descSize}; color:rgba(255,255,255,0.85); text-align:left; line-height:1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; width: 100%; padding-right: 20px;">
+                        <span style="position: absolute; top: 2px; right: 6px; font-size: 16px; font-weight: normal; color: ${categoryColor}; z-index: 4;">${categoryLabel}</span>
+                        <span style="font-weight: normal; font-size:${nameSize}; color: ${categoryColor}; text-align: left; margin-bottom: 2px; width: calc(100% - 13px); display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 3px 0 0 3px;">${m.n}</span>
+                        <div class="move-description-text" style="font-size:${descSize}; color:rgba(255,255,255,0.85); text-align:left; line-height:1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; width: 100%; padding-right: 20px; padding-top: 3px; padding-left: 3px;">
                             ${getMoveDescription(m)}
                         </div>
-                        <span class="move-cost" style="position: absolute; bottom: 4px; right: 4px; font-size:${costSize}; display:flex; align-items:center; gap:2px; font-weight:bold; background: rgba(30,30,32,0.65); border: 1px solid rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 6px; z-index: 3;">${m.c} <img src="Art/EN.png" style="width:${iconSize}; height:${iconSize};"></span>
+                        <span class="move-cost" style="position: absolute; bottom: 4px; right: 4px; font-size:${costSize}; display:flex; align-items:center; gap:2px; font-weight: normal; background: rgba(30,30,32,0.65); border: 1px solid rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 6px; z-index: 3;">${m.c} <img src="Art/EN.png" style="width:${iconSize}; height:${iconSize};"></span>
                     </div>
                 `;
                 btn.onclick = () => {
@@ -2090,8 +2090,8 @@ let shadowClass = getShadowClass(u.name);
                             const targetTypesList = Array.isArray(t.type) ? t.type : [t.type];
                             const dmgMult = getElementMultiplier(move.t, targetTypesList);
                             let arrow = '';
-                            if (dmgMult > 1) arrow = ' <span style="color:#ffcc00; text-shadow: 2px 2px 2px #000;">↑</span>';
-                            else if (dmgMult < 1) arrow = ' <span style="color:#aaa; text-shadow: 2px 2px 2px #000;">↓</span>';
+                            if (dmgMult > 1) arrow = ' <span style="color:#ffcc00; text-shadow: var(--outline-thick);">↑</span>';
+                            else if (dmgMult < 1) arrow = ' <span style="color:#aaa; text-shadow: var(--outline-thick);">↓</span>';
                             showFloatingText(t, "-" + damage + arrow, "#ff4444");
                             combatLog(`${t.name} took ${damage} damage!`);
 
@@ -2664,7 +2664,7 @@ let shadowClass = getShadowClass(u.name);
             list.innerHTML = `
                 <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
                     <div style="transform: scale(0.9); transform-origin: top center; margin-bottom: -40px;">
-                        <div style="display: grid; grid-template-columns: 200px 200px; gap: 40px; justify-content: center; margin-bottom: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px black;">
+                        <div style="display: grid; grid-template-columns: 200px 200px; gap: 40px; justify-content: center; margin-bottom: 10px; color: white; font-weight: normal; text-shadow: var(--outline-thin);">
                             <div style="text-align: center;">BACKLINE</div>
                             <div style="text-align: center;">FRONTLINE</div>
                         </div>
@@ -2703,7 +2703,7 @@ let shadowClass = getShadowClass(u.name);
                         <div style="width:140px; height:140px; margin-bottom:5px; pointer-events:none;">
                             ${renderArt(m.art, 120)}
                         </div>
-                        <strong style="font-size:18px; text-align:center; pointer-events:none; color: white; text-shadow: 1px 1px 2px black;">${m.name}</strong>
+                        <strong style="font-size:24px; text-align:center; pointer-events:none; color: white; text-shadow: var(--outline-med);">${m.name}</strong>
                     </button>
                 `;
                 btn.querySelector('button').onclick = () => {

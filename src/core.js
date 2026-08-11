@@ -163,9 +163,9 @@
                 <div style="display:flex; flex-direction:column; width:100%; pointer-events:none;">
                     <div style="display:flex; align-items:center; gap:4px; margin-bottom:4px;">
                         <img src="Art/HP.png" style="width:16px; height:16px; filter:drop-shadow(1px 1px 1px black);" alt="HP" />
-                        <div class="hp-bar" style="flex:1; position:relative; width:100%; height:8px; background:#222; border-radius:4px; overflow:hidden;">
+                        <div class="hp-bar" style="flex:1; position:relative; width:100%; height:13px; background:#222; border-radius:4px; overflow:hidden;">
                             <div class="hp-fill" style="height:100%; width:${hpPerc}%; background-color:${hpColor};"></div>
-                            <div class="hp-text" style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; color:white; font-size:8px; font-weight:bold; text-shadow:1px 1px 2px black;">
+                            <div class="hp-text" style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; color:white; font-size:11px; font-weight: normal; text-shadow:var(--outline-thin);">
                                 ${Math.ceil(curHp)}/${maxHp}
                             </div>
                         </div>

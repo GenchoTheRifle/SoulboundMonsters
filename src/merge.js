@@ -41,14 +41,14 @@
                         <div class="type-icon-container" style="position: absolute; top: -10px; right: -10px; z-index: 11;">
                             ${getTypeIconHtml(m.type, 40)}
                         </div>
-                        <div class="name" style="text-align: center; color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; margin-bottom: 4px;">
+                        <div class="name" style="text-align: center; color: white; font-weight: normal; font-size: 20px; text-shadow: var(--outline-med); margin-bottom: 4px;">
                             ${m.name}
                         </div>
                         <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                             <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
-                            <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 10px; background: #222; border-radius: 5px; overflow: hidden;">
+                            <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 15px; background: #222; border-radius: 6px; overflow: hidden;">
                                 <div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor};"></div>
-                                <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; pointer-events: none;">
+                                <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: normal; text-shadow: var(--outline-thin); pointer-events: none;">
                                     ${m.currentHp}/${m.hp}
                                 </div>
                             </div>
@@ -81,7 +81,7 @@
                             </div>
                             <div class="shadow-ellipse ${getShadowClass(s.name)}"></div>
                         </div>
-                        <strong style="font-size:18px; text-align:center; pointer-events:none;">${s.name}</strong>
+                        <strong style="font-size:24px; text-align:center; pointer-events:none; text-shadow: var(--outline-med);">${s.name}</strong>
                         <div style="width:100%; padding:0 16px; pointer-events:none;">${getMiniHpEnergyHtml(s)}</div>
                     </div>
                 `;
@@ -110,7 +110,7 @@
 
                 if (isUnlocked) {
                     outcomeDiv.innerHTML = `
-                        <h4 style="margin: 0 0 10px 0; color: #aaa;">OUTCOME</h4>
+                        <h4 style="margin: 0 0 10px 0; color: #aaa; text-shadow: var(--outline-thin);">OUTCOME</h4>
                         <div class="merge-outcome-box">
                             <div class="monster-art-container" style="pointer-events: none; width: 100%; height: 190px;">
                                 <div class="art-content" style="position: relative;">
@@ -118,16 +118,16 @@
                                 </div>
                                 <div class="shadow-ellipse ${getShadowClass(outcome.name)}"></div>
                             </div>
-                            <strong style="font-size: 22px; margin-top: 8px; color: var(--accent); text-align: center;">${outcome.name}</strong>
+                            <strong style="font-size: 28px; margin-top: 8px; color: var(--accent); text-align: center; text-shadow: var(--outline-med);">${outcome.name}</strong>
                             <div style="width: 100%; padding: 0 12px; margin-top: 8px;">${getMiniHpEnergyHtml(outcome)}</div>
                         </div>
                     `;
                 } else {
                     outcomeDiv.innerHTML = `
-                        <h4 style="margin: 0 0 10px 0; color: #aaa;">OUTCOME</h4>
+                        <h4 style="margin: 0 0 10px 0; color: #aaa; text-shadow: var(--outline-thin);">OUTCOME</h4>
                         <div class="merge-outcome-box">
-                            <div style="font-size: 88px; color: #666;">?</div>
-                            <strong style="font-size: 20px; margin-top: 14px; color: #ffd700; text-shadow: 1px 1px 2px #000;">NEW MERGE</strong>
+                            <div style="font-size: 88px; color: #fff; text-shadow: var(--outline-thick);">?</div>
+                            <strong style="font-size: 26px; margin-top: 14px; color: #ffd700; text-shadow: var(--outline-med);">NEW MERGE</strong>
                         </div>
                     `;
                 }
@@ -135,7 +135,7 @@
                 btnMerge.disabled = true;
                 btnMerge.classList.remove('merge-btn-pulse');
                 outcomeDiv.innerHTML = `
-                    <div style="color: #ff4444; font-weight: bold; font-size: 18px;">Incompatible</div>
+                    <div style="color: #ff4444; font-weight: normal; font-size: 24px; text-shadow: var(--outline-med);">Incompatible</div>
                 `;
             }
         } else {

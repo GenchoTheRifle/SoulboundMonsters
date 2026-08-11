@@ -60,8 +60,8 @@
             const energy = monster.startingEnergy !== undefined ? monster.startingEnergy : 1;
 
             return `
-                <div><img src="Art/HP.png" style="width:16px; height:16px; vertical-align:middle; filter: drop-shadow(1px 1px 1px black);" alt="HP" /> ${monster.hp}</div>
-                <div><img src="Art/EN.png" style="width:16px; height:16px; vertical-align:middle; filter: drop-shadow(1px 1px 1px black);" alt="EN" /> ${energy}</div>
+                <div><img src="Art/HP.png" style="width:28px; height:28px; vertical-align:middle; filter: drop-shadow(1px 1px 1px black);" alt="HP" /> ${monster.hp}</div>
+                <div><img src="Art/EN.png" style="width:28px; height:28px; vertical-align:middle; filter: drop-shadow(1px 1px 1px black);" alt="EN" /> ${energy}</div>
                 <div><strong style="color:#ff6b6b; display:inline-block; width:60px;">MATK:</strong> ${matk}</div>
                 <div><strong style="color:#ff6b6b; display:inline-block; width:60px;">MDEF:</strong> ${mdef}%</div>
                 <div><strong style="color:#339af0; display:inline-block; width:60px;">RATK:</strong> ${ratk}</div>
@@ -74,25 +74,30 @@
             const moves = (monster.moves || []).slice().sort((a, b) => (a.t || '').localeCompare(b.t || ''));
 
             return moves.map(m => {
-                const typeIcon = getTypeIconHtml(m.t, 16);
+                const typeIcon = getTypeIconHtml(m.t, 22);
                 let moveCategory = '';
+                let categoryColor = '';
                 const isAoE = m.effect && (m.effect.target === 'all_enemies' || m.effect.target === 'all_allies');
 
                 if (isAoE) {
-                    moveCategory = '<span style="color:#b19cd9; font-size:12px;">[AoE]</span>';
+                    categoryColor = '#b19cd9';
+                    moveCategory = `<span style="color:${categoryColor}; font-size:18px;">[AoE]</span>`;
                 } else if (!m.p) {
-                    moveCategory = '<span style="color:#ff9ff3; font-size:12px;">[Utility]</span>';
+                    categoryColor = '#ff9ff3';
+                    moveCategory = `<span style="color:${categoryColor}; font-size:18px;">[Utility]</span>`;
                 } else if (m.melee) {
-                    moveCategory = '<span style="color:#ff6b6b; font-size:12px;">[Melee]</span>';
+                    categoryColor = '#ff6b6b';
+                    moveCategory = `<span style="color:${categoryColor}; font-size:18px;">[Melee]</span>`;
                 } else {
-                    moveCategory = '<span style="color:#339af0; font-size:12px;">[Ranged]</span>';
+                    categoryColor = '#339af0';
+                    moveCategory = `<span style="color:${categoryColor}; font-size:18px;">[Ranged]</span>`;
                 }
 
                 let description = getMoveDescription(m);
 
                 return `<div style="margin-bottom: 10px;">
-                    <strong>${m.n}</strong> ${typeIcon} (${m.c} EN) ${moveCategory}
-                    <div style="font-size: 14px; color: #fff; margin-left: 20px; margin-top: 4px;">- ${description}</div>
+                    <strong style="font-size: 30px; color: ${categoryColor};">${m.n}</strong> ${typeIcon} (${m.c} <img src="Art/EN.png" style="width:26px; height:26px; vertical-align:middle; filter: drop-shadow(1px 1px 1px black);" alt="EN" />) ${moveCategory}
+                    <div class="move-description-text" style="font-size: 18px; color: #fff; margin-left: 20px; margin-top: 4px;">- ${description}</div>
                 </div>`;
             }).join('');
         }
@@ -103,16 +108,16 @@
             const p1 = STARTERS[monster.parents[0]];
             const p2 = STARTERS[monster.parents[1]];
             return `
-                <div style="font-size: 14px; color: #fff; margin-bottom: 8px;">Parents</div>
+                <div style="font-size: 32px; color: #fff; margin-bottom: 8px;">Parents</div>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 14px;">
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        ${renderArt(p1.art, 60)}
-                        <span style="font-size: 14px; color: #fff; margin-top: 4px;">${p1.name}</span>
+                        ${renderArt(p1.art, 80)}
+                        <span style="font-size: 24px; color: #fff; margin-top: 4px;">${p1.name}</span>
                     </div>
-                    <div style="font-size: 20px; color: #fff;">+</div>
+                    <div style="font-size: 26px; color: #fff; text-shadow: var(--outline-med);">+</div>
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        ${renderArt(p2.art, 60)}
-                        <span style="font-size: 14px; color: #fff; margin-top: 4px;">${p2.name}</span>
+                        ${renderArt(p2.art, 80)}
+                        <span style="font-size: 24px; color: #fff; margin-top: 4px;">${p2.name}</span>
                     </div>
                 </div>
             `;
@@ -129,10 +134,12 @@
             return `
                 <div class="detail-columns">
                     <div class="detail-column-art">
-                        <h2 style="font-size: 24px; margin: 0 0 10px 0; text-align: center; color: #fff;">${monster.name}</h2>
-                        <div class="type-container" style="margin-bottom: 20px; display: flex; justify-content: center;">${typeIconHtml}</div>
-                        <div class="monster-art" style="display: flex; justify-content: center; align-items: center; margin-bottom: 20px;">${renderArt(monster.art, 240)}</div>
-                        <div style="font-size: 18px; color: #fff; text-align: center;">${parentsHtml}</div>
+                        <div class="detail-art-box">
+                            <h2 style="font-size: 42px; margin: 0 0 10px 0; text-align: center; color: #fff;">${monster.name}</h2>
+                            <div class="type-container" style="margin-bottom: 20px; display: flex; justify-content: center;">${typeIconHtml}</div>
+                            <div class="monster-art" style="display: flex; justify-content: center; align-items: center;">${renderArt(monster.art, 240)}</div>
+                        </div>
+                        ${isMerge ? `<div class="detail-parents-box" style="text-align: center;">${parentsHtml}</div>` : ''}
                     </div>
                     <div class="detail-column-stats">
                         <div class="stats-row">${statsHtml}</div>
@@ -153,7 +160,7 @@
             return `
                 <div class="detail-top">
                     <div class="detail-type-icon">${typeIconHtml}</div>
-                    <h2 style="font-size: 24px; margin: 0 0 10px 0; text-align: center; color: #fff;">${monster.name}</h2>
+                    <h2 style="font-size: 42px; margin: 0 0 10px 0; text-align: center; color: #fff;">${monster.name}</h2>
                     <div class="monster-art" style="display: flex; justify-content: center; align-items: center;">${renderArt(monster.art, artSize)}</div>
                 </div>
                 <div class="detail-bottom">
@@ -211,7 +218,7 @@
                         `;
                     } else {
                         card.innerHTML = `
-                            <div class="monster-art" style="font-size: 200px; line-height: 200px;">?</div>
+                            <div class="monster-art" style="font-size: 200px; line-height: 200px; color: #fff; text-shadow: var(--outline-thick);">?</div>
                             <strong>???</strong>
                         `;
                     }
@@ -232,7 +239,7 @@
                         `;
                     } else {
                         card.innerHTML = `
-                            <div class="monster-art" style="font-size: 200px; line-height: 200px;">?</div>
+                            <div class="monster-art" style="font-size: 200px; line-height: 200px; color: #fff; text-shadow: var(--outline-thick);">?</div>
                             <strong>???</strong>
                         `;
                     }
