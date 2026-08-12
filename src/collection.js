@@ -108,16 +108,16 @@
             const p1 = STARTERS[monster.parents[0]];
             const p2 = STARTERS[monster.parents[1]];
             return `
-                <div style="font-size: 32px; color: #fff; margin-bottom: 8px;">Parents</div>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 14px;">
+                <div style="font-size: 40px; color: #fff; margin-bottom: 10px; text-shadow: var(--outline-thick);">Parents</div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 24px;">
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        ${renderArt(p1.art, 80)}
-                        <span style="font-size: 24px; color: #fff; margin-top: 4px;">${p1.name}</span>
+                        ${renderArt(p1.art, 150)}
+                        <span style="font-size: 30px; color: #fff; margin-top: 6px; text-shadow: var(--outline-thick);">${p1.name}</span>
                     </div>
-                    <div style="font-size: 26px; color: #fff; text-shadow: var(--outline-med);">+</div>
+                    <div style="font-size: 50px; color: #fff; text-shadow: var(--outline-thick);">+</div>
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        ${renderArt(p2.art, 80)}
-                        <span style="font-size: 24px; color: #fff; margin-top: 4px;">${p2.name}</span>
+                        ${renderArt(p2.art, 150)}
+                        <span style="font-size: 30px; color: #fff; margin-top: 6px; text-shadow: var(--outline-thick);">${p2.name}</span>
                     </div>
                 </div>
             `;

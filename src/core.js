@@ -180,81 +180,109 @@
             `;
         }
 
+        const MOVE_DESC_ICON_HP = `<img src="Art/HP.png" alt="HP" style="width:1em; height:1em; vertical-align:middle; margin:0 1px;">`;
+        const MOVE_DESC_ICON_EN = `<img src="Art/EN.png" alt="EN" style="width:1em; height:1em; vertical-align:middle; margin:0 1px;">`;
+
+        function moveDescPos(text) {
+            return `<span style="color:#22c55e; font-weight:600;">${text}</span>`;
+        }
+
+        function moveDescNeg(text) {
+            return `<span style="color:#ef4444; font-weight:600;">${text}</span>`;
+        }
+
+        function moveDescPluralTurns(n) {
+            return n === 1 ? 'turn' : 'turns';
+        }
+
+        function moveDescPossessive(str) {
+            return str.endsWith('s') ? `${str}'` : `${str}'s`;
+        }
+
         function getMoveDescription(m) {
-            let description = '';
-            let effectDesc = '';
-            
+            let effectSentence = '';
+
             if (m.effect) {
                 const eff = m.effect;
-                let targetStr = eff.target === 'all_enemies' ? 'all enemies' : (eff.target === 'all_allies' ? 'all allies' : (eff.target === 'self' ? 'this monster' : 'the target'));
-                
-                if (eff.chance && eff.chance < 1) {
-                    if (eff.target === 'all_enemies') targetStr = 'each enemy';
-                    if (eff.target === 'all_allies') targetStr = 'each ally';
-                }
+                const turnsWord = moveDescPluralTurns(eff.turns);
+
+                // Whether the "Deals damage to ..." prefix already establishes this same target,
+                // making a repeated mention inside the effect sentence redundant.
+                const isAoEDamage = m.p > 0 && eff.target === 'all_enemies';
+                const isSingleEnemyDamage = m.p > 0 && eff.target === 'enemy';
+
+                let targetPhrase = null;
+                if (eff.target === 'all_enemies' && !isAoEDamage) targetPhrase = 'all enemies';
+                else if (eff.target === 'enemy' && !isSingleEnemyDamage) targetPhrase = 'an enemy';
+                else if (eff.target === 'all_allies') targetPhrase = 'all allies';
+                else if (eff.target === 'ally') targetPhrase = 'an ally';
+                // eff.target === 'self' (or redundant) intentionally leaves targetPhrase null
 
                 if (eff.type === 'atk_buff_pct') {
-                    effectDesc = `increases the damage of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
-                } else if (eff.type === 'guard_pct') {
-                    effectDesc = `reduces incoming damage to ${targetStr} by ${eff.value * 100}% until hit`;
-                } else if (eff.type === 'heal_flat') {
-                    effectDesc = `heals ${targetStr} for ${eff.value} HP`;
-                } else if (eff.type === 'heal_pct') {
-                    effectDesc = `heals ${targetStr} for ${eff.value * 100}% of their max HP`;
-                } else if (eff.type === 'sleep') {
-                    effectDesc = `has a ${eff.chance * 100}% chance to put ${targetStr} to sleep for up to ${eff.turns} turns`;
-                } else if (eff.type === 'poison_flat') {
-                    effectDesc = `poisons ${targetStr}, dealing ${eff.value} flat damage per turn for ${eff.turns} turns`;
-                } else if (eff.type === 'poison_pct') {
-                    effectDesc = `poisons ${targetStr}, dealing ${eff.value * 100}% of their max HP as damage per turn for ${eff.turns} turns`;
-                } else if (eff.type === 'toxin_pct') {
-                    effectDesc = `inflicts Toxin on ${targetStr}, dealing ${eff.value * 100}% of their max HP as damage per turn for ${eff.turns} turns`;
-                } else if (eff.type === 'stun') {
-                    effectDesc = `has a ${eff.chance * 100}% chance to stun ${targetStr} for ${eff.turns} turn(s)`;
-                } else if (eff.type === 'spd_buff_pct') {
-                    effectDesc = `increases the speed of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
-                } else if (eff.type === 'spd_debuff_pct') {
-                    effectDesc = `decreases the speed of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
+                    const who = targetPhrase ? `${moveDescPossessive(targetPhrase)} ` : '';
+                    effectSentence = `Increases ${who}damage by ${moveDescPos(eff.value * 100 + '%')} for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'atk_debuff_pct') {
-                    effectDesc = `decreases the damage of ${targetStr} by ${eff.value * 100}% for ${eff.turns} turns`;
+                    const who = moveDescPossessive(targetPhrase || 'the target');
+                    effectSentence = `Decreases ${who} damage by ${moveDescNeg(eff.value * 100 + '%')} for ${eff.turns} ${turnsWord}.`;
+                } else if (eff.type === 'spd_buff_pct') {
+                    const who = targetPhrase ? `${moveDescPossessive(targetPhrase)} ` : '';
+                    effectSentence = `Increases ${who}speed by ${moveDescPos(eff.value * 100 + '%')} for ${eff.turns} ${turnsWord}.`;
+                } else if (eff.type === 'spd_debuff_pct') {
+                    const who = moveDescPossessive(targetPhrase || 'the target');
+                    effectSentence = `Decreases ${who} speed by ${moveDescNeg(eff.value * 100 + '%')} for ${eff.turns} ${turnsWord}.`;
+                } else if (eff.type === 'guard_pct') {
+                    effectSentence = `Reduces incoming damage by ${moveDescPos(eff.value * 100 + '%')} until hit.`;
+                } else if (eff.type === 'heal_flat') {
+                    const who = targetPhrase || 'the target';
+                    effectSentence = `Heals ${who} for ${moveDescPos(eff.value)} ${MOVE_DESC_ICON_HP}.`;
+                } else if (eff.type === 'heal_pct') {
+                    const who = targetPhrase || 'the target';
+                    effectSentence = `Heals ${who} for ${moveDescPos(eff.value * 100 + '%')} of their max ${MOVE_DESC_ICON_HP}.`;
+                } else if (eff.type === 'sleep') {
+                    const who = targetPhrase ? ` ${targetPhrase}` : '';
+                    effectSentence = `Has a ${moveDescNeg(eff.chance * 100 + '%')} chance to Sleep${who} for up to ${eff.turns} ${turnsWord}.`;
+                } else if (eff.type === 'poison_flat') {
+                    const who = targetPhrase || 'the target';
+                    effectSentence = `Poisons ${who}, dealing ${moveDescNeg(eff.value)} damage per turn for ${eff.turns} ${turnsWord}.`;
+                } else if (eff.type === 'poison_pct') {
+                    const who = targetPhrase || 'the target';
+                    effectSentence = `Poisons ${who}, dealing ${moveDescNeg(eff.value * 100 + '%')} of their max ${MOVE_DESC_ICON_HP} as damage per turn for ${eff.turns} ${turnsWord}.`;
+                } else if (eff.type === 'toxin_pct') {
+                    const who = targetPhrase || 'the target';
+                    effectSentence = `Inflicts Toxin on ${who}, dealing ${moveDescNeg(eff.value * 100 + '%')} of their max ${MOVE_DESC_ICON_HP} as damage per turn for ${eff.turns} ${turnsWord}.`;
+                } else if (eff.type === 'stun') {
+                    const who = targetPhrase ? ` ${targetPhrase}` : '';
+                    effectSentence = `Has a ${moveDescNeg(eff.chance * 100 + '%')} chance to Stun${who} for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'regen_flat') {
-                    effectDesc = `applies health regeneration to ${targetStr}, healing ${eff.value} HP per turn for ${eff.turns} turns`;
+                    const who = targetPhrase ? ` to ${targetPhrase}` : '';
+                    effectSentence = `Grants Regeneration${who}, healing ${moveDescPos(eff.value)} ${MOVE_DESC_ICON_HP} per turn for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'regen_pct') {
-                    effectDesc = `applies health regeneration to ${targetStr}, healing ${eff.value * 100}% of their max HP per turn for ${eff.turns} turns`;
+                    const who = targetPhrase ? ` to ${targetPhrase}` : '';
+                    effectSentence = `Grants Regeneration${who}, healing ${moveDescPos(eff.value * 100 + '%')} of max ${MOVE_DESC_ICON_HP} per turn for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'brambles') {
-                    effectDesc = `grants ${targetStr} Thorns, reflecting ${eff.value} flat damage back to the attacker when hit by direct attacks for ${eff.turns} turns`;
+                    effectSentence = `Grants Thorns, reflecting ${moveDescPos(eff.value)} damage back to the attacker when hit for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'counter') {
-                    effectDesc = `applies Counter to ${targetStr} for ${eff.turns} turn(s). The next hit taken is completely negated and ${eff.value * 100}% of the damage is reflected back to the attacker`;
+                    effectSentence = `Grants Counter for ${eff.turns} ${turnsWord}. The next hit taken is completely negated and ${moveDescPos(eff.value * 100 + '%')} of the damage is reflected back to the attacker.`;
                 } else if (eff.type === 'taunt') {
-                    effectDesc = `taunts all enemies for ${eff.turns} turn(s), forcing them to attack ${targetStr}`;
+                    effectSentence = `Taunts all enemies for ${eff.turns} ${turnsWord}, forcing them to attack this monster.`;
                 } else if (eff.type === 'savage_stance_pct') {
-                    effectDesc = `grants ${targetStr} Savage Stance, granting a ${eff.guard_value * 100}% shield until hit and increasing damage by ${eff.atk_value * 100}% for ${eff.atk_turns} turns`;
+                    effectSentence = `Grants Savage Stance: a ${moveDescPos(eff.guard_value * 100 + '%')} shield until hit and ${moveDescPos(eff.atk_value * 100 + '%')} increased damage for ${eff.atk_turns} ${moveDescPluralTurns(eff.atk_turns)}.`;
                 } else if (eff.type === 'overcharge_buff') {
-                    effectDesc = `grants ${targetStr} a ${eff.value * 100}% chance to gain bonus energy upon attacking for ${eff.turns} turns`;
+                    effectSentence = `Grants ${moveDescPos(eff.value * 100 + '%')} chance to gain bonus ${MOVE_DESC_ICON_EN} upon attacking for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'lifesteal_buff') {
-                    effectDesc = `grants ${targetStr} lifesteal, causing their attacks to heal them for ${eff.value * 100}% of damage dealt for ${eff.turns} turns`;
+                    effectSentence = `Grants Lifesteal, causing attacks to heal this monster for ${moveDescPos(eff.value * 100 + '%')} of damage dealt for ${eff.turns} ${turnsWord}.`;
                 }
             }
-            
+
             if (m.p > 0) {
                 const isAoE = m.effect && m.effect.target === 'all_enemies';
                 const enemyTargetStr = isAoE ? 'all enemies' : 'an enemy';
-                if (m.hits > 1) {
-                    description = `Deals damage to ${enemyTargetStr} ${m.hits} times.`;
-                    if (effectDesc) {
-                        description = `Deals damage to ${enemyTargetStr} ${m.hits} times and ${effectDesc}.`;
-                    }
-                } else {
-                    description = `Deals damage to ${enemyTargetStr}.`;
-                    if (effectDesc) {
-                        description = `Deals damage to ${enemyTargetStr} and ${effectDesc}.`;
-                    }
-                }
-            } else if (effectDesc) {
-                description = effectDesc.charAt(0).toUpperCase() + effectDesc.slice(1) + '.';
-            } else {
-                description = "Deals damage.";
+                const hitsStr = m.hits > 1 ? ` ${m.hits} times` : '';
+                let description = `Deals damage to ${enemyTargetStr}${hitsStr}.`;
+                if (effectSentence) description += ` ${effectSentence}`;
+                return description;
+            } else if (effectSentence) {
+                return effectSentence;
             }
-
-            return description;
+            return "Deals damage.";
         }

@@ -31,7 +31,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.35,
+            "value": 0.4,
             "turns": 3,
             "target": "self"
           }
@@ -350,7 +350,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.45,
+            "value": 0.5,
             "turns": 3,
             "target": "self"
           }
@@ -706,7 +706,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.35,
+            "value": 0.4,
             "turns": 3,
             "target": "self"
           }
@@ -766,7 +766,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.35,
+            "value": 0.4,
             "turns": 3,
             "target": "self"
           }
@@ -822,7 +822,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.35,
+            "value": 0.4,
             "turns": 3,
             "target": "self"
           }
@@ -884,7 +884,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.35,
+            "value": 0.4,
             "turns": 3,
             "target": "self"
           }
@@ -1592,7 +1592,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.35,
+            "value": 0.4,
             "turns": 3,
             "target": "self"
           }
@@ -1977,7 +1977,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.35,
+            "value": 0.4,
             "turns": 3,
             "target": "self"
           }
@@ -2429,7 +2429,7 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.35,
+            "value": 0.4,
             "turns": 3,
             "target": "self"
           }

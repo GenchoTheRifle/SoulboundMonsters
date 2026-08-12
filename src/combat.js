@@ -1242,6 +1242,20 @@ let shadowClass = getShadowClass(u.name);
             return Math.min(92, Math.max(8, percent));
         }
 
+        // Ground-impact VFX (e.g. Slam) should land on the monster's shadow rather than its
+        // body center - find the actual .shadow-ellipse and use its vertical position instead
+        // of guessing a fixed percentage, since shadow size/offset varies per monster.
+        function getShadowTopPercent(positionEl) {
+            if (!positionEl) return 95;
+            const shadowEl = positionEl.querySelector('.shadow-ellipse');
+            const posRect = positionEl.getBoundingClientRect();
+            if (!shadowEl || !posRect.height) return 95;
+            const shadowRect = shadowEl.getBoundingClientRect();
+            const percent = ((shadowRect.top + shadowRect.height / 2) - posRect.top) / posRect.height * 100;
+            if (!isFinite(percent)) return 95;
+            return Math.min(100, Math.max(50, percent));
+        }
+
         async function executeMove(attacker, move, target) {
             if (isExecutingMove) return;
             if (attacker.energy < move.c) return;
@@ -1457,15 +1471,15 @@ let shadowClass = getShadowClass(u.name);
                         
                         const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
                         const maulImpactTop = getImpactTopPercent(artContainer);
-                        animEl.style.cssText = `position:absolute; top:${maulImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX}px), calc(-50% - 100px)) scale(1.5) ${flip}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;`;
+                        animEl.style.cssText = `position:absolute; top:${maulImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX}px), calc(-50% - 90px)) scale(1.3) ${flip}; width:215px; height:215px; z-index:100; pointer-events:none; opacity: 0;`;
                         artContainer.appendChild(animEl);
 
                         (async () => {
                             animEl.animate([
-                                { opacity: 0, transform: `translate(calc(-50% + ${startX}px), calc(-50% - 100px)) scale(1.5) ${flip}` },
-                                { opacity: 1, transform: `translate(-50%, calc(-50% - 20px)) scale(1.2) ${flip}`, offset: 0.4 },
-                                { opacity: 1, transform: `translate(calc(-50% + ${endX * 0.2}px), calc(-50%)) scale(1.2) ${flip}`, offset: 0.7 },
-                                { opacity: 0, transform: `translate(calc(-50% + ${endX}px), calc(-50% + 20px)) scale(0.8) ${flip}` }
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX}px), calc(-50% - 90px)) scale(1.3) ${flip}` },
+                                { opacity: 1, transform: `translate(-50%, calc(-50% - 17px)) scale(1.1) ${flip}`, offset: 0.4 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX * 0.2}px), calc(-50%)) scale(1.1) ${flip}`, offset: 0.7 },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX}px), calc(-50% + 17px)) scale(0.75) ${flip}` }
                             ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
                             
                             setTimeout(() => {
@@ -1502,24 +1516,24 @@ let shadowClass = getShadowClass(u.name);
                         const endX2 = attacker.isEnemy ? -80 : 80;
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
                         const devourImpactTop = getImpactTopPercent(artContainer);
-                        animEl1.style.cssText = `position:absolute; top:${devourImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX1}px), calc(-50% - 100px)) scale(1.5) ${flip1}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
-                        animEl2.style.cssText = `position:absolute; top:${devourImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX2}px), calc(-50% - 100px)) scale(1.5) ${flip2}; width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
+                        animEl1.style.cssText = `position:absolute; top:${devourImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX1}px), calc(-50% - 80px)) scale(1.15) ${flip1}; width:190px; height:190px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
+                        animEl2.style.cssText = `position:absolute; top:${devourImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX2}px), calc(-50% - 80px)) scale(1.15) ${flip2}; width:190px; height:190px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
 
                         artContainer.appendChild(animEl1);
                         artContainer.appendChild(animEl2);
-                        
+
                         (async () => {
                             animEl1.animate([
-                                { opacity: 0, transform: `translate(calc(-50% + ${startX1}px), calc(-50% - 100px)) scale(1.5) ${flip1}` },
-                                { opacity: 1, transform: `translate(-50%, calc(-50% - 20px)) scale(1.2) ${flip1}`, offset: 0.4 },
-                                { opacity: 1, transform: `translate(calc(-50% + ${endX1 * 0.2}px), calc(-50%)) scale(1.2) ${flip1}`, offset: 0.7 },
-                                { opacity: 0, transform: `translate(calc(-50% + ${endX1}px), calc(-50% + 20px)) scale(0.8) ${flip1}` }
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX1}px), calc(-50% - 80px)) scale(1.15) ${flip1}` },
+                                { opacity: 1, transform: `translate(-50%, calc(-50% - 15px)) scale(1.05) ${flip1}`, offset: 0.4 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX1 * 0.2}px), calc(-50%)) scale(1.05) ${flip1}`, offset: 0.7 },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX1}px), calc(-50% + 15px)) scale(0.7) ${flip1}` }
                             ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
                             animEl2.animate([
-                                { opacity: 0, transform: `translate(calc(-50% + ${startX2}px), calc(-50% - 100px)) scale(1.5) ${flip2}` },
-                                { opacity: 1, transform: `translate(-50%, calc(-50% - 20px)) scale(1.2) ${flip2}`, offset: 0.4 },
-                                { opacity: 1, transform: `translate(calc(-50% + ${endX2 * 0.2}px), calc(-50%)) scale(1.2) ${flip2}`, offset: 0.7 },
-                                { opacity: 0, transform: `translate(calc(-50% + ${endX2}px), calc(-50% + 20px)) scale(0.8) ${flip2}` }
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX2}px), calc(-50% - 80px)) scale(1.15) ${flip2}` },
+                                { opacity: 1, transform: `translate(-50%, calc(-50% - 15px)) scale(1.05) ${flip2}`, offset: 0.4 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX2 * 0.2}px), calc(-50%)) scale(1.05) ${flip2}`, offset: 0.7 },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX2}px), calc(-50% + 15px)) scale(0.7) ${flip2}` }
                             ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
                             
                             setTimeout(() => {
@@ -1638,14 +1652,15 @@ let shadowClass = getShadowClass(u.name);
                         const animEl = document.createElement('img');
                         animEl.src = "Art/Slam_1.png";
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
-                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1.1); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        const slamShadowTop = getShadowTopPercent(artContainer);
+                        animEl.style.cssText = `position:absolute; top:${slamShadowTop}%; left:50%; transform:translate(-50%, -50%) scale(1.1); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         artContainer.appendChild(animEl);
-                        
+
                         (async () => {
                             animEl.animate([
-                                { opacity: 0, transform: `translate(-50%, -250px) scale(1.1)` },
-                                { opacity: 1, transform: `translate(-50%, -150px) scale(1.1)` },
-                                { opacity: 1, transform: `translate(-50%, -20%) scale(1.1)` }
+                                { opacity: 0, transform: `translate(-50%, -400px) scale(1.1)` },
+                                { opacity: 1, transform: `translate(-50%, -200px) scale(1.1)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.1)` }
                             ], { duration: 350, easing: 'ease-in', fill: 'forwards' });
                             
                             await new Promise(r => setTimeout(r, 350));
@@ -1679,7 +1694,7 @@ let shadowClass = getShadowClass(u.name);
                         const endX = attacker.isEnemy ? '50px' : '-50px';
                         
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
-                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer, 15)}%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         artContainer.appendChild(animEl);
 
                         (async () => {
@@ -1720,7 +1735,7 @@ let shadowClass = getShadowClass(u.name);
                         const startX = attacker.isEnemy ? '90px' : '-90px';
                         
                         const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
-                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer, 15)}%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
                         artContainer.appendChild(animEl);
                         const echoPreload = preloadSpriteFrames('Echo', 2, 7);
 

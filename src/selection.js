@@ -218,7 +218,7 @@
         // through showMergeResultDetails to show the full collection card.
         function showRecruitmentAlert(recruit, onDone) {
             document.getElementById('recruit-message').innerText = `Defeated ${recruit.name} joined your party!`;
-            document.getElementById('recruit-art').innerHTML = renderArt(recruit.art, 220);
+            document.getElementById('recruit-art').innerHTML = renderArt(recruit.art, 240);
             document.getElementById('recruit-type-icon').innerHTML = buildTypeIconHtml(recruit);
 
             const modal = document.getElementById('modal-recruitment');
@@ -387,11 +387,11 @@
                 
                 let extraLabels = '';
                 if (s.id === 'wolf') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #c62828; padding: 3px 10px; border-radius: 4px; font-size: 14px; font-weight: normal; border: 1px solid #ff5252; z-index: 10;">Attacker</div>`;
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #c62828; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; border: 1px solid #ff5252; z-index: 10;">Attacker</div>`;
                 } else if (s.id === 'slime') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #1565c0; padding: 3px 10px; border-radius: 4px; font-size: 14px; font-weight: normal; border: 1px solid #42a5f5; z-index: 10;">Defender</div>`;
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #1565c0; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; border: 1px solid #42a5f5; z-index: 10;">Defender</div>`;
                 } else if (s.id === 'sentry') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #e6c200; padding: 3px 10px; border-radius: 4px; font-size: 14px; font-weight: normal; color: black; border: 1px solid #ffee58; z-index: 10;">Balanced</div>`;
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #e6c200; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; color: #fff; border: 1px solid #ffee58; z-index: 10;">Balanced</div>`;
                 }
                 
                 let elementIcon = `<div style="position: absolute; top: 5px; right: 5px; filter: drop-shadow(0px 0px 2px #000);">${getTypeIconHtml(s.type, 40)}</div>`;
