@@ -74,15 +74,17 @@
             if (s) {
                 slot.classList.add('filled');
                 slot.innerHTML = `
-                    <div draggable="true" ondragstart="dragStart(event, 'merge', ${i})" style="width:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; cursor:grab;">
-                        <div class="monster-art-container" style="pointer-events: none;">
+                    <div draggable="true" ondragstart="dragStart(event, 'merge', ${i})" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:grab;">
+                        <div class="monster-art-container" style="pointer-events: none; width:210px; height:210px; margin-bottom: 0;">
                             <div class="art-content" style="position: relative;">
                                 ${s.art.includes(".png") ? `<img src="${s.art}" draggable="false" />` : `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${s.art}</div>`}
                             </div>
                             <div class="shadow-ellipse ${getShadowClass(s.name)}"></div>
                         </div>
-                        <strong style="font-size:24px; text-align:center; pointer-events:none; text-shadow: var(--outline-med);">${s.name}</strong>
-                        <div style="width:100%; padding:0 16px; pointer-events:none;">${getMiniHpEnergyHtml(s)}</div>
+                        <div style="position: relative; z-index: 10; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                            <strong style="font-size:22px; text-align:center; pointer-events:none; text-shadow: var(--outline-med);">${s.name}</strong>
+                            <div style="width:100%; padding:0 16px; pointer-events:none;">${getMiniHpEnergyHtml(s)}</div>
+                        </div>
                     </div>
                 `;
             } else {
@@ -110,21 +112,23 @@
 
                 if (isUnlocked) {
                     outcomeDiv.innerHTML = `
-                        <h4 style="margin: 0 0 10px 0; color: #aaa; text-shadow: var(--outline-thin);">OUTCOME</h4>
+                        <h4 style="margin: 0 0 10px 0; color: #fff; font-size: 24px; text-shadow: var(--outline-thin);">OUTCOME</h4>
                         <div class="merge-outcome-box">
-                            <div class="monster-art-container" style="pointer-events: none; width: 100%; height: 190px;">
+                            <div class="monster-art-container" style="pointer-events: none; width: 100%; height: 220px;">
                                 <div class="art-content" style="position: relative;">
-                                    ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" style="max-height:190px;" />` : `<div style="font-size:110px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
+                                    ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" style="max-height:220px;" />` : `<div style="font-size:110px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
                                 </div>
                                 <div class="shadow-ellipse ${getShadowClass(outcome.name)}"></div>
                             </div>
-                            <strong style="font-size: 28px; margin-top: 8px; color: var(--accent); text-align: center; text-shadow: var(--outline-med);">${outcome.name}</strong>
-                            <div style="width: 100%; padding: 0 12px; margin-top: 8px;">${getMiniHpEnergyHtml(outcome)}</div>
+                            <div style="position: relative; z-index: 10; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                                <strong style="font-size: 32px; margin-top: 8px; color: #fff; text-align: center; text-shadow: var(--outline-med);">${outcome.name}</strong>
+                                <div style="width: 100%; padding: 0 12px; margin-top: 8px;">${getMiniHpEnergyHtml(outcome)}</div>
+                            </div>
                         </div>
                     `;
                 } else {
                     outcomeDiv.innerHTML = `
-                        <h4 style="margin: 0 0 10px 0; color: #aaa; text-shadow: var(--outline-thin);">OUTCOME</h4>
+                        <h4 style="margin: 0 0 10px 0; color: #fff; font-size: 24px; text-shadow: var(--outline-thin);">OUTCOME</h4>
                         <div class="merge-outcome-box">
                             <div style="font-size: 88px; color: #fff; text-shadow: var(--outline-thick);">?</div>
                             <strong style="font-size: 26px; margin-top: 14px; color: #ffd700; text-shadow: var(--outline-med);">NEW MERGE</strong>
@@ -146,7 +150,9 @@
 
         const btnFinish = document.getElementById('btn-finish-merge');
         if (btnFinish) {
-            btnFinish.classList.toggle('merge-btn-pulse', !hasAnyPossibleMerge());
+            const canStillMerge = hasAnyPossibleMerge();
+            btnFinish.textContent = canStillMerge ? 'SKIP' : 'DONE';
+            btnFinish.classList.toggle('merge-btn-pulse', !canStillMerge);
         }
     }
 

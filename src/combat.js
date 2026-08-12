@@ -571,7 +571,11 @@
 
             const energy = unit.energy;
             document.getElementById('energy-display').innerHTML = `<div style="display:flex; justify-content:center; align-items:center; gap:5px;"><img src="Art/EN.png" style="width:24px;height:24px;filter:drop-shadow(1px 1px 1px black);" alt="EN" /><span style="font-size:28px; font-weight: normal; color:white; text-shadow:var(--outline-med);">${energy}</span></div>`;
-            document.getElementById('combat-log').innerHTML = combatState.log.slice(-5).join('<br>');
+            const logEl = document.getElementById('combat-log');
+            if (logEl) {
+                logEl.innerHTML = combatState.log.slice(-50).join('<br>');
+                logEl.scrollTop = logEl.scrollHeight;
+            }
             
             const endTurnBtn = document.getElementById('btn-end-turn');
             if (endTurnBtn) {
@@ -610,6 +614,13 @@
             let isTargeting = !!combatState.targetingMove;
             if (isTargeting && u.currentHp > 0) {
                 const targetType = combatState.targetingMove.effect?.target || "enemy";
+                if (targetType === "self") {
+                    isTargetable = (u === combatState.activeUnit);
+                } else if (targetType === "all_allies") {
+                    isTargetable = (!!u.isEnemy === !!combatState.activeUnit.isEnemy);
+                } else if (targetType === "all_enemies") {
+                    isTargetable = (!!u.isEnemy !== !!combatState.activeUnit.isEnemy);
+                }
                 let isCorrectSide = false;
                 if (targetType === "ally") {
                     isCorrectSide = !u.isEnemy;
@@ -617,7 +628,7 @@
                     isCorrectSide = u.isEnemy;
                 }
 
-                if (isCorrectSide) {
+                if (targetType !== "self" && targetType !== "all_allies" && targetType !== "all_enemies" && isCorrectSide) {
                     const targetTeam = u.isEnemy ? combatState.enemies : currentRun.party;
                     const tauntingTargets = targetTeam.filter(e => e && e.currentHp > 0 && e.buffs && e.buffs.some(b => b.type === 'taunt'));
                     
@@ -1013,8 +1024,11 @@ let shadowClass = getShadowClass(u.name);
                 isBasicAttack: true
             };
             combatState.targetingMove = move;
-            combatLog("Select a target!");
-            updateCombatUI();
+            if (combatState.log[combatState.log.length - 1] !== "Select a target!") {
+                combatLog("Select a target!");
+            } else {
+                updateCombatUI();
+            }
             renderMoveControls(unit);
         }
 
@@ -1123,15 +1137,13 @@ let shadowClass = getShadowClass(u.name);
                     </div>
                 `;
                 btn.onclick = () => {
-                    const targetType = m.effect?.target || "enemy";
-                    if (targetType === "self" || targetType === "all_allies" || targetType === "all_enemies") {
-                        executeMove(unit, m, unit); // target doesn't matter for AoE/self
-                    } else {
-                        combatState.targetingMove = m;
+                    combatState.targetingMove = m;
+                    if (combatState.log[combatState.log.length - 1] !== "Select a target!") {
                         combatLog("Select a target!");
+                    } else {
                         updateCombatUI();
-                        renderMoveControls(unit);
                     }
+                    renderMoveControls(unit);
                 };
                 container.appendChild(btn);
             });
@@ -2542,8 +2554,27 @@ let shadowClass = getShadowClass(u.name);
         }
 
         function combatLog(msg) {
-            combatState.log.push(msg);
+            combatState.log.push(colorizeCombatLogMessage(msg));
             updateCombatUI();
+        }
+
+        function colorizeCombatLogMessage(msg) {
+            const units = [...(currentRun && currentRun.party ? currentRun.party : []), ...(combatState.enemies || [])];
+            const seen = new Set();
+            const uniqueUnits = units.filter(u => {
+                if (!u || !u.name || seen.has(u.name)) return false;
+                seen.add(u.name);
+                return true;
+            }).sort((a, b) => b.name.length - a.name.length);
+
+            let result = msg;
+            uniqueUnits.forEach(u => {
+                const escapedName = u.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const re = new RegExp(`\\b${escapedName}\\b`, 'g');
+                const cls = u.isEnemy ? 'log-enemy' : 'log-ally';
+                result = result.replace(re, `<span class="${cls}">${u.name}</span>`);
+            });
+            return result;
         }
 
         function endCombat(isWin) {
@@ -2605,9 +2636,9 @@ let shadowClass = getShadowClass(u.name);
                                 if (outcome) {
                                     const mergeArt = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; gap: 10px; height:150px;">
                                         <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p1.art, 100)}</div>
-                                        <span style="font-size: 24px;">+</span> 
+                                        <span style="font-size: 48px;">+</span>
                                         <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p2.art, 100)}</div>
-                                        <span style="font-size: 24px;">=</span> 
+                                        <span style="font-size: 48px;">=</span>
                                         <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(outcome.art, 150)}</div>
                                     </div>`;
                                     

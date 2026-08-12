@@ -67,7 +67,10 @@
             
             const filledCount = selectionSlots.filter(s => s !== null).length;
             const btnStart = document.getElementById('btn-start-run');
-            if (btnStart) btnStart.disabled = filledCount !== 2;
+            if (btnStart) {
+                btnStart.disabled = filledCount !== 2;
+                btnStart.classList.toggle('merge-btn-pulse', filledCount === 2);
+            }
 
             // Render available starters
             const list = document.getElementById('selection-list');
@@ -90,13 +93,14 @@
                 btn.style.height = '100%';
                 if (isSelected) {
                     btn.style.opacity = '0.3';
-                    btn.style.pointerEvents = 'none';
                     btn.style.filter = 'grayscale(1)';
                 } else {
                     btn.style.cursor = 'grab';
                     btn.setAttribute('draggable', 'true');
                     btn.ondragstart = (e) => dragStartSelection(e, id, null);
                 }
+                btn.style.cursor = btn.style.cursor || 'pointer';
+                btn.onclick = () => openCollectionDetails(s, true, false);
                 btn.innerHTML = `
                     <div class="monster-art" style="flex: 1; min-height: 0; pointer-events: none;">${renderArt(s.art, 160)}</div>
                     <strong style="pointer-events: none;">${s.name}</strong>
