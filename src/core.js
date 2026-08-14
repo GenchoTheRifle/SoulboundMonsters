@@ -165,7 +165,7 @@
                         <img src="Art/HP.png" style="width:16px; height:16px; filter:drop-shadow(1px 1px 1px black);" alt="HP" />
                         <div class="hp-bar" style="flex:1; position:relative; width:100%; height:13px; background:#222; border-radius:4px; overflow:hidden;">
                             <div class="hp-fill" style="height:100%; width:${hpPerc}%; background-color:${hpColor};"></div>
-                            <div class="hp-text" style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; color:white; font-size:11px; font-weight: normal; text-shadow:var(--outline-thin);">
+                            <div class="hp-text move-description-text" style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; color:white; font-size:12px;">
                                 ${Math.ceil(curHp)}/${maxHp}
                             </div>
                         </div>

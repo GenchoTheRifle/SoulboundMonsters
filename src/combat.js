@@ -294,7 +294,7 @@
             const fromEl = getElementForUnit(fromUnit);
             const toEl = getElementForUnit(toUnit);
             if (!arenaEl || !fromEl || !toEl) {
-                showFloatingText(toUnit, energyGainHtml(amount), "#00a8ff");
+                showFloatingText(toUnit, energyGainHtml(amount), "#00a8ff", 'energy');
                 return;
             }
 
@@ -336,10 +336,45 @@
             await flyAnim.finished;
 
             if (orb.parentNode) orb.parentNode.removeChild(orb);
-            showFloatingText(toUnit, energyGainHtml(amount), "#00a8ff");
+            showFloatingText(toUnit, energyGainHtml(amount), "#00a8ff", 'energy');
         }
 
-        function showFloatingText(unit, text, color) {
+        // Floating combat numbers (damage/heal/energy) are queued per-unit so that several that
+        // land in the same instant (e.g. thorns damage + lifesteal heal + a kill's energy gain,
+        // all on the same attacker) show one after another instead of stacking on top of each
+        // other. Entries queued within the same batch are ordered damage -> heal -> energy.
+        const floatingTextQueues = new Map();
+        const FLOATING_TEXT_ORDER = { damage: 0, heal: 1, energy: 2 };
+        const FLOATING_TEXT_STAGGER = 500;
+
+        function showFloatingText(unit, text, color, category = 'damage') {
+            if (!unit) return;
+            let q = floatingTextQueues.get(unit);
+            if (!q) {
+                q = { pending: [], active: false };
+                floatingTextQueues.set(unit, q);
+            }
+            q.pending.push({ text, color, category });
+            if (!q.active) {
+                q.active = true;
+                // Defer to the next tick so any other synchronous showFloatingText calls this
+                // same frame (e.g. thorns + lifesteal from one hit) join this batch before it's sorted.
+                setTimeout(() => processFloatingTextQueue(unit, q), 0);
+            }
+        }
+
+        function processFloatingTextQueue(unit, q) {
+            if (q.pending.length === 0) {
+                q.active = false;
+                return;
+            }
+            q.pending.sort((a, b) => (FLOATING_TEXT_ORDER[a.category] ?? 0) - (FLOATING_TEXT_ORDER[b.category] ?? 0));
+            const entry = q.pending.shift();
+            renderFloatingText(unit, entry.text, entry.color);
+            setTimeout(() => processFloatingTextQueue(unit, q), FLOATING_TEXT_STAGGER);
+        }
+
+        function renderFloatingText(unit, text, color) {
             const teamPrefix = unit.isEnemy ? 'enemy' : 'player';
             let index = -1;
             if (unit.isEnemy) {
@@ -348,18 +383,18 @@
                 index = currentRun.party.indexOf(unit);
             }
             if (index === -1) return;
-            
+
             const teamContainer = document.getElementById(teamPrefix + '-team');
             if (!teamContainer || !teamContainer.children[index]) return;
             const unitEl = teamContainer.children[index];
-            
+
             const textEl = document.createElement('div');
             textEl.className = 'floating-damage';
             textEl.style.color = color;
             textEl.innerHTML = text;
-            
+
             unitEl.appendChild(textEl);
-            
+
             setTimeout(() => {
                 if (textEl && textEl.parentNode) {
                     textEl.parentNode.removeChild(textEl);
@@ -676,7 +711,7 @@
                         html += `<img src="Art/Ability Evolution.png" style="position:absolute; top:-4px; left:-4px; width:16px; height:16px; z-index:3; filter: drop-shadow(0 0 3px rgba(50,150,255,0.9));" title="Evolved" />`;
                     }
                     if (turns !== undefined && turns > 0) {
-                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
+                        html += `<div style="position:absolute; bottom:-4px; right:-4px; background:rgba(0,0,0,0.7); color:white; font-size:13px; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
                     }
                     html += `</div>`;
                     return html;
@@ -686,7 +721,7 @@
                     let html = `<div style="position:relative; display:inline-flex; align-items:center; justify-content:center; background:#333; border-radius:5px; border: 1px solid #777; width:40px; height:40px; ${style}" title="${title}">
                         <span style="font-size:24px;">${emoji}</span>`;
                     if (turns !== undefined && turns > 0) {
-                        html += `<div style="position:absolute; bottom:-2px; right:-2px; background:rgba(0,0,0,0.7); color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
+                        html += `<div style="position:absolute; bottom:-4px; right:-4px; background:rgba(0,0,0,0.7); color:white; font-size:13px; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
                     }
                     html += `</div>`;
                     return html;
@@ -757,14 +792,14 @@ let shadowClass = getShadowClass(u.name);
                         <div class="type-icon-container" style="position: absolute; top: -10px; ${iconPosition} z-index: 11;">
                             ${typeIconHtml}
                         </div>
-                        <div class="name" style="text-align: center; color: white; font-weight: normal; font-size: 20px; text-shadow: var(--outline-med); margin-bottom: 4px;">
+                        <div class="name" style="text-align: center; color: white; font-weight: normal; font-size: 26px; text-shadow: var(--outline-med); margin-bottom: 4px;">
                             ${u.name}
                         </div>
                         <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                             <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
                             <div class="hp-bar" style="flex: 1; position: relative;">
                                 <div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor}; transition: width 1.5s ease-out, background-color 1.5s ease-out;"></div>
-                                <div class="hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: normal; text-shadow: var(--outline-thin); pointer-events: none;" data-current-hp="${Math.ceil(u.currentHp)}">
+                                <div class="hp-text move-description-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; pointer-events: none;" data-current-hp="${Math.ceil(u.currentHp)}">
                                     ${Math.ceil(u.currentHp)}/${u.hp}
                                 </div>
                             </div>
@@ -913,7 +948,7 @@ let shadowClass = getShadowClass(u.name);
                     if (b.type === 'regen' || b.type === 'regen_flat' || b.type === 'regen_pct') {
                         const healAmount = b.type === 'regen_pct' ? Math.floor(unit.hp * b.value) : b.value;
                         unit.currentHp = Math.min(unit.hp, unit.currentHp + healAmount);
-                        showFloatingText(unit, "+" + healAmount, "#51cf66");
+                        showFloatingText(unit, "+" + healAmount, "#51cf66", 'heal');
                         playHealVFX(unit);
                         combatLog(`${unit.name} regenerated ${healAmount} HP!`);
                     }
@@ -933,7 +968,7 @@ let shadowClass = getShadowClass(u.name);
                 await playStatusVFX(unit, 'Poison', () => {
                     const dmg = unit.poison;
                     unit.currentHp -= dmg;
-                    showFloatingText(unit, "-" + dmg, "#a200ff");
+                    showFloatingText(unit, "-" + dmg, "#a200ff", 'damage');
                     unit.poisonTurns--;
                     if (unit.poisonTurns <= 0) unit.poison = 0;
                     
@@ -961,7 +996,7 @@ let shadowClass = getShadowClass(u.name);
                 await playStatusVFX(unit, 'Toxin', () => {
                     const dmg = unit.toxin;
                     unit.currentHp -= dmg;
-                    showFloatingText(unit, "-" + dmg, "#a200ff");
+                    showFloatingText(unit, "-" + dmg, "#a200ff", 'damage');
                     unit.toxinTurns--;
                     if (unit.toxinTurns <= 0) unit.toxin = 0;
                     
@@ -1039,7 +1074,7 @@ let shadowClass = getShadowClass(u.name);
             const before = unit.energy;
             unit.energy = Math.min(maxE, unit.energy + gainE);
             const actualGain = unit.energy - before;
-            if (actualGain > 0) showFloatingText(unit, energyGainHtml(actualGain), "#00a8ff");
+            if (actualGain > 0) showFloatingText(unit, energyGainHtml(actualGain), "#00a8ff", 'energy');
             unit.gainEnergyOnAdvance = false;
         }
 
@@ -2092,7 +2127,7 @@ let shadowClass = getShadowClass(u.name);
                                 const counterDamage = Math.floor(damage * counterBuff.value);
                                 t.buffs.splice(counterBuffIdx, 1); // remove counter after hit
                                 attacker.currentHp -= counterDamage;
-                                showFloatingText(attacker, "-" + counterDamage, "#ff4444");
+                                showFloatingText(attacker, "-" + counterDamage, "#ff4444", 'damage');
                                 combatLog(`${t.name} countered! ${attacker.name} took ${counterDamage} damage!`);
                                 if (attacker.currentHp <= 0) {
                                     if (attacker.isEnemy && !combatState.firstKilledEnemy) combatState.firstKilledEnemy = attacker;
@@ -2119,7 +2154,7 @@ let shadowClass = getShadowClass(u.name);
                             let arrow = '';
                             if (dmgMult > 1) arrow = ' <span style="color:#ffcc00; text-shadow: var(--outline-thick);">↑</span>';
                             else if (dmgMult < 1) arrow = ' <span style="color:#aaa; text-shadow: var(--outline-thick);">↓</span>';
-                            showFloatingText(t, "-" + damage + arrow, "#ff4444");
+                            showFloatingText(t, "-" + damage + arrow, "#ff4444", 'damage');
                             combatLog(`${t.name} took ${damage} damage!`);
 
                             const targetEl = getElementForUnit(t);
@@ -2141,7 +2176,7 @@ let shadowClass = getShadowClass(u.name);
                                 const reflectAmt = bramblesBuffs[0].value;
                                 if (reflectAmt > 0) {
                                     attacker.currentHp -= reflectAmt;
-                                    showFloatingText(attacker, "-" + reflectAmt, "#ff4444");
+                                    showFloatingText(attacker, "-" + reflectAmt, "#ff4444", 'damage');
                                     combatLog(`${attacker.name} took ${reflectAmt} damage from Thorns!`);
                                     if (attacker.currentHp <= 0) {
                                         if (attacker.isEnemy && !combatState.firstKilledEnemy) combatState.firstKilledEnemy = attacker;
@@ -2168,7 +2203,7 @@ let shadowClass = getShadowClass(u.name);
                                 const healAmt = Math.floor(damage * lifestealAmt);
                                 if (healAmt > 0) {
                                     attacker.currentHp = Math.min(attacker.hp, attacker.currentHp + healAmt);
-                                    showFloatingText(attacker, "+" + healAmt, "#51cf66");
+                                    showFloatingText(attacker, "+" + healAmt, "#51cf66", 'heal');
                                     playHealVFX(attacker);
                                     combatLog(`${attacker.name} lifestealed ${healAmt} HP!`);
                                 }
@@ -2179,7 +2214,7 @@ let shadowClass = getShadowClass(u.name);
                                 const chance = overchargeBuffs[0].value || 0.2;
                                 if (Math.random() < chance) {
                                     attacker.energy = Math.min(attacker.isBoss ? 5 : 3, attacker.energy + 1);
-                                    showFloatingText(attacker, energyGainHtml(1), "#00a8ff");
+                                    showFloatingText(attacker, energyGainHtml(1), "#00a8ff", 'energy');
                                     combatLog(`${attacker.name} gained bonus energy from Overcharge!`);
                                 }
                             }
@@ -2273,7 +2308,7 @@ let shadowClass = getShadowClass(u.name);
                             amount = eff.value || Math.floor((attacker.matk + attacker.ratk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
                         }
                         t.currentHp = Math.min(t.hp, t.currentHp + amount);
-                        showFloatingText(t, "+" + amount, "#51cf66");
+                        showFloatingText(t, "+" + amount, "#51cf66", 'heal');
                         playHealVFX(t);
                         combatLog(`${t.name} was healed for ${amount}!`);
                     } else if (eff.type === 'stun' && Math.random() < eff.chance) {

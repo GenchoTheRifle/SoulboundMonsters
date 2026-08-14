@@ -142,6 +142,7 @@
                         ${isMerge ? `<div class="detail-parents-box" style="text-align: center;">${parentsHtml}</div>` : ''}
                     </div>
                     <div class="detail-column-stats">
+                        <div class="detail-section-label">Stats</div>
                         <div class="stats-row">${statsHtml}</div>
                         <div class="detail-section-label">Moves</div>
                         <div class="moves-list">${movesHtml}</div>

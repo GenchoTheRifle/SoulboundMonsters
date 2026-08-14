@@ -731,7 +731,7 @@ button, input, select, textarea {
         }
 
         .combatant .name {
-            font-size: 18px;
+            font-size: 26px;
             font-weight: normal;
             white-space: nowrap;
             
@@ -1060,12 +1060,21 @@ button, input, select, textarea {
         }
 
         .detail-column-stats > .stats-row {
+            font-size: 30px;
+            text-shadow: var(--outline-med);
+            padding: 14px;
+            gap: 10px 20px;
             margin-bottom: 20px;
+        }
+
+        .detail-column-stats > .stats-row img {
+            width: 34px !important;
+            height: 34px !important;
         }
 
         .detail-section-label {
             color: #fff;
-            font-size: 26px;
+            font-size: 40px;
             text-shadow: var(--outline-med);
             font-weight: normal;
             margin-bottom: 15px;
