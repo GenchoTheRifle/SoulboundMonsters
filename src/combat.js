@@ -393,6 +393,14 @@
             textEl.style.color = color;
             textEl.innerHTML = text;
 
+            // Anchor to the monster's actual head instead of the CSS default (a fixed offset from
+            // the art box top), which sits well above the head for monsters whose art doesn't fill
+            // the box. Falls back to the CSS default (20px) when art bounds aren't measurable yet.
+            const headTop = getArtHeadTopPx(unitEl);
+            if (headTop !== null) {
+                textEl.style.top = `${headTop + 20}px`;
+            }
+
             unitEl.appendChild(textEl);
 
             setTimeout(() => {
@@ -590,7 +598,14 @@
                         const idx = u.isEnemy ? combatState.enemies.indexOf(u) : currentRun.party.indexOf(u);
                         const teamEl = document.getElementById(u.isEnemy ? 'enemy-team' : 'player-team');
                         if (teamEl && teamEl.children[idx]) {
-                            teamEl.children[idx].classList.add('timeline-hover');
+                            const unitEl = teamEl.children[idx];
+                            unitEl.classList.add('timeline-hover');
+                            // Anchor the hover arrow above the monster's actual head rather than a
+                            // fixed offset from the art box top (see getArtHeadTopPx).
+                            const headTop = getArtHeadTopPx(unitEl);
+                            if (headTop !== null) {
+                                unitEl.style.setProperty('--hover-arrow-top', `${headTop - 30}px`);
+                            }
                         }
                     };
                     div.onmouseleave = () => {
@@ -864,6 +879,11 @@ let shadowClass = getShadowClass(u.name);
                                 dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight: normal; color:#ff4444; z-index:50; text-shadow:var(--outline-thick); pointer-events:none;';
                                 div.appendChild(dmgEl);
                             }
+                            // Anchor above the monster's actual head (see getArtHeadTopPx) instead of
+                            // the fixed -30px offset baked into cssText above, which sits well above
+                            // the head for monsters whose art doesn't fill the (bottom-aligned) box.
+                            const headTop = getArtHeadTopPx(div);
+                            if (headTop !== null) dmgEl.style.top = `${headTop - 30}px`;
                             // Calculate hit count for total damage preview if it's a multi-hit move
                             const hitCount = combatState.targetingMove.hits || 1;
                             const totalDmg = dmg * hitCount;
@@ -886,7 +906,9 @@ let shadowClass = getShadowClass(u.name);
                                 dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight: normal; color:#51cf66; z-index:50; text-shadow:var(--outline-thick); pointer-events:none;';
                                 div.appendChild(dmgEl);
                             }
-                            
+                            const headTop = getArtHeadTopPx(div);
+                            if (headTop !== null) dmgEl.style.top = `${headTop - 30}px`;
+
                             const eff = combatState.targetingMove.effect;
                             let amount = 0;
                             if (eff.type === 'heal_pct') {
@@ -1035,6 +1057,9 @@ let shadowClass = getShadowClass(u.name);
             combatState.activeUnit = unit;
             combatState.isPlayerTurn = !unit.isEnemy;
             updateCombatUI();
+
+            const energyDisplayEl = document.getElementById('energy-display');
+            if (energyDisplayEl) energyDisplayEl.classList.toggle('energy-visible', combatState.isPlayerTurn);
 
             if (combatState.isPlayerTurn) {
                 renderMoveControls(unit);
@@ -1202,6 +1227,8 @@ let shadowClass = getShadowClass(u.name);
         // a full-height/floating one fills the box top-to-bottom. Hitting literal box-center misses low
         // over short monsters. We measure each art file's actual opaque pixel bounds once (cached by
         // src) and use that as the true vertical anchor for impact VFX instead of a flat 50%.
+        // Cache values are { center, top }: fractions (0-1) down the image of the opaque
+        // pixels' vertical center and topmost row, respectively.
         const _artHitFractionCache = new Map();
         function computeArtHitFraction(img, src) {
             try {
@@ -1230,10 +1257,10 @@ let shadowClass = getShadowClass(u.name);
                     }
                 }
                 if (maxY >= 0) {
-                    _artHitFractionCache.set(src, ((minY + maxY) / 2) / ch);
+                    _artHitFractionCache.set(src, { center: ((minY + maxY) / 2) / ch, top: minY / ch });
                 }
             } catch (e) {
-                // Tainted/undecodable canvas - keep the 0.5 fallback already cached above.
+                // Tainted/undecodable canvas - keep the 0.5/0 fallback already cached above.
             }
         }
         // Takes the actual on-screen <img> (not just its src) so that when it's already loaded/painted
@@ -1244,7 +1271,7 @@ let shadowClass = getShadowClass(u.name);
         function ensureArtHitFraction(imgEl) {
             const src = imgEl && imgEl.src;
             if (!src || _artHitFractionCache.has(src)) return;
-            _artHitFractionCache.set(src, 0.5); // default matches old box-center behavior until measured
+            _artHitFractionCache.set(src, { center: 0.5, top: 0 }); // defaults until measured
             if (imgEl.complete && imgEl.naturalWidth) {
                 computeArtHitFraction(imgEl, src);
             } else {
@@ -1267,12 +1294,46 @@ let shadowClass = getShadowClass(u.name);
                 return { x: boxRect.left + boxRect.width / 2, y: boxRect.top + boxRect.height / 2 };
             }
             ensureArtHitFraction(img);
-            const frac = _artHitFractionCache.get(img.src) ?? 0.5;
+            const frac = _artHitFractionCache.get(img.src)?.center ?? 0.5;
             const imgRect = img.getBoundingClientRect();
             if (!imgRect.height) {
                 return { x: boxRect.left + boxRect.width / 2, y: boxRect.top + boxRect.height / 2 };
             }
             return { x: imgRect.left + imgRect.width / 2, y: imgRect.top + frac * imgRect.height };
+        }
+
+        // Same idea as getArtCenterPoint, but the topmost opaque row (the monster's actual head)
+        // instead of its vertical center. Used to anchor UI that should sit just above a monster's
+        // head - the hover arrow and floating combat numbers - since a fixed offset from the (always
+        // bottom-aligned) 280px art box top lands way above the head for monsters whose art doesn't
+        // fill the box.
+        function getArtTopPoint(containerEl) {
+            if (!containerEl) return null;
+            const artBox = containerEl.classList && containerEl.classList.contains('monster-art-container')
+                ? containerEl
+                : containerEl.querySelector('.monster-art-container');
+            const boxRect = (artBox || containerEl).getBoundingClientRect();
+            const img = artBox && artBox.querySelector('.art-content img');
+            if (!img) {
+                return { x: boxRect.left + boxRect.width / 2, y: boxRect.top };
+            }
+            ensureArtHitFraction(img);
+            const frac = _artHitFractionCache.get(img.src)?.top ?? 0;
+            const imgRect = img.getBoundingClientRect();
+            if (!imgRect.height) {
+                return { x: boxRect.left + boxRect.width / 2, y: boxRect.top };
+            }
+            return { x: imgRect.left + imgRect.width / 2, y: imgRect.top + frac * imgRect.height };
+        }
+
+        // Px distance from the top of `unitEl` (the .combatant element, which starts right at its
+        // art box) down to the top of the monster's actual art. 0 for a full-height sprite; a
+        // positive value for a shorter one sitting lower in its bottom-aligned box.
+        function getArtHeadTopPx(unitEl) {
+            const point = getArtTopPoint(unitEl);
+            const unitRect = unitEl && unitEl.getBoundingClientRect();
+            if (!point || !unitRect) return null;
+            return point.y - unitRect.top;
         }
 
         // Percentage (relative to positionEl, the element VFX are positioned/appended against) to use

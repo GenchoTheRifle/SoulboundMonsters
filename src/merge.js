@@ -113,19 +113,20 @@
                 if (isUnlocked) {
                     outcomeDiv.innerHTML = `
                         <h4 style="margin: 0 0 10px 0; color: #fff; font-size: 24px; text-shadow: var(--outline-thin);">OUTCOME</h4>
-                        <div class="merge-outcome-box">
+                        <div class="merge-outcome-box" style="cursor: pointer;" title="Click to view stats">
                             <div class="monster-art-container" style="pointer-events: none; width: 100%; height: 220px;">
                                 <div class="art-content" style="position: relative;">
                                     ${outcome.art.includes(".png") ? `<img src="${outcome.art}" draggable="false" style="max-height:220px;" />` : `<div style="font-size:110px; position:relative; z-index:2; line-height:1;">${outcome.art}</div>`}
                                 </div>
                                 <div class="shadow-ellipse ${getShadowClass(outcome.name)}"></div>
                             </div>
-                            <div style="position: relative; z-index: 10; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                            <div style="position: relative; z-index: 10; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: none;">
                                 <strong style="font-size: 32px; margin-top: 8px; color: #fff; text-align: center; text-shadow: var(--outline-med);">${outcome.name}</strong>
                                 <div style="width: 100%; padding: 0 12px; margin-top: 8px;">${getMiniHpEnergyHtml(outcome)}</div>
                             </div>
                         </div>
                     `;
+                    outcomeDiv.querySelector('.merge-outcome-box').onclick = () => openCollectionDetails(outcome, true, true);
                 } else {
                     outcomeDiv.innerHTML = `
                         <h4 style="margin: 0 0 10px 0; color: #fff; font-size: 24px; text-shadow: var(--outline-thin);">OUTCOME</h4>

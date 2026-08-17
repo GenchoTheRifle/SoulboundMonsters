@@ -214,9 +214,9 @@
                 let targetPhrase = null;
                 if (eff.target === 'all_enemies' && !isAoEDamage) targetPhrase = 'all enemies';
                 else if (eff.target === 'enemy' && !isSingleEnemyDamage) targetPhrase = 'an enemy';
-                else if (eff.target === 'all_allies') targetPhrase = 'all allies';
+                else if (eff.target === 'all_allies') targetPhrase = 'allied monsters';
                 else if (eff.target === 'ally') targetPhrase = 'an ally';
-                // eff.target === 'self' (or redundant) intentionally leaves targetPhrase null
+                else if (eff.target === 'self') targetPhrase = 'this monster';
 
                 if (eff.type === 'atk_buff_pct') {
                     const who = targetPhrase ? `${moveDescPossessive(targetPhrase)} ` : '';
@@ -231,7 +231,8 @@
                     const who = moveDescPossessive(targetPhrase || 'the target');
                     effectSentence = `Decreases ${who} speed by ${moveDescNeg(eff.value * 100 + '%')} for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'guard_pct') {
-                    effectSentence = `Reduces incoming damage by ${moveDescPos(eff.value * 100 + '%')} until hit.`;
+                    const who = targetPhrase ? `${moveDescPossessive(targetPhrase)} ` : '';
+                    effectSentence = `Reduces ${who}incoming damage by ${moveDescPos(eff.value * 100 + '%')} until hit.`;
                 } else if (eff.type === 'heal_flat') {
                     const who = targetPhrase || 'the target';
                     effectSentence = `Heals ${who} for ${moveDescPos(eff.value)} ${MOVE_DESC_ICON_HP}.`;
@@ -260,17 +261,22 @@
                     const who = targetPhrase ? ` to ${targetPhrase}` : '';
                     effectSentence = `Grants Regeneration${who}, healing ${moveDescPos(eff.value * 100 + '%')} of max ${MOVE_DESC_ICON_HP} per turn for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'brambles') {
-                    effectSentence = `Grants Thorns, reflecting ${moveDescPos(eff.value)} damage back to the attacker when hit for ${eff.turns} ${turnsWord}.`;
+                    const who = targetPhrase ? ` to ${targetPhrase}` : '';
+                    effectSentence = `Grants Thorns${who}, reflecting ${moveDescPos(eff.value)} damage back to the attacker when hit for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'counter') {
-                    effectSentence = `Grants Counter for ${eff.turns} ${turnsWord}. The next hit taken is completely negated and ${moveDescPos(eff.value * 100 + '%')} of the damage is reflected back to the attacker.`;
+                    const who = targetPhrase ? ` to ${targetPhrase}` : '';
+                    effectSentence = `Grants Counter${who} for ${eff.turns} ${turnsWord}. The next hit taken is completely negated and ${moveDescPos(eff.value * 100 + '%')} of the damage is reflected back to the attacker.`;
                 } else if (eff.type === 'taunt') {
                     effectSentence = `Taunts all enemies for ${eff.turns} ${turnsWord}, forcing them to attack this monster.`;
                 } else if (eff.type === 'savage_stance_pct') {
-                    effectSentence = `Grants Savage Stance: a ${moveDescPos(eff.guard_value * 100 + '%')} shield until hit and ${moveDescPos(eff.atk_value * 100 + '%')} increased damage for ${eff.atk_turns} ${moveDescPluralTurns(eff.atk_turns)}.`;
+                    const who = targetPhrase ? ` to ${targetPhrase}` : '';
+                    effectSentence = `Grants Savage Stance${who}: a ${moveDescPos(eff.guard_value * 100 + '%')} shield until hit and ${moveDescPos(eff.atk_value * 100 + '%')} increased damage for ${eff.atk_turns} ${moveDescPluralTurns(eff.atk_turns)}.`;
                 } else if (eff.type === 'overcharge_buff') {
-                    effectSentence = `Grants ${moveDescPos(eff.value * 100 + '%')} chance to gain bonus ${MOVE_DESC_ICON_EN} upon attacking for ${eff.turns} ${turnsWord}.`;
+                    const who = targetPhrase ? `${targetPhrase} a` : 'a';
+                    effectSentence = `Grants ${who} ${moveDescPos(eff.value * 100 + '%')} chance to gain bonus ${MOVE_DESC_ICON_EN} upon attacking for ${eff.turns} ${turnsWord}.`;
                 } else if (eff.type === 'lifesteal_buff') {
-                    effectSentence = `Grants Lifesteal, causing attacks to heal this monster for ${moveDescPos(eff.value * 100 + '%')} of damage dealt for ${eff.turns} ${turnsWord}.`;
+                    const who = targetPhrase || 'this monster';
+                    effectSentence = `Grants Lifesteal, causing attacks to heal ${who} for ${moveDescPos(eff.value * 100 + '%')} of damage dealt for ${eff.turns} ${turnsWord}.`;
                 }
             }
 
@@ -285,4 +291,58 @@
                 return effectSentence;
             }
             return "Deals damage.";
+        }
+
+        // Status effects whose move text states the numbers (chance/value/duration)
+        // but not the underlying mechanic - e.g. "chance to Stun for 1 turn" never
+        // says a stun skips a turn. Keyed by the canonical name shown on combat's
+        // status icons; getStatusEffectKey() maps a move's raw effect.type to one
+        // of these keys (or null if that effect is already fully self-explanatory).
+        const STATUS_EFFECT_GLOSSARY = {
+            stun: { name: 'Stun', icons: ['Art/Stun.png'], desc: "Skips the target's next turn." },
+            sleep: { name: 'Sleep', icons: ['Art/Sleep.png'], desc: "Skips the target's turn. Taking damage wakes it up early." },
+            poison: { name: 'Poison', icons: ['Art/Poison.png'], desc: 'Deals flat damage at the start of every turn.' },
+            toxin: { name: 'Toxin', icons: ['Art/Toxin.png'], desc: 'Deals damage equal to a % of max HP at the start of every turn.' },
+            brambles: { name: 'Thorns', icons: ['Art/Thorns.png'], desc: 'Reflects damage back at any attacker that hits this monster.' },
+            counter: { name: 'Counter', icons: ['Art/Counter.png'], desc: 'Negates the next hit taken, then reflects a portion of that damage back at the attacker.' },
+            taunt: { name: 'Taunt', icons: ['Art/Taunt.png'], desc: 'Forces all enemies to attack this monster.' },
+            regen: { name: 'Regen', icons: ['Art/Regen.png'], desc: 'Heals this monster at the start of every turn.' },
+            lifesteal: { name: 'Lifesteal', icons: ['Art/Lifesteal.png'], desc: "Causes this monster's attacks to heal it for a portion of the damage dealt." },
+            guard: { name: 'Guard', icons: ['Art/Guard.png'], desc: 'Reduces incoming damage until this monster is hit once, then breaks.' },
+            overcharge: { name: 'Overcharge', icons: ['Art/Buff Energy.png'], desc: 'Gives a chance to gain bonus energy whenever this monster attacks.' },
+            savage_stance: { name: 'Savage Stance', icons: ['Art/Buff DMG.png', 'Art/Guard.png'], desc: 'Grants a damage shield and increased attack at the same time.' },
+            atk_buff: { name: 'Buff Damage', icons: ['Art/Buff DMG.png'], desc: "Increases this monster's damage." },
+            atk_debuff: { name: 'Weaken', icons: ['Art/Debuff DMG.png'], desc: "Decreases the target's damage." },
+        };
+
+        function getStatusEffectKey(effType) {
+            if (!effType) return null;
+            if (effType === 'poison_flat' || effType === 'poison_pct') return 'poison';
+            if (effType === 'toxin_pct') return 'toxin';
+            if (effType === 'regen_flat' || effType === 'regen_pct') return 'regen';
+            if (effType === 'lifesteal_buff') return 'lifesteal';
+            if (effType === 'overcharge_buff') return 'overcharge';
+            if (effType === 'guard_pct') return 'guard';
+            if (effType === 'savage_stance_pct') return 'savage_stance';
+            if (effType === 'atk_buff_pct') return 'atk_buff';
+            if (effType === 'atk_debuff_pct') return 'atk_debuff';
+            if (STATUS_EFFECT_GLOSSARY[effType]) return effType;
+            return null;
+        }
+
+        // Unique glossary entries for every status effect a monster's moves can
+        // inflict/grant, in move order - used to build the collection detail
+        // popup's status-effect legend panel.
+        function getMonsterStatusEffectEntries(monster) {
+            const seen = new Set();
+            const entries = [];
+            (monster.moves || []).forEach(m => {
+                if (!m.effect) return;
+                const key = getStatusEffectKey(m.effect.type);
+                if (key && !seen.has(key)) {
+                    seen.add(key);
+                    entries.push(STATUS_EFFECT_GLOSSARY[key]);
+                }
+            });
+            return entries;
         }

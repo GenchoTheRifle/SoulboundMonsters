@@ -758,24 +758,38 @@ button, input, select, textarea {
             font-size: 30px;
             background: rgba(30,30,32,0.65);
             border: 1px solid rgba(255,255,255,0.15);
-            padding: 10px;
+            padding: 6px 14px;
             border-radius: 8px;
             text-align: center;
             color: #00a8ff;
             font-weight: normal;
             text-shadow: var(--outline-med);
-            flex: none;
-            height: calc(50% - 5px);
-            min-height: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: absolute;
+            left: 50%;
+            bottom: 100%;
+            margin-bottom: 40px;
+            white-space: nowrap;
+            transform-origin: center bottom;
+            transform: translate(-50%, 16px) scale(0.4);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 6;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+        }
+
+        .energy-display.energy-visible {
+            transform: translate(-50%, 0) scale(1);
+            opacity: 1;
         }
 
         .move-btn {
             width: 100%;
             height: 100%;
             min-height: 0;
+            margin: 0;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -816,8 +830,8 @@ button, input, select, textarea {
 
         .combat-log {
             width: 250px;
-            height: 120px;
-            margin-left: 120px;
+            height: 130px;
+            margin-left: 40px;
             margin-bottom: 10px;
             background: #74787dcc;
             border: 1px solid #5a6067;
@@ -1050,7 +1064,7 @@ button, input, select, textarea {
         .detail-parents-box {
             background: rgba(0,0,0,0.3);
             border-radius: 15px;
-            padding: 20px;
+            padding: 14px 20px;
         }
 
         .detail-column-stats {
@@ -1099,6 +1113,46 @@ button, input, select, textarea {
         #modal-collection-details .moves-list {
             max-height: none;
             overflow-y: visible;
+        }
+
+        /* Side panel next to the collection detail modal explaining the
+           mechanics behind status effects (Stun, Sleep, Thorns, etc.) that a
+           move's own description doesn't fully spell out. Sits beside
+           .modal-content because #modal-collection-details is a flex row. */
+        .status-effect-legend {
+            display: none;
+            flex-direction: column;
+            flex-shrink: 0;
+            gap: 26px;
+            width: 380px;
+            margin-left: 24px;
+            padding: 18px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .status-legend-entry {
+            text-align: left;
+        }
+
+        .status-legend-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 26px;
+            color: #fff;
+            text-shadow: var(--outline-med);
+            margin-bottom: 6px;
+        }
+
+        .status-legend-icon {
+            width: 32px;
+            height: 32px;
+            filter: drop-shadow(1px 1px 1px black);
+        }
+
+        .status-legend-desc {
+            font-size: 17px;
+            color: #fff;
         }
 
         #modal-list {
@@ -1409,7 +1463,7 @@ button, input, select, textarea {
 .timeline-hover::before {
     content: '';
     position: absolute;
-    top: -30px;
+    top: var(--hover-arrow-top, -30px);
     left: 50%;
     transform: translateX(-50%);
     width: 0;

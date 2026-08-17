@@ -60,12 +60,12 @@
         },
         {
           "n": "Heal",
-          "c": 2,
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.18,
+            "type": "heal_flat",
+            "value": 10,
             "target": "ally"
           }
         }
@@ -350,9 +350,9 @@
           "p": 0,
           "effect": {
             "type": "atk_buff_pct",
-            "value": 0.5,
+            "value": 0.3,
             "turns": 3,
-            "target": "self"
+            "target": "all_allies"
           }
         },
         {
@@ -398,9 +398,9 @@
           "p": 0,
           "effect": {
             "type": "guard_pct",
-            "value": 0.6,
+            "value": 0.3,
             "turns": 1,
-            "target": "self"
+            "target": "all_allies"
           }
         },
         {
@@ -445,8 +445,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.3,
+            "type": "heal_flat",
+            "value": 25,
             "target": "ally"
           }
         },
@@ -456,8 +456,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "regen_pct",
-            "value": 0.15,
+            "type": "regen_flat",
+            "value": 15,
             "turns": 3,
             "target": "all_allies"
           }
@@ -600,9 +600,9 @@
           "p": 0,
           "effect": {
             "type": "overcharge_buff",
-            "value": 0.2,
+            "value": 0.4,
             "turns": 3,
-            "target": "all_allies"
+            "target": "self"
           }
         },
         {
@@ -713,12 +713,12 @@
         },
         {
           "n": "Heal",
-          "c": 2,
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.18,
+            "type": "heal_flat",
+            "value": 10,
             "target": "ally"
           }
         }
@@ -946,12 +946,12 @@
         },
         {
           "n": "Heal",
-          "c": 2,
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.18,
+            "type": "heal_flat",
+            "value": 10,
             "target": "ally"
           }
         }
@@ -1183,8 +1183,8 @@
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "regen_pct",
-            "value": 0.15,
+            "type": "regen_flat",
+            "value": 15,
             "turns": 3,
             "target": "all_allies"
           }
@@ -1222,12 +1222,12 @@
         },
         {
           "n": "Heal",
-          "c": 2,
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.18,
+            "type": "heal_flat",
+            "value": 10,
             "target": "ally"
           }
         },
@@ -1283,12 +1283,12 @@
         },
         {
           "n": "Heal",
-          "c": 2,
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.18,
+            "type": "heal_flat",
+            "value": 10,
             "target": "ally"
           }
         },
@@ -1480,7 +1480,7 @@
           "p": 0,
           "effect": {
             "type": "overcharge_buff",
-            "value": 0.2,
+            "value": 0.15,
             "turns": 3,
             "target": "all_allies"
           }
@@ -1646,12 +1646,12 @@
         },
         {
           "n": "Heal",
-          "c": 2,
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.18,
+            "type": "heal_flat",
+            "value": 10,
             "target": "ally"
           }
         }
@@ -2082,12 +2082,12 @@
         },
         {
           "n": "Heal",
-          "c": 2,
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.18,
+            "type": "heal_flat",
+            "value": 10,
             "target": "ally"
           }
         },
@@ -2542,12 +2542,12 @@
         },
         {
           "n": "Heal",
-          "c": 2,
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.18,
+            "type": "heal_flat",
+            "value": 10,
             "target": "ally"
           }
         },
@@ -2994,13 +2994,12 @@
         },
         {
           "n": "Heal",
-          "c": 2,
+          "c": 1,
           "t": "Nature",
           "p": 0,
           "effect": {
-            "type": "heal_pct",
-            "value": 0.18,
-            "maxHeal": 25,
+            "type": "heal_flat",
+            "value": 10,
             "target": "ally"
           }
         }

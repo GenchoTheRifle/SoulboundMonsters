@@ -233,15 +233,16 @@
                 <div id="enemy-team" class="team"></div>
             </div>
             <div class="combat-controls">
-                <div id="combat-log" class="combat-log"></div>
+                <div id="combat-log" class="combat-log" style="width: 230px;"></div>
                 <div class="moves-wrapper" style="flex: 1; display: flex; flex-direction: column; height: 130px; margin: 0px 20px 10px 20px; min-height: 0;">
                     <div id="move-controls" style="display: grid; grid-auto-rows: 1fr; gap: 4px; flex: 1; min-height: 0; "></div>
                 </div>
-                <div class="controls-right" style="width: 150px; display: flex; flex-direction: column; gap: 10px; height: 120px; margin-right: 120px; margin-bottom: 10px;">
+                <div class="controls-right" style="width: 180px; display: flex; align-items: center; justify-content: center; height: 130px; margin-right: 40px; margin-bottom: 10px; position: relative;">
                     <div id="energy-display" class="energy-display">EN: 0</div>
-                    <button id="btn-end-turn" class="move-btn basic-attack" onclick="basicAttack()" style="flex: none; height: calc(50% - 5px); margin: 0; font-weight: normal; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
-                        <span style="font-size: 24px; white-space: nowrap; display: block; width: 100%; text-align: center;">BASIC ATTACK</span>
-                        <span style="font-size: 20px; font-weight: normal; white-space: nowrap; display: block; width: 100%; text-align: center;">(+1 <img src="Art/EN.png" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">)</span>
+                    <button id="btn-end-turn" class="move-btn basic-attack" onclick="basicAttack()" style="flex: none; width: 180px; height: 130px; margin: 0; font-weight: normal; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15;">
+                        <span style="font-size: 26px; white-space: nowrap; display: block; width: 100%; text-align: center;">BASIC</span>
+                        <span style="font-size: 26px; white-space: nowrap; display: block; width: 100%; text-align: center;">ATTACK</span>
+                        <span style="font-size: 26px; font-weight: normal; white-space: nowrap; display: block; width: 100%; text-align: center;">(+1 <img src="Art/EN.png" style="width: 24px; height: 24px; display: inline-block; vertical-align: middle;">)</span>
                     </button>
                 </div>
             </div>
@@ -329,6 +330,7 @@
                 <div id="col-detail-body"></div>
                 <button onclick="closeModal('modal-collection-details')" class="nine-cut-button" style="width:100%; font-size: 22px; padding: 10px; margin-top: 20px;">CLOSE</button>
             </div>
+            <div id="col-detail-status-legend" class="monster-detail-card status-effect-legend"></div>
         </div>
 
         <div id="modal-recruitment" class="modal">

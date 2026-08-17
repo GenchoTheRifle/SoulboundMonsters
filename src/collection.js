@@ -108,15 +108,15 @@
             const p1 = STARTERS[monster.parents[0]];
             const p2 = STARTERS[monster.parents[1]];
             return `
-                <div style="font-size: 40px; color: #fff; margin-bottom: 10px; text-shadow: var(--outline-thick);">Parents</div>
+                <div style="font-size: 40px; color: #fff; margin-top: 8px; margin-bottom: 6px; text-shadow: var(--outline-thick);">Parents</div>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 24px;">
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        ${renderArt(p1.art, 150)}
+                        ${renderArt(p1.art, 130)}
                         <span style="font-size: 30px; color: #fff; margin-top: 6px; text-shadow: var(--outline-thick);">${p1.name}</span>
                     </div>
                     <div style="font-size: 50px; color: #fff; text-shadow: var(--outline-thick);">+</div>
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        ${renderArt(p2.art, 150)}
+                        ${renderArt(p2.art, 130)}
                         <span style="font-size: 30px; color: #fff; margin-top: 6px; text-shadow: var(--outline-thick);">${p2.name}</span>
                     </div>
                 </div>
@@ -137,7 +137,7 @@
                         <div class="detail-art-box">
                             <h2 style="font-size: 42px; margin: 0 0 10px 0; text-align: center; color: #fff;">${monster.name}</h2>
                             <div class="type-container" style="margin-bottom: 20px; display: flex; justify-content: center;">${typeIconHtml}</div>
-                            <div class="monster-art" style="display: flex; justify-content: center; align-items: center;">${renderArt(monster.art, 240)}</div>
+                            <div class="monster-art" style="display: flex; justify-content: center; align-items: center;">${renderArt(monster.art, 280)}</div>
                         </div>
                         ${isMerge ? `<div class="detail-parents-box" style="text-align: center;">${parentsHtml}</div>` : ''}
                     </div>
@@ -177,10 +177,36 @@
             `;
         }
 
+        // Status-effect legend entry: icon + name + a short explanation of the
+        // underlying mechanic (e.g. Stun skips a turn) that the move's own
+        // description text doesn't spell out.
+        function buildStatusEffectLegendHtml(monster) {
+            const entries = getMonsterStatusEffectEntries(monster);
+            if (!entries.length) return '';
+
+            return entries.map(e => `
+                <div class="status-legend-entry">
+                    <div class="status-legend-header">
+                        ${e.icons.map(icon => `<img src="${icon}" class="status-legend-icon" alt="${e.name}" />`).join('')}
+                        <strong>${e.name}</strong>
+                    </div>
+                    <div class="status-legend-desc move-description-text">${e.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateStatusEffectLegend(monster) {
+            const legend = document.getElementById('col-detail-status-legend');
+            const html = buildStatusEffectLegendHtml(monster);
+            legend.innerHTML = html;
+            legend.style.display = html ? 'flex' : 'none';
+        }
+
         function openCollectionDetails(monster, isDiscovered, isMerge) {
             if (!isDiscovered) return;
 
             document.getElementById('col-detail-body').innerHTML = buildCollectionDetailHtml(monster, isMerge);
+            updateStatusEffectLegend(monster);
             const modal = document.getElementById('modal-collection-details');
             modal.querySelector('button').onclick = () => closeModal('modal-collection-details');
             modal.style.display = 'flex';
@@ -191,6 +217,7 @@
         // plain close-only handler used from the collection screen.
         function showMergeResultDetails(monster, onClose) {
             document.getElementById('col-detail-body').innerHTML = buildCollectionDetailHtml(monster, !!monster.parents);
+            updateStatusEffectLegend(monster);
             const modal = document.getElementById('modal-collection-details');
             modal.querySelector('button').onclick = () => {
                 closeModal('modal-collection-details');
