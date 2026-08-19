@@ -572,6 +572,14 @@ button, input, select, textarea {
     transform: translateX(-50%) scale(2.0);
     transform-origin: bottom center;
 }
+/* transform-origin: bottom center anchors scaling at the shadow's own (unscaled) bottom
+   edge, so scale(2.0) only doubles its width/height, not its "bottom" gap below the art
+   box - leaving the enlarged ellipse creeping up into the now much taller boss sprite's
+   legs instead of sitting further below its feet. Double each size class's gap too so it
+   scales along with the sprite. */
+.combatant.boss .monster-art-container > .shadow-ellipse.shadow-small { bottom: -10px; }
+.combatant.boss .monster-art-container > .shadow-ellipse.shadow-medium { bottom: -20px; }
+.combatant.boss .monster-art-container > .shadow-ellipse.shadow-big { bottom: -30px; }
 .combatant.boss .monster-art-container {
     margin-bottom: 40px;
 }
@@ -1172,6 +1180,7 @@ button, input, select, textarea {
             border-image-slice: 49 55 55 50 fill;
             border-image-repeat: stretch;
             box-shadow: none;
+            max-width: 600px;
         }
 
         #notif-title {
@@ -1219,6 +1228,7 @@ button, input, select, textarea {
             border-image-slice: 49 55 55 50 fill;
             border-image-repeat: stretch;
             box-shadow: none;
+            max-width: 600px;
         }
 
         #modal-pause h3 {
@@ -1498,6 +1508,23 @@ button, input, select, textarea {
 }
 
 #first-time-list .collection-square:hover {
+    border-color: transparent;
+    filter: brightness(1.15);
+}
+
+/* 9-slice frame: recruit-choice cards (mid-run "choose a monster" popup) */
+.recruit-choice-card.collection-square {
+    background: transparent;
+    border-radius: 0;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 22px;
+    border-image-source: url('../Art/Nine Cut.png');
+    border-image-slice: 49 55 55 50 fill;
+    border-image-repeat: stretch;
+}
+
+.recruit-choice-card.collection-square:hover {
     border-color: transparent;
     filter: brightness(1.15);
 }

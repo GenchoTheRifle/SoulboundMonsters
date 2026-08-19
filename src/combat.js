@@ -8,7 +8,7 @@
             isPlayerTurn: false,
             activeUnit: null,
             targetingMove: null,
-            firstKilledEnemy: null,
+            killedEnemies: [],
             turnJustStarted: true,
             ended: false
         };
@@ -74,7 +74,7 @@
             combatState.targetingMove = null;
             combatState.activeUnit = null;
             combatState.ended = false;
-            combatState.firstKilledEnemy = null;
+            combatState.killedEnemies = [];
             combatState.turnJustStarted = true;
             combatState.ended = false;
             
@@ -629,9 +629,11 @@
             
             const endTurnBtn = document.getElementById('btn-end-turn');
             if (endTurnBtn) {
-                const canEndTurn = combatState.isPlayerTurn && !combatState.ended;
+                const taunted = isOpponentTaunting(unit);
+                const canEndTurn = combatState.isPlayerTurn && !combatState.ended && !taunted;
                 endTurnBtn.disabled = !canEndTurn;
-                endTurnBtn.style.display = canEndTurn ? 'block' : 'none';
+                endTurnBtn.style.display = (combatState.isPlayerTurn && !combatState.ended) ? 'block' : 'none';
+                endTurnBtn.title = taunted ? 'Basic Attack is locked while the enemy is Taunting!' : '';
 
                 const hasOtherMove = canEndTurn && unit.moves && unit.moves.some(m => energy >= m.c);
                 endTurnBtn.classList.toggle('only-option-pulse', canEndTurn && !hasOtherMove);
@@ -723,7 +725,7 @@
                     let html = `<div style="position:relative; display:inline-block;">
                         <img src="${src}" style="${style}" title="${title}" />`;
                     if (evolved) {
-                        html += `<img src="Art/Ability Evolution.png" style="position:absolute; top:-4px; left:-4px; width:16px; height:16px; z-index:3; filter: drop-shadow(0 0 3px rgba(50,150,255,0.9));" title="Evolved" />`;
+                        html += `<img src="Art/Ability Evolution.png" style="position:absolute; top:-7px; left:-7px; width:24px; height:24px; z-index:3; filter: drop-shadow(0 0 3px rgba(50,150,255,0.9));" title="Evolved" />`;
                     }
                     if (turns !== undefined && turns > 0) {
                         html += `<div style="position:absolute; bottom:-4px; right:-4px; background:rgba(0,0,0,0.7); color:white; font-size:13px; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
@@ -999,8 +1001,8 @@ let shadowClass = getShadowClass(u.name);
                     if (unit.currentHp <= 0) {
                         isDead = true;
                         combatLog(`${unit.name} fainted from poison!`);
-                        if (unit.isEnemy && !combatState.firstKilledEnemy) {
-                            combatState.firstKilledEnemy = unit;
+                        if (unit.isEnemy && !combatState.killedEnemies.includes(unit)) {
+                            combatState.killedEnemies.push(unit);
                         }
                         calculateTurnOrder(true);
                     }
@@ -1027,8 +1029,8 @@ let shadowClass = getShadowClass(u.name);
                     if (unit.currentHp <= 0) {
                         isDead = true;
                         combatLog(`${unit.name} fainted from toxin!`);
-                        if (unit.isEnemy && !combatState.firstKilledEnemy) {
-                            combatState.firstKilledEnemy = unit;
+                        if (unit.isEnemy && !combatState.killedEnemies.includes(unit)) {
+                            combatState.killedEnemies.push(unit);
                         }
                         calculateTurnOrder(true);
                     }
@@ -1056,6 +1058,20 @@ let shadowClass = getShadowClass(u.name);
 
             combatState.activeUnit = unit;
             combatState.isPlayerTurn = !unit.isEnemy;
+
+            // Taunt locks out Basic Attack and every self-buffing move - if that leaves no
+            // affordable move at all (most commonly at 0 energy), there's nothing left to
+            // legally do, so skip the turn instead of soft-locking the player.
+            if (combatState.isPlayerTurn && isOpponentTaunting(unit)) {
+                const hasLegalMove = unit.moves.some(m => unit.energy >= m.c && !isPositiveAbility(m));
+                if (!hasLegalMove) {
+                    updateCombatUI();
+                    combatLog(`${unit.name} has no valid move while Taunted and skips their turn!`);
+                    setTimeout(advanceTurn, 1000);
+                    return;
+                }
+            }
+
             updateCombatUI();
 
             const energyDisplayEl = document.getElementById('energy-display');
@@ -1074,6 +1090,11 @@ let shadowClass = getShadowClass(u.name);
             if (combatState.ended || !combatState.isPlayerTurn || isExecutingMove) return;
             const unit = combatState.activeUnit;
             if (!unit || unit.currentHp <= 0) return;
+            if (isOpponentTaunting(unit)) {
+                combatLog("Basic Attack is locked while the enemy is Taunting!");
+                updateCombatUI();
+                return;
+            }
 
             const move = {
                 n: "Basic Attack",
@@ -1153,6 +1174,20 @@ let shadowClass = getShadowClass(u.name);
             }
         }
 
+        // True when the team opposing `unit` has an alive member currently Taunting -
+        // used to lock out self-serving moves and Basic Attack so Taunt can't be ignored.
+        function isOpponentTaunting(unit) {
+            if (!unit) return false;
+            const opposingTeam = unit.isEnemy ? currentRun.party : combatState.enemies;
+            return opposingTeam.some(o => o && o.currentHp > 0 && o.buffs && o.buffs.some(b => b.type === 'taunt'));
+        }
+
+        // A move that buffs the user's own side (self/ally/all_allies) rather than hitting
+        // the opponent - these are exactly what Taunt should lock out.
+        function isPositiveAbility(m) {
+            return !!(m.effect && (m.effect.target === 'self' || m.effect.target === 'ally' || m.effect.target === 'all_allies'));
+        }
+
         function renderMoveControls(unit) {
             const container = document.getElementById('move-controls');
             container.innerHTML = '';
@@ -1162,6 +1197,7 @@ let shadowClass = getShadowClass(u.name);
             container.style.gridTemplateColumns = `repeat(${moveCount}, 1fr)`;
 
             const isManyMoves = moveCount > 2;
+            const taunted = isOpponentTaunting(unit);
 
             const nameSize = '27px';
             const descSize = isManyMoves ? '15px' : '18px';
@@ -1178,7 +1214,9 @@ let shadowClass = getShadowClass(u.name);
                 const isTargetingThis = combatState.targetingMove === m;
                 if (isTargetingThis) btn.style.background = 'gold';
                 
-                btn.disabled = currentEnergy < m.c;
+                const lockedByTaunt = taunted && isPositiveAbility(m);
+                btn.disabled = currentEnergy < m.c || lockedByTaunt;
+                if (lockedByTaunt) btn.title = 'Locked while the enemy is Taunting!';
                 const isAoE = m.effect && (m.effect.target === 'all_enemies' || m.effect.target === 'all_allies');
                 let categoryLabel, categoryColor;
                 if (isAoE) { categoryLabel = 'AoE'; categoryColor = '#b19cd9'; }
@@ -2191,7 +2229,7 @@ let shadowClass = getShadowClass(u.name);
                                 showFloatingText(attacker, "-" + counterDamage, "#ff4444", 'damage');
                                 combatLog(`${t.name} countered! ${attacker.name} took ${counterDamage} damage!`);
                                 if (attacker.currentHp <= 0) {
-                                    if (attacker.isEnemy && !combatState.firstKilledEnemy) combatState.firstKilledEnemy = attacker;
+                                    if (attacker.isEnemy && !combatState.killedEnemies.includes(attacker)) combatState.killedEnemies.push(attacker);
                                     else if (!attacker.isEnemy) { combatLog(`${attacker.name} has fallen!`); calculateTurnOrder(true); }
                                 }
                                 const attackerEl = getElementForUnit(attacker);
@@ -2240,7 +2278,7 @@ let shadowClass = getShadowClass(u.name);
                                     showFloatingText(attacker, "-" + reflectAmt, "#ff4444", 'damage');
                                     combatLog(`${attacker.name} took ${reflectAmt} damage from Thorns!`);
                                     if (attacker.currentHp <= 0) {
-                                        if (attacker.isEnemy && !combatState.firstKilledEnemy) combatState.firstKilledEnemy = attacker;
+                                        if (attacker.isEnemy && !combatState.killedEnemies.includes(attacker)) combatState.killedEnemies.push(attacker);
                                         else if (!attacker.isEnemy) { combatLog(`${attacker.name} has fallen!`); calculateTurnOrder(true); }
                                     }
                                     const attackerEl = getElementForUnit(attacker);
@@ -2404,8 +2442,8 @@ let shadowClass = getShadowClass(u.name);
                 }
 
                 if (t.currentHp <= 0) {
-                    if (t.isEnemy && !combatState.firstKilledEnemy) {
-                        combatState.firstKilledEnemy = t;
+                    if (t.isEnemy && !combatState.killedEnemies.includes(t)) {
+                        combatState.killedEnemies.push(t);
                     } else if (!t.isEnemy) {
                         combatLog(`${t.name} has fallen!`);
                         calculateTurnOrder(true);
@@ -2687,114 +2725,156 @@ let shadowClass = getShadowClass(u.name);
                     return;
                 }
 
-                // Recruitment
-                if (combatState.firstKilledEnemy) {
-                    const e = combatState.firstKilledEnemy;
+                // Recruitment: any defeated non-Alpha starter species can join, deduped by species
+                const seenBaseIds = new Set();
+                const recruitCandidates = combatState.killedEnemies.filter(e => {
+                    if (!e || seenBaseIds.has(e.baseId)) return false;
                     const isStarter = Object.keys(STARTERS).includes(e.baseId);
                     const isAlpha = e.name.includes('Alpha');
-                    
-                    if (isStarter && !isAlpha) {
-                        const base = STARTERS[e.baseId];
-                        const recruit = { 
-                            ...base, 
-                            isEnemy: false, 
-                            currentHp: base.hp, // FULL HP
-                            hp: base.hp,
-                            atk: base.atk
-                        };
-                        
-                        const emptyIndex = currentRun.party.findIndex(p => p === null);
-                        const artHtml = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; height:200px;">${renderArt(recruit.art, 200)}</div>`;
+                    if (!isStarter || isAlpha) return false;
+                    seenBaseIds.add(e.baseId);
+                    return true;
+                });
 
-                        if (emptyIndex !== -1) {
-                            currentRun.party[emptyIndex] = recruit;
-                            // Unlock in collection
-                            if (!gameState.unlockedStarters.includes(recruit.id)) {
-                                gameState.unlockedStarters.push(recruit.id);
-                                saveGame();
-                                showMergeResultDetails(recruit, advanceRun);
-                            } else {
-                                showRecruitmentAlert(recruit, advanceRun);
-                            }
-                            return;
-                        } else {
-                            const mergesInParty = currentRun.party.filter(p => p && p.parents).length;
-                            const nonMerges = currentRun.party.filter(p => p && !p.parents);
-
-                            if (mergesInParty === 3 && nonMerges.length === 1) {
-                                const p1 = nonMerges[0];
-                                const p2 = recruit;
-                                const outcome = MERGES.find(m => 
-                                    (m.parents[0] === p1.id && m.parents[1] === p2.id) ||
-                                    (m.parents[0] === p2.id && m.parents[1] === p1.id)
-                                );
-
-                                if (outcome) {
-                                    const mergeArt = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; gap: 10px; height:150px;">
-                                        <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p1.art, 100)}</div>
-                                        <span style="font-size: 48px;">+</span>
-                                        <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p2.art, 100)}</div>
-                                        <span style="font-size: 48px;">=</span>
-                                        <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(outcome.art, 150)}</div>
-                                    </div>`;
-                                    
-                                    showGameConfirm(
-                                        "Auto Merge Opportunity", 
-                                        `You have 3 Merged monsters and 1 base monster (${p1.name}). Do you want to fuse ${p1.name} with ${p2.name} to create ${outcome.name}?`,
-                                        () => {
-                                            if (!gameState.unlockedStarters.includes(recruit.id)) {
-                                                gameState.unlockedStarters.push(recruit.id);
-                                            }
-                                            if (!gameState.discoveredMerges.includes(outcome.name)) {
-                                                gameState.discoveredMerges.push(outcome.name);
-                                            }
-                                            saveGame();
-                                            
-                                            const destIdx = currentRun.party.indexOf(p1);
-                                            currentRun.party[destIdx] = {
-                                                ...outcome,
-                                                isEnemy: false,
-                                                currentHp: outcome.hp,
-                                                energy: outcome.startingEnergy || 0
-                                            };
-                                            
-                                            showGameAlert("Merge Successful!", `Created ${outcome.name}!`, advanceRun, mergeArt);
-                                        },
-                                        () => {
-                                            let replaceText = `Replace a monster with ${recruit.name}?`;
-                                            if (!gameState.unlockedStarters.includes(recruit.id)) {
-                                                replaceText += ` (This will also unlock it in your Collection)`;
-                                            }
-                                            showGameConfirm("Recruitment", replaceText, 
-                                                () => openReplacementModal(recruit), 
-                                                advanceRun,
-                                                artHtml
-                                            );
-                                        },
-                                        mergeArt
-                                    );
-                                    return;
-                                }
-                            }
-
-                            let replaceText = `Your party is full. Replace a monster with ${recruit.name}?`;
-                            if (!gameState.unlockedStarters.includes(recruit.id)) {
-                                replaceText += ` (This will also unlock it in your Collection)`;
-                            }
-                            showGameConfirm("Recruitment", replaceText, 
-                                () => openReplacementModal(recruit), 
-                                advanceRun,
-                                artHtml
-                            );
-                            return;
-                        }
-                    }
+                if (recruitCandidates.length === 1) {
+                    recruitMonster(recruitCandidates[0]);
+                    return;
+                } else if (recruitCandidates.length > 1) {
+                    showRecruitChoiceModal(recruitCandidates);
+                    return;
                 }
+
                 advanceRun();
             } else {
                 showGameAlert("YOU DIED!", "Your party was defeated.", () => {
                     showScreen('screen-menu');
                 });
+            }
+        }
+
+        function showRecruitChoiceModal(candidates) {
+            const modal = document.getElementById('modal-recruit-choice');
+            const list = document.getElementById('recruit-choice-list');
+            list.innerHTML = '';
+
+            candidates.forEach(e => {
+                const base = STARTERS[e.baseId];
+                const btn = document.createElement('div');
+                btn.className = 'collection-square recruit-choice-card';
+                btn.style.width = '260px';
+                btn.style.cursor = 'pointer';
+                btn.style.transition = 'all 0.2s';
+                btn.style.position = 'relative';
+
+                btn.innerHTML = `
+                    <div style="position: absolute; top: 5px; right: 5px; filter: drop-shadow(0px 0px 2px #000);">${getTypeIconHtml(base.type, 40)}</div>
+                    <div class="monster-art" style="pointer-events:none;">${renderArt(base.art, 190)}</div>
+                    <strong style="font-size: 26px; color: #fff; text-shadow: var(--outline-med); pointer-events:none;">${base.name}</strong>
+                `;
+                btn.onclick = () => {
+                    closeModal('modal-recruit-choice');
+                    recruitMonster(e);
+                };
+                list.appendChild(btn);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        function recruitMonster(e) {
+            const base = STARTERS[e.baseId];
+            const recruit = {
+                ...base,
+                isEnemy: false,
+                currentHp: base.hp, // FULL HP
+                hp: base.hp,
+                atk: base.atk
+            };
+
+            const emptyIndex = currentRun.party.findIndex(p => p === null);
+            const artHtml = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; height:200px;">${renderArt(recruit.art, 200)}</div>`;
+
+            if (emptyIndex !== -1) {
+                currentRun.party[emptyIndex] = recruit;
+                // Unlock in collection
+                if (!gameState.unlockedStarters.includes(recruit.id)) {
+                    gameState.unlockedStarters.push(recruit.id);
+                    saveGame();
+                    showMergeResultDetails(recruit, advanceRun);
+                } else {
+                    showRecruitmentAlert(recruit, advanceRun);
+                }
+                return;
+            } else {
+                const mergesInParty = currentRun.party.filter(p => p && p.parents).length;
+                const nonMerges = currentRun.party.filter(p => p && !p.parents);
+
+                if (mergesInParty === 3 && nonMerges.length === 1) {
+                    const p1 = nonMerges[0];
+                    const p2 = recruit;
+                    const outcome = MERGES.find(m =>
+                        (m.parents[0] === p1.id && m.parents[1] === p2.id) ||
+                        (m.parents[0] === p2.id && m.parents[1] === p1.id)
+                    );
+
+                    if (outcome) {
+                        const mergeArt = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; gap: 10px; height:150px;">
+                            <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p1.art, 100)}</div>
+                            <span style="font-size: 48px;">+</span>
+                            <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p2.art, 100)}</div>
+                            <span style="font-size: 48px;">=</span>
+                            <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(outcome.art, 150)}</div>
+                        </div>`;
+
+                        showGameConfirm(
+                            "Auto Merge Opportunity",
+                            `You have 3 Merged monsters and 1 base monster (${p1.name}). Do you want to fuse ${p1.name} with ${p2.name} to create ${outcome.name}?`,
+                            () => {
+                                if (!gameState.unlockedStarters.includes(recruit.id)) {
+                                    gameState.unlockedStarters.push(recruit.id);
+                                }
+                                if (!gameState.discoveredMerges.includes(outcome.name)) {
+                                    gameState.discoveredMerges.push(outcome.name);
+                                }
+                                saveGame();
+
+                                const destIdx = currentRun.party.indexOf(p1);
+                                currentRun.party[destIdx] = {
+                                    ...outcome,
+                                    isEnemy: false,
+                                    currentHp: outcome.hp,
+                                    energy: outcome.startingEnergy || 0
+                                };
+
+                                showGameAlert("Merge Successful!", `Created ${outcome.name}!`, advanceRun, mergeArt);
+                            },
+                            () => {
+                                let replaceText = `Replace a monster with ${recruit.name}?`;
+                                if (!gameState.unlockedStarters.includes(recruit.id)) {
+                                    replaceText += ` (This will also unlock it in your Collection)`;
+                                }
+                                showGameConfirm("Recruitment", replaceText,
+                                    () => openReplacementModal(recruit),
+                                    advanceRun,
+                                    artHtml
+                                );
+                            },
+                            mergeArt
+                        );
+                        return;
+                    }
+                }
+
+                let replaceText = `Your party is full. Replace a monster with ${recruit.name}?`;
+                if (!gameState.unlockedStarters.includes(recruit.id)) {
+                    replaceText += ` (This will also unlock it in your Collection)`;
+                }
+                showGameConfirm("Recruitment", replaceText,
+                    () => openReplacementModal(recruit),
+                    advanceRun,
+                    artHtml
+                );
+                return;
             }
         }
 

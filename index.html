@@ -101,8 +101,8 @@
                 onmouseout="document.getElementById('act-dark-overlay').style.opacity='0'; document.getElementById('act-hover-1').style.opacity='0'; document.getElementById('act-hover-1').style.transform='scale(1)';"
                 style="position: absolute; left: 0%; top: 0%; width: 33.3%; height: 100%; background: transparent; border: none; cursor: pointer; z-index: 10; outline: none;">
                 <div style="position: absolute; top: 10%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; text-shadow: var(--outline-thick); color: white;">
-                    <span style="font-size: 50px; font-weight: normal;">ACT 1</span>
-                    <span style="font-size: 30px; color: #fff;">The Cave</span>
+                    <span style="font-size: 72px; font-weight: normal;">ACT 1</span>
+                    <span style="font-size: 42px; color: #fff;">The Cave</span>
                 </div>
             </button>
             
@@ -114,8 +114,8 @@
                     <span style="font-size: 80px; filter: drop-shadow(2px 2px 4px black);">🔒</span>
                 </div>
                 <div style="position: absolute; top: 10%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; text-shadow: var(--outline-thick); color: white;">
-                    <span id="text-arc2" style="font-size: 50px; font-weight: normal;">ACT 2</span>
-                    <span id="desc-arc2" style="font-size: 30px; color: #fff;">The Forest</span>
+                    <span id="text-arc2" style="font-size: 72px; font-weight: normal;">ACT 2</span>
+                    <span id="desc-arc2" style="font-size: 42px; color: #fff;">The Forest</span>
                 </div>
             </button>
             
@@ -127,8 +127,8 @@
                     <span style="font-size: 80px; filter: drop-shadow(2px 2px 4px black);">🔒</span>
                 </div>
                 <div style="position: absolute; top: 10%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; text-shadow: var(--outline-thick); color: white;">
-                    <span id="text-arc3" style="font-size: 50px; font-weight: normal;">ACT 3</span>
-                    <span id="desc-arc3" style="font-size: 30px; color: #fff;">The Laboratory</span>
+                    <span id="text-arc3" style="font-size: 72px; font-weight: normal;">ACT 3</span>
+                    <span id="desc-arc3" style="font-size: 42px; color: #fff;">The Laboratory</span>
                 </div>
             </button>
             
@@ -296,6 +296,11 @@
                 <div id="modal-list"></div>
                 <button id="modal-selection-close-btn" onclick="closeModal('modal-selection')" class="nine-cut-button" style="width:100%">CLOSE</button>
             </div>
+        </div>
+
+        <div id="modal-recruit-choice" class="modal" style="flex-direction: column; gap: 30px;">
+            <h2 style="color:#fff; font-size: 40px; text-shadow: var(--outline-thick); margin: 0; text-align: center;">Choose a Monster to join your party:</h2>
+            <div id="recruit-choice-list" style="display: flex; gap: 30px; flex-wrap: wrap; justify-content: center;"></div>
         </div>
 
 
