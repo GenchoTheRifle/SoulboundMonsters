@@ -102,22 +102,70 @@
             }).join('');
         }
 
+        // Reuses the "Available" starter-selection screen's per-starter crop/zoom values
+        // (measured from each PNG's alpha bounding box) so a card's art fills its box and
+        // is centered on the actual creature, instead of floating small/off-center like
+        // raw contain-fit art. Those base values were tuned to show the full body with a
+        // safety margin at the size of that screen's cards - extraZoom zooms in further on
+        // top of them so the art fills a smaller/tighter box edge-to-edge instead of leaving
+        // a ring of blank canvas that reads as padding.
+        // vBias nudges the focus point's vertical target below true center (50%) - useful
+        // when, unlike the "Available" screen's name-overlaid-on-art layout, the name sits
+        // in its own space below the art box, so the character doesn't need to be shifted
+        // as far up to leave room for it and can sit lower/bigger instead.
+        function renderFocusedArt(id, monster, size, extraZoom = 1, vBias = 0) {
+            if (!monster.art.includes('.png')) return renderArt(monster.art, size);
+            const focus = (typeof STARTER_ART_FOCUS !== 'undefined') ? STARTER_ART_FOCUS[id] : null;
+            const imgTransform = focus
+                ? `transform-origin:${focus.cx}% ${focus.cy}%; transform: translate(${50 - focus.cx}%, ${50 - focus.cy + vBias}%) scale(${focus.scale * extraZoom});`
+                : '';
+            return `<div style="width:${size}px; height:${size}px; overflow:hidden; position:relative; display:flex; align-items:center; justify-content:center;">
+                <img src="${monster.art}" style="width:100%; height:100%; object-fit:contain; image-rendering: pixelated; max-width:none; max-height:none; ${imgTransform}" draggable="false" />
+            </div>`;
+        }
+
+        function renderMergeParentArt(id, monster, size) {
+            return renderFocusedArt(id, monster, size, 1.3);
+        }
+
+        // Collection screen's starter cards only - deliberately not applied to merges.
+        // Every card keeps the same art-box `size` so cards stay uniform squares in the
+        // grid (bumping size instead of extraZoom on one card stretches its whole box
+        // taller than its row-mates, since .collection-square has no fixed/clamped height).
+        // Per-starter extraZoom/vBias tweaks: Treant reads bigger via a tighter crop, not a
+        // bigger box; Bat and Drone already float higher/more centered than the grounded
+        // starters, so they get a smaller downward bias than the shared default.
+        const STARTER_CARD_ART_OVERRIDES = {
+            tree: { extraZoom: 1.5 },
+            bat: { vBias: 8 },
+            sparkbot: { vBias: 8 }
+        };
+        function renderStarterCollectionArt(s, size) {
+            const o = STARTER_CARD_ART_OVERRIDES[s.id] || {};
+            return renderFocusedArt(s.id, s, size, o.extraZoom !== undefined ? o.extraZoom : 1.3, o.vBias !== undefined ? o.vBias : 18);
+        }
+
+        // Kept deliberately compact (small text, small portraits) - this box's height eats
+        // into the art box above it (they share a fixed-height column via flex), so the
+        // smaller this is, the more room the main monster art/stats box gets.
         function buildParentsHtml(monster, isMerge) {
             if (!isMerge) return '';
 
-            const p1 = STARTERS[monster.parents[0]];
-            const p2 = STARTERS[monster.parents[1]];
+            const p1Id = monster.parents[0];
+            const p2Id = monster.parents[1];
+            const p1 = STARTERS[p1Id];
+            const p2 = STARTERS[p2Id];
             return `
-                <div style="font-size: 40px; color: #fff; margin-top: 8px; margin-bottom: 6px; text-shadow: var(--outline-thick);">Parents</div>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 24px;">
+                <div style="font-size: 24px; color: #fff; margin: 0 0 2px 0; text-shadow: var(--outline-med);">Merge Requirement</div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        ${renderArt(p1.art, 130)}
-                        <span style="font-size: 30px; color: #fff; margin-top: 6px; text-shadow: var(--outline-thick);">${p1.name}</span>
+                        ${renderMergeParentArt(p1Id, p1, 130)}
+                        <span style="font-size: 22px; color: #fff; margin-top: 2px; text-shadow: var(--outline-med);">${p1.name}</span>
                     </div>
-                    <div style="font-size: 50px; color: #fff; text-shadow: var(--outline-thick);">+</div>
+                    <div style="font-size: 34px; color: #fff; text-shadow: var(--outline-med);">+</div>
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        ${renderArt(p2.art, 130)}
-                        <span style="font-size: 30px; color: #fff; margin-top: 6px; text-shadow: var(--outline-thick);">${p2.name}</span>
+                        ${renderMergeParentArt(p2Id, p2, 130)}
+                        <span style="font-size: 22px; color: #fff; margin-top: 2px; text-shadow: var(--outline-med);">${p2.name}</span>
                     </div>
                 </div>
             `;
@@ -137,7 +185,7 @@
                         <div class="detail-art-box">
                             <h2 style="font-size: 42px; margin: 0 0 10px 0; text-align: center; color: #fff;">${monster.name}</h2>
                             <div class="type-container" style="margin-bottom: 20px; display: flex; justify-content: center;">${typeIconHtml}</div>
-                            <div class="monster-art" style="display: flex; justify-content: center; align-items: center;">${renderArt(monster.art, 280)}</div>
+                            <div class="monster-art" style="display: flex; justify-content: center; align-items: center;">${renderArt(monster.art, 340)}</div>
                         </div>
                         ${isMerge ? `<div class="detail-parents-box" style="text-align: center;">${parentsHtml}</div>` : ''}
                     </div>
@@ -241,7 +289,7 @@
                     if (unlocked) {
                         card.innerHTML = `
                             <div class="collection-type-icon">${getTypeIconHtml(s.type, 40)}</div>
-                            <div class="monster-art">${renderArt(s.art, 200)}</div>
+                            <div class="monster-art">${renderStarterCollectionArt(s, 190)}</div>
                             <strong>${s.name}</strong>
                         `;
                     } else {

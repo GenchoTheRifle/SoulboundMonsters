@@ -3,6 +3,26 @@
         let draggedFromSlot = null;
         let selectedArcId = null;
 
+        // Starter portraits are 512x512 canvases where the monster is positioned differently
+        // depending on its pose (grounded creatures sit low, flying ones float higher), leaving
+        // uneven empty space around the art. These per-starter crop/zoom values (scale + focus
+        // point as % of the image) recenter the art specifically for these "Available" selection
+        // cards, without touching the source art or its use elsewhere. Values are measured from
+        // each PNG's actual alpha bounding box (canvas pixel analysis), then scaled so every
+        // starter's art covers the same visible area of its card (derived from Bat's wide
+        // wingspan, the most edge-constrained pose) and shrunk further to leave room for the name.
+        const STARTER_ART_FOCUS = {
+            wolf: { scale: 0.90, cx: 49.3, cy: 77.1 },
+            slime: { scale: 1.02, cx: 50.2, cy: 77.1 },
+            sentry: { scale: 0.88, cx: 50.6, cy: 72.1 },
+            bear: { scale: 0.89, cx: 49.6, cy: 73.7 },
+            mushroom: { scale: 0.87, cx: 49.1, cy: 73.0 },
+            sparkbot: { scale: 0.92, cx: 50.1, cy: 50.6 },
+            bat: { scale: 0.83, cx: 50.2, cy: 46.9 },
+            tree: { scale: 0.76, cx: 51.0, cy: 72.3 },
+            mech_melee: { scale: 0.91, cx: 51.3, cy: 70.3 }
+        };
+
         window.startArc = function(arcId) {
             selectedArcId = arcId;
             const bgElement = document.getElementById('selection-bg');
@@ -90,7 +110,6 @@
                 const btn = document.createElement('div');
                 btn.className = 'collection-square';
                 btn.style.aspectRatio = 'auto';
-                btn.style.height = '100%';
                 if (isSelected) {
                     btn.style.opacity = '0.3';
                     btn.style.filter = 'grayscale(1)';
@@ -101,11 +120,24 @@
                 }
                 btn.style.cursor = btn.style.cursor || 'pointer';
                 btn.onclick = () => openCollectionDetails(s, true, false);
+                const focus = STARTER_ART_FOCUS[id];
+                const imgTransform = focus
+                    ? `transform-origin:${focus.cx}% ${focus.cy}%; transform: translate(${50 - focus.cx}%, ${50 - focus.cy}%) scale(${focus.scale});`
+                    : '';
                 btn.innerHTML = `
-                    <div class="monster-art" style="flex: 1; min-height: 0; pointer-events: none;">${renderArt(s.art, 160)}</div>
-                    <strong style="pointer-events: none;">${s.name}</strong>
+                    <div class="collection-type-icon">${getTypeIconHtml(s.type, 40)}</div>
+                    <div class="monster-art" style="position: absolute; inset: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+                        ${s.art.includes('.png') ? `<img src="${s.art}" style="width:100%; height:100%; object-fit:contain; image-rendering: pixelated; ${imgTransform}" draggable="false" />` : `<div style="font-size:120px; line-height:1;">${s.art}</div>`}
+                    </div>
+                    <strong style="position: absolute; left: 0; right: 0; bottom: 16px; z-index: 3; pointer-events: none;">${s.name}</strong>
                 `;
                 list.appendChild(btn);
+            });
+
+            requestAnimationFrame(() => {
+                list.querySelectorAll('.collection-square').forEach(card => {
+                    card.style.height = card.offsetWidth + 'px';
+                });
             });
         }
 
@@ -222,7 +254,10 @@
         // through showMergeResultDetails to show the full collection card.
         function showRecruitmentAlert(recruit, onDone) {
             document.getElementById('recruit-message').innerText = `Defeated ${recruit.name} joined your party!`;
-            document.getElementById('recruit-art').innerHTML = renderArt(recruit.art, 240);
+            const recruitArt = document.getElementById('recruit-art');
+            recruitArt.style.cssText = 'width:240px; height:240px; margin:10px auto; overflow:hidden; display:flex; align-items:center; justify-content:center;';
+            recruitArt.innerHTML = renderFocusedArt(recruit.art);
+            applyArtAutoFocus(recruitArt);
             document.getElementById('recruit-type-icon').innerHTML = buildTypeIconHtml(recruit);
 
             const modal = document.getElementById('modal-recruitment');
@@ -245,6 +280,7 @@
                 document.getElementById('confirm-message').after(htmlContainer);
             }
             htmlContainer.innerHTML = htmlContent;
+            applyArtAutoFocus(htmlContainer);
 
             const modal = document.getElementById('modal-confirm');
             const yesBtn = document.getElementById('confirm-yes');
@@ -480,7 +516,8 @@
                 gameState = {
                     unlockedStarters: [],
                     discoveredMerges: [],
-                    maxActReached: 1
+                    maxActReached: 1,
+                    hasStartedFirstRun: false
                 };
                 firstTimeSlots = [null, null];
                 playClicked();
@@ -494,7 +531,8 @@
                 gameState = {
                     unlockedStarters: allStarters,
                     discoveredMerges: allMerges,
-                    maxActReached: 3
+                    maxActReached: 3,
+                    hasStartedFirstRun: true
                 };
                 saveGame();
                 showScreen('screen-menu');

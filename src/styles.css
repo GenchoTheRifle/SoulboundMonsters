@@ -548,16 +548,15 @@ button, input, select, textarea {
         }
 
         .combatant.boss {
-            /* Keep container normal scale, push it down slightly */
-            margin-top: 115px;
+            /* .team.boss-team centers this element, which halves the effect of margin-top
+               adjustments (half the added margin just grows the centered box upward too).
+               Use `top` instead - relative-position offsets apply after centering and
+               aren't cancelled out, so this is what actually pushes it down the screen. */
+            top: 140px;
             margin-bottom: 20px;
         }
 
         .combatant.boss.name-colossal-treant {
-            /* .team.boss-team centers this element, which halves the effect of margin-top
-               adjustments (half the added margin just grows the centered box upward too).
-               Use `top` instead since relative-position offsets apply after centering and
-               aren't cancelled out - this is what actually pushes it further down the screen. */
             top: 90px;
         }
 
@@ -577,9 +576,9 @@ button, input, select, textarea {
    box - leaving the enlarged ellipse creeping up into the now much taller boss sprite's
    legs instead of sitting further below its feet. Double each size class's gap too so it
    scales along with the sprite. */
-.combatant.boss .monster-art-container > .shadow-ellipse.shadow-small { bottom: -10px; }
-.combatant.boss .monster-art-container > .shadow-ellipse.shadow-medium { bottom: -20px; }
-.combatant.boss .monster-art-container > .shadow-ellipse.shadow-big { bottom: -30px; }
+.combatant.boss .monster-art-container > .shadow-ellipse.shadow-small { bottom: -20px; }
+.combatant.boss .monster-art-container > .shadow-ellipse.shadow-medium { bottom: -35px; }
+.combatant.boss .monster-art-container > .shadow-ellipse.shadow-big { bottom: -55px; }
 .combatant.boss .monster-art-container {
     margin-bottom: 40px;
 }
@@ -828,6 +827,39 @@ button, input, select, textarea {
         .move-btn.mech { border-left-width: 8px; border-left-color: var(--mech); }
         .move-btn.basic-attack { border-left-width: 8px; border-left-color: #339af0; }
 
+        /* Taunt lock: dims/desaturates whatever move is behind it and stamps a glowing
+           padlock over it so a locked ability still reads as "don't touch" at a glance. */
+        .taunt-lock-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: grayscale(1) brightness(0.6);
+            -webkit-backdrop-filter: grayscale(1) brightness(0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .taunt-lock-glow {
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,30,30,0.85) 0%, rgba(255,0,0,0.35) 35%, rgba(255,0,0,0) 60%);
+        }
+
+        .taunt-lock-icon {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            z-index: 1;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+        }
+
         .move-cost {
             font-size: 20px;
             
@@ -1072,7 +1104,7 @@ button, input, select, textarea {
         .detail-parents-box {
             background: rgba(0,0,0,0.3);
             border-radius: 15px;
-            padding: 14px 20px;
+            padding: 4px 10px;
         }
 
         .detail-column-stats {
@@ -1329,6 +1361,14 @@ button, input, select, textarea {
     100% { filter: drop-shadow(0 0 15px rgba(255, 0, 0, 1)) brightness(1.2);  transform: translateX(-50%); }
 }
 
+/* Same pulse as tauntPulse, but keeping the Heavy Robot boss's rightward-shifted resting
+   transform - tauntPulse's own keyframes hard-code translateX(-50%), which would silently
+   override any static transform set on an element using that animation. */
+@keyframes tauntPulseHeavyRobotBoss {
+    0% { filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.5)) brightness(0.8); opacity: 0.7; transform: translateX(calc(-50% + 30px)); }
+    100% { filter: drop-shadow(0 0 15px rgba(255, 0, 0, 1)) brightness(1.2);  transform: translateX(calc(-50% + 30px)); }
+}
+
 @keyframes titlePulse {
     0% { transform: translate(-50%, -50%) scale(1); }
     50% { transform: translate(-50%, -50%) scale(1.05); }
@@ -1374,9 +1414,18 @@ button, input, select, textarea {
 }
 
 #selection-list .collection-square img {
-    max-height: 160px;
+    max-height: 100%;
     max-width: 100%;
     object-fit: contain;
+}
+
+#selection-list .collection-square .collection-type-icon {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
 }
 
 #selection-list .collection-square strong {
@@ -1420,11 +1469,13 @@ button, input, select, textarea {
 }
 
 .combatant.boss.name-heavy-robot .monster-art-container .taunt-circle {
-    width: 392px !important;
-    height: 392px !important;
+    width: 460px !important;
+    height: 460px !important;
     max-width: none !important;
     max-height: none !important;
-    bottom: -190px !important;
+    bottom: -215px !important;
+    transform: translateX(calc(-50% + 30px)) !important;
+    animation: tauntPulseHeavyRobotBoss 1s infinite alternate !important;
 }
 
 @keyframes slideLeft {

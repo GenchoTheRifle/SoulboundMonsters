@@ -2067,7 +2067,7 @@
     {
       "name": "Blight Wood",
       "hp": 105,
-      "spd": 4,
+      "spd": 5,
       "matk": 16,
       "mdef": 30,
       "ratk": 16,

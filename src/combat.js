@@ -70,6 +70,17 @@
             }
 
             showScreen('screen-combat');
+
+            // Wipe any leftover combatant DOM from the previous encounter. Those divs'
+            // .hp-fill elements carry a `transition: width 1.5s...` inline style, so if we
+            // reused them here, setting the new unit's (full) HP width would visibly
+            // animate up from whatever width was left over (often 0% from a unit that died
+            // last fight) instead of just appearing at full HP.
+            const enemyTeamEl = document.getElementById('enemy-team');
+            const playerTeamEl = document.getElementById('player-team');
+            if (enemyTeamEl) enemyTeamEl.innerHTML = '';
+            if (playerTeamEl) playerTeamEl.innerHTML = '';
+
             combatState.log = ["Combat Started!"];
             combatState.targetingMove = null;
             combatState.activeUnit = null;
@@ -98,8 +109,12 @@
             let allPool = [...simplePool, ...advancedPool, ...extraEnemies];
 
             let pool = allPool;
-            if (currentRun.nodeIndex === 0) pool = [...simplePool]; // Node 1
-            else if (currentRun.nodeIndex === 1) pool = [...simplePool, ...advancedPool]; // Node 2
+            if (currentRun.nodeIndex === 0) {
+                // Only the player's very first ever run is guaranteed to have just 2
+                // starters unlocked, so restrict Node 1 to the base pool then. Every
+                // later run can also draw bear/mushroom/drone.
+                pool = currentRun.isFirstRun ? [...simplePool] : [...simplePool, ...advancedPool];
+            } else if (currentRun.nodeIndex === 1) pool = [...simplePool, ...advancedPool]; // Node 2
 
             if (node.type === 'boss') {
                 let bossId = 'mega_bat';
@@ -337,6 +352,18 @@
 
             if (orb.parentNode) orb.parentNode.removeChild(orb);
             showFloatingText(toUnit, energyGainHtml(amount), "#00a8ff", 'energy');
+        }
+
+        // Credits whichever unit actually inflicted the killing damage (direct hit, poison,
+        // toxin, thorns/brambles reflect, or counter reflect) with the usual on-kill energy gain.
+        function grantKillEnergy(killer, deadUnit) {
+            if (!killer || killer.currentHp <= 0) return;
+            const maxE = killer.isBoss ? 5 : 3;
+            if (killer.energy < maxE) {
+                killer.energy = Math.min(maxE, killer.energy + 1);
+                playSoulCollectVFX(deadUnit, killer, 1);
+                combatLog(`${killer.name} gained 1 energy for the kill!`);
+            }
         }
 
         // Floating combat numbers (damage/heal/energy) are queued per-unit so that several that
@@ -634,6 +661,8 @@
                 endTurnBtn.disabled = !canEndTurn;
                 endTurnBtn.style.display = (combatState.isPlayerTurn && !combatState.ended) ? 'block' : 'none';
                 endTurnBtn.title = taunted ? 'Basic Attack is locked while the enemy is Taunting!' : '';
+                const basicAttackLockOverlay = document.getElementById('basic-attack-lock-overlay');
+                if (basicAttackLockOverlay) basicAttackLockOverlay.style.display = taunted ? 'flex' : 'none';
 
                 const hasOtherMove = canEndTurn && unit.moves && unit.moves.some(m => energy >= m.c);
                 endTurnBtn.classList.toggle('only-option-pulse', canEndTurn && !hasOtherMove);
@@ -725,7 +754,7 @@
                     let html = `<div style="position:relative; display:inline-block;">
                         <img src="${src}" style="${style}" title="${title}" />`;
                     if (evolved) {
-                        html += `<img src="Art/Ability Evolution.png" style="position:absolute; top:-7px; left:-7px; width:24px; height:24px; z-index:3; filter: drop-shadow(0 0 3px rgba(50,150,255,0.9));" title="Evolved" />`;
+                        html += `<img src="Art/Ability Evolution.png" style="position:absolute; top:-12px; left:-12px; width:34px; height:34px; z-index:3; filter: drop-shadow(0 0 3px rgba(50,150,255,0.9));" title="Evolved" />`;
                     }
                     if (turns !== undefined && turns > 0) {
                         html += `<div style="position:absolute; bottom:-4px; right:-4px; background:rgba(0,0,0,0.7); color:white; font-size:13px; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
@@ -1004,6 +1033,7 @@ let shadowClass = getShadowClass(u.name);
                         if (unit.isEnemy && !combatState.killedEnemies.includes(unit)) {
                             combatState.killedEnemies.push(unit);
                         }
+                        grantKillEnergy(unit.poisonSource, unit);
                         calculateTurnOrder(true);
                     }
                 });
@@ -1032,6 +1062,7 @@ let shadowClass = getShadowClass(u.name);
                         if (unit.isEnemy && !combatState.killedEnemies.includes(unit)) {
                             combatState.killedEnemies.push(unit);
                         }
+                        grantKillEnergy(unit.toxinSource, unit);
                         calculateTurnOrder(true);
                     }
                 });
@@ -1063,7 +1094,7 @@ let shadowClass = getShadowClass(u.name);
             // affordable move at all (most commonly at 0 energy), there's nothing left to
             // legally do, so skip the turn instead of soft-locking the player.
             if (combatState.isPlayerTurn && isOpponentTaunting(unit)) {
-                const hasLegalMove = unit.moves.some(m => unit.energy >= m.c && !isPositiveAbility(m));
+                const hasLegalMove = unit.moves.some(m => unit.energy >= m.c && !isTauntLockedMove(m));
                 if (!hasLegalMove) {
                     updateCombatUI();
                     combatLog(`${unit.name} has no valid move while Taunted and skips their turn!`);
@@ -1182,10 +1213,18 @@ let shadowClass = getShadowClass(u.name);
             return opposingTeam.some(o => o && o.currentHp > 0 && o.buffs && o.buffs.some(b => b.type === 'taunt'));
         }
 
-        // A move that buffs the user's own side (self/ally/all_allies) rather than hitting
-        // the opponent - these are exactly what Taunt should lock out.
-        function isPositiveAbility(m) {
-            return !!(m.effect && (m.effect.target === 'self' || m.effect.target === 'ally' || m.effect.target === 'all_allies'));
+        // Any move that deals no direct damage - buffs, heals, and pure status-effect moves
+        // like Poison Cloud/Toxin alike - locked out while the opponent is Taunting, so Taunt
+        // can't be ignored by using something that never actually attacks.
+        function isTauntLockedMove(m) {
+            return !m.p;
+        }
+
+        function tauntLockOverlayHtml() {
+            return `<div class="taunt-lock-overlay">
+                <div class="taunt-lock-glow"></div>
+                <img src="Art/Lock.png" class="taunt-lock-icon" alt="Locked" />
+            </div>`;
         }
 
         function renderMoveControls(unit) {
@@ -1214,7 +1253,7 @@ let shadowClass = getShadowClass(u.name);
                 const isTargetingThis = combatState.targetingMove === m;
                 if (isTargetingThis) btn.style.background = 'gold';
                 
-                const lockedByTaunt = taunted && isPositiveAbility(m);
+                const lockedByTaunt = taunted && isTauntLockedMove(m);
                 btn.disabled = currentEnergy < m.c || lockedByTaunt;
                 if (lockedByTaunt) btn.title = 'Locked while the enemy is Taunting!';
                 const isAoE = m.effect && (m.effect.target === 'all_enemies' || m.effect.target === 'all_allies');
@@ -1224,7 +1263,7 @@ let shadowClass = getShadowClass(u.name);
                 else if (m.melee) { categoryLabel = 'Melee'; categoryColor = '#ff6b6b'; }
                 else { categoryLabel = 'Ranged'; categoryColor = '#339af0'; }
                 btn.innerHTML = `
-                    ${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="position: absolute; top: -10px; left: -10px; width: ${elementIconSize}; height: ${elementIconSize}; z-index: 5; pointer-events: none; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));" alt="${moveType}" />` : ''}
+                    ${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="position: absolute; top: -10px; left: -10px; width: ${elementIconSize}; height: ${elementIconSize}; z-index: 25; pointer-events: none; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));" alt="${moveType}" />` : ''}
                     <div style="display:flex; flex-direction:column; justify-content:flex-start; width:100%; height:100%; padding: 4px; padding-left: 20px; position: relative;">
                         <span style="position: absolute; top: 2px; right: 6px; font-size: 16px; font-weight: normal; color: ${categoryColor}; z-index: 4;">${categoryLabel}</span>
                         <span style="font-weight: normal; font-size:${nameSize}; color: ${categoryColor}; text-align: left; margin-bottom: 2px; width: calc(100% - 13px); display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 3px 0 0 3px;">${m.n}</span>
@@ -1233,6 +1272,7 @@ let shadowClass = getShadowClass(u.name);
                         </div>
                         <span class="move-cost" style="position: absolute; bottom: 4px; right: 4px; font-size:${costSize}; display:flex; align-items:center; gap:2px; font-weight: normal; background: rgba(30,30,32,0.65); border: 1px solid rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 6px; z-index: 3;">${m.c} <img src="Art/EN.png" style="width:${iconSize}; height:${iconSize};"></span>
                     </div>
+                    ${lockedByTaunt ? tauntLockOverlayHtml() : ''}
                 `;
                 btn.onclick = () => {
                     combatState.targetingMove = m;
@@ -2231,6 +2271,7 @@ let shadowClass = getShadowClass(u.name);
                                 if (attacker.currentHp <= 0) {
                                     if (attacker.isEnemy && !combatState.killedEnemies.includes(attacker)) combatState.killedEnemies.push(attacker);
                                     else if (!attacker.isEnemy) { combatLog(`${attacker.name} has fallen!`); calculateTurnOrder(true); }
+                                    grantKillEnergy(t, attacker);
                                 }
                                 const attackerEl = getElementForUnit(attacker);
                                 if (attackerEl) {
@@ -2280,6 +2321,7 @@ let shadowClass = getShadowClass(u.name);
                                     if (attacker.currentHp <= 0) {
                                         if (attacker.isEnemy && !combatState.killedEnemies.includes(attacker)) combatState.killedEnemies.push(attacker);
                                         else if (!attacker.isEnemy) { combatLog(`${attacker.name} has fallen!`); calculateTurnOrder(true); }
+                                        grantKillEnergy(t, attacker);
                                     }
                                     const attackerEl = getElementForUnit(attacker);
                                     if (attackerEl) {
@@ -2427,6 +2469,7 @@ let shadowClass = getShadowClass(u.name);
                         if (poisonDmg >= (fxTarget.poison || 0)) fxTarget.poisonEvolved = isEvolvedMove;
                         fxTarget.poison = Math.max(fxTarget.poison || 0, poisonDmg);
                         fxTarget.poisonTurns = eff.turns;
+                        fxTarget.poisonSource = anyCountered ? t : attacker;
                         combatLog(anyCountered ? `${fxTarget.name} was poisoned by the reflected attack!` : `${fxTarget.name} was poisoned!`);
                     } else if (eff.type.includes('toxin')) {
                         let toxinDmg = 0;
@@ -2437,6 +2480,7 @@ let shadowClass = getShadowClass(u.name);
                         }
                         fxTarget.toxin = Math.max(fxTarget.toxin || 0, toxinDmg);
                         fxTarget.toxinTurns = eff.turns;
+                        fxTarget.toxinSource = anyCountered ? t : attacker;
                         combatLog(anyCountered ? `${fxTarget.name} was inflicted with Toxin by the reflected attack!` : `${fxTarget.name} was inflicted with Toxin!`);
                     }
                 }
@@ -2449,12 +2493,7 @@ let shadowClass = getShadowClass(u.name);
                         calculateTurnOrder(true);
                     }
 
-                    const maxE = attacker.isBoss ? 5 : 3;
-                    if (attacker.energy < maxE) {
-                        attacker.energy = Math.min(maxE, attacker.energy + 1);
-                        playSoulCollectVFX(t, attacker, 1);
-                        combatLog(`${attacker.name} gained 1 energy for the kill!`);
-                    }
+                    grantKillEnergy(attacker, t);
                 }
             }
 
@@ -2624,6 +2663,12 @@ let shadowClass = getShadowClass(u.name);
             const hpPct = unit.currentHp / unit.hp;
             const livingParty = currentRun.party.filter(p => p && p.currentHp > 0);
 
+            // Single-target moves must respect an active Taunt (AoE ignores it, same as
+            // everywhere else Taunt is checked) - so a kill shot can't be used to snipe a
+            // non-taunting party member while the taunter is still standing.
+            const tauntingParty = livingParty.filter(p => p.buffs && p.buffs.some(b => b.type === 'taunt'));
+            const singleTargetPool = tauntingParty.length > 0 ? tauntingParty : livingParty;
+
             // 1. Take a kill if one is available - finishing off the party is worth more than
             // topping off its own HP, even while hurt.
             const attackMovesForKillCheck = affordableMoves.filter(m => m.p > 0);
@@ -2636,7 +2681,7 @@ let shadowClass = getShadowClass(u.name);
                         bestKill = { move: m, target: null, killCount };
                     }
                 } else if (!bestKill || bestKill.killCount < 1) {
-                    const killTarget = livingParty.find(p => calculateDamage(unit, m, p) >= p.currentHp);
+                    const killTarget = singleTargetPool.find(p => calculateDamage(unit, m, p) >= p.currentHp);
                     if (killTarget) bestKill = { move: m, target: killTarget, killCount: 1 };
                 }
             }
@@ -2792,7 +2837,7 @@ let shadowClass = getShadowClass(u.name);
             };
 
             const emptyIndex = currentRun.party.findIndex(p => p === null);
-            const artHtml = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; height:200px;">${renderArt(recruit.art, 200)}</div>`;
+            const artHtml = `<div style="display:flex; justify-content:center; align-items:center; margin:10px auto; width:200px; height:200px; overflow:hidden;">${renderFocusedArt(recruit.art)}</div>`;
 
             if (emptyIndex !== -1) {
                 currentRun.party[emptyIndex] = recruit;
@@ -2818,12 +2863,12 @@ let shadowClass = getShadowClass(u.name);
                     );
 
                     if (outcome) {
-                        const mergeArt = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; gap: 10px; height:150px;">
-                            <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p1.art, 100)}</div>
-                            <span style="font-size: 48px;">+</span>
-                            <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(p2.art, 100)}</div>
-                            <span style="font-size: 48px;">=</span>
-                            <div style="height:100%; display:flex; justify-content:center; align-items:center;">${renderArt(outcome.art, 150)}</div>
+                        const mergeArt = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; gap: 10px; height:190px;">
+                            <div style="width:190px; height:190px; overflow:hidden; display:flex; justify-content:center; align-items:center;">${renderFocusedArt(p1.art)}</div>
+                            <span style="font-size: 48px; color:#fff;">+</span>
+                            <div style="width:190px; height:190px; overflow:hidden; display:flex; justify-content:center; align-items:center;">${renderFocusedArt(p2.art)}</div>
+                            <span style="font-size: 48px; color:#fff;">=</span>
+                            <div style="width:190px; height:190px; overflow:hidden; display:flex; justify-content:center; align-items:center;">${renderFocusedArt(outcome.art)}</div>
                         </div>`;
 
                         showGameConfirm(
@@ -2885,12 +2930,12 @@ let shadowClass = getShadowClass(u.name);
             list.className = '';
             list.innerHTML = `
                 <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
-                    <div style="transform: scale(0.9); transform-origin: top center; margin-bottom: -40px;">
-                        <div style="display: grid; grid-template-columns: 200px 200px; gap: 40px; justify-content: center; margin-bottom: 10px; color: white; font-weight: normal; text-shadow: var(--outline-thin);">
+                    <div>
+                        <div style="display: grid; grid-template-columns: 240px 240px; gap: 50px; justify-content: center; margin-bottom: 15px; color: white; font-weight: normal; font-size: 20px; text-shadow: var(--outline-thin);">
                             <div style="text-align: center;">BACKLINE</div>
                             <div style="text-align: center;">FRONTLINE</div>
                         </div>
-                        <div style="position: relative; padding: 20px 40px; background: ${getMapBackground(currentRun.arcId)} center/cover; border-radius: 15px; border: 2px solid #444;">
+                        <div style="position: relative; padding: 25px 45px; background: ${getMapBackground(currentRun.arcId)} center/cover; border-radius: 15px; border: 2px solid #444;">
                             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); border-radius: 15px;"></div>
                             <div class="team" style="position: relative; z-index: 2; width: auto; padding: 0; direction: rtl;" id="replace-list-team">
                             </div>
@@ -2912,20 +2957,20 @@ let shadowClass = getShadowClass(u.name);
                 const btn = document.createElement('div');
                 btn.className = 'select-slot';
                 btn.style.direction = 'ltr';
-                btn.style.width = '180px';
-                btn.style.height = '180px';
-                
+                btn.style.width = '220px';
+                btn.style.height = '220px';
+
                 if (!m) {
                     teamContainer.appendChild(btn);
                     continue;
                 }
-                
+
                 btn.innerHTML = `
                     <button style="width: 100%; height: 100%; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0;">
-                        <div style="width:140px; height:140px; margin-bottom:5px; pointer-events:none;">
-                            ${renderArt(m.art, 120)}
+                        <div style="width:170px; height:170px; margin-bottom:8px; pointer-events:none;">
+                            ${renderArt(m.art, 150)}
                         </div>
-                        <strong style="font-size:24px; text-align:center; pointer-events:none; color: white; text-shadow: var(--outline-med);">${m.name}</strong>
+                        <strong style="font-size:28px; text-align:center; pointer-events:none; color: white; text-shadow: var(--outline-med);">${m.name}</strong>
                     </button>
                 `;
                 btn.querySelector('button').onclick = () => {
@@ -2954,22 +2999,25 @@ let shadowClass = getShadowClass(u.name);
             if (currentRun.nodeIndex >= currentRun.nodes.length) {
                 // Victory Run
                 let msg = "Congratulations! You have completed the run.";
-                
+                let winHtml = '';
+
                 let bossId = 'mega_bat';
                 if (currentRun.arcId === 'arc2') bossId = 'mega_treant';
                 if (currentRun.arcId === 'arc3') bossId = 'mega_mech';
-                
+
                 const bossData = BOSSES[bossId];
                 if (bossData && bossData.unlocks) {
                     const unlocksId = bossData.unlocks;
                     if (!gameState.unlockedStarters.includes(unlocksId)) {
                         gameState.unlockedStarters.push(unlocksId);
-                        msg += `\nUnlocked new starter: ${STARTERS[unlocksId].name}!`;
-                    } else {
-                        msg += `\nYou already unlocked this Arc's starter.`;
+                        const starter = STARTERS[unlocksId];
+                        msg += `\nUnlocked new starter: ${starter.name}!`;
+                        if (starter && starter.art) {
+                            winHtml = `<div style="display:flex; justify-content:center; margin: 12px 0;">${renderArt(starter.art, 220)}</div>`;
+                        }
                     }
                 }
-                
+
                 // Act unlocks
                 if (currentRun.arcId === 'arc1' && gameState.maxActReached < 2) {
                     gameState.maxActReached = 2;
@@ -2978,11 +3026,11 @@ let shadowClass = getShadowClass(u.name);
                     gameState.maxActReached = 3;
                     msg += `\n\nUNLOCKED ACT 3: The Laboratory!`;
                 }
-                
+
                 saveGame();
                 showGameAlert("YOU WIN!", msg, () => {
                     showScreen('screen-menu');
-                });
+                }, winHtml);
             } else {
                 showScreen('screen-map');
                 renderMap();

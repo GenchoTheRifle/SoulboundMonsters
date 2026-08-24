@@ -65,6 +65,12 @@
                     currentRun.party = selectionSlots.map(s => s ? { ...s, currentHp: s.hp } : null);
                     currentRun.arcId = selectedArcId;
                     currentRun.nodeIndex = 0;
+                    // Node 1's enemy pool is restricted to the base starters only on the
+                    // player's very first ever run, since that's the only time they're
+                    // guaranteed to have just 2 starters unlocked.
+                    currentRun.isFirstRun = !gameState.hasStartedFirstRun;
+                    gameState.hasStartedFirstRun = true;
+                    saveGame();
                     currentRun.nodes = [
                         { type: 'combat', level: 0 },
                         { type: 'combat', level: 0 },
@@ -249,27 +255,39 @@
             
             document.getElementById('btn-continue-node').disabled = currentRun.nodeIndex >= currentRun.nodes.length;
 
-            // Auto-scroll to current node
-            setTimeout(() => {
+            // Auto-scroll to current node. The track image can still be mid-decode here
+            // (its src was just (re)assigned above), so map-track's layout width isn't
+            // reliable yet - relying on a fixed delay alone meant the scroll would sometimes
+            // run before the image finished loading, fall back to a guessed width, and land
+            // on the wrong part of the road. Re-run once the image actually finishes loading
+            // so the current node is always the one brought into view.
+            const scrollToCurrentNode = () => {
                 const mapNodes = document.getElementById('map-nodes');
                 const track = document.getElementById('map-track');
                 if (mapNodes && track) {
                     const viewportWidth = mapNodes.offsetWidth;
-                    const trackWidth = track.offsetWidth || (mapNodes.offsetHeight * (3240 / 540));
-                    
+                    const fallbackWidth = trackImg && trackImg.naturalWidth
+                        ? mapNodes.offsetHeight * (trackImg.naturalWidth / trackImg.naturalHeight)
+                        : mapNodes.offsetHeight * (3240 / 540);
+                    const trackWidth = track.offsetWidth || fallbackWidth;
+
                     const pos = MAP_NODE_POSITIONS[currentRun.nodeIndex] || { x: 0.5 };
                     let targetX = pos.x * trackWidth;
-                    
-                    // Center the targetX in the viewport
+
                     // Center the targetX in the viewport
                     let scrollLeft = targetX - (viewportWidth / 2);
-                    
+
                     // Clamp it so we don't scroll past the edges
                     scrollLeft = Math.max(0, Math.min(trackWidth - viewportWidth, scrollLeft));
-                    
+
                     mapNodes.scrollTo({ left: scrollLeft, behavior: 'smooth' });
                 }
-            }, 100);
+            };
+
+            if (trackImg && !trackImg.complete) {
+                trackImg.addEventListener('load', scrollToCurrentNode, { once: true });
+            }
+            setTimeout(scrollToCurrentNode, 100);
 
             updateTeamUI();
         }
@@ -292,7 +310,7 @@
                     slot.classList.add('combatant');
                     
                     const hpPerc = Math.max(0, Math.min(100, (m.currentHp / m.hp) * 100));
-                    let hpColor = hpPerc > 50 ? '#22c55e' : hpPerc > 25 ? '#eab308' : '#ef4444';
+                    let hpColor = hpPerc > 66 ? '#22c55e' : hpPerc > 33 ? '#eab308' : '#ef4444';
                     const mEnergy = m.energy !== undefined ? m.energy : (m.startingEnergy !== undefined ? m.startingEnergy : 1);
 
                     slot.innerHTML = `
@@ -373,7 +391,7 @@
                             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
                                 <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
                                 <div class="hp-bar" style="flex: 1; position: relative; width: 100%; height: 17px; background: #222; border-radius: 6px; overflow: hidden; border: 1px solid #000;">
-                                    <div class="hp-fill" style="height: 100%; width:${Math.max(0, Math.min(100, (m.currentHp / m.hp) * 100))}%; background-color:${(m.currentHp / m.hp) * 100 > 50 ? '#22c55e' : (m.currentHp / m.hp) * 100 > 25 ? '#eab308' : '#ef4444'};"></div>
+                                    <div class="hp-fill" style="height: 100%; width:${Math.max(0, Math.min(100, (m.currentHp / m.hp) * 100))}%; background-color:${(m.currentHp / m.hp) * 100 > 66 ? '#22c55e' : (m.currentHp / m.hp) * 100 > 33 ? '#eab308' : '#ef4444'};"></div>
                                     <div class="hp-text move-description-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; pointer-events: none;">
                                         ${Math.ceil(m.currentHp)}/${m.hp}
                                     </div>

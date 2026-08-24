@@ -84,6 +84,11 @@
                 if (!gameState.maxActReached) {
                     gameState.maxActReached = 1;
                 }
+                // Older saves predate this flag. Anyone with an existing save has already
+                // started at least one run, so treat them as past the first-run stage.
+                if (gameState.hasStartedFirstRun === undefined) {
+                    gameState.hasStartedFirstRun = true;
+                }
             }
             showScreen('screen-title');
         }
@@ -130,6 +135,64 @@
                 document.getElementById('text-arc3').innerText = 'ACT 3';
                 if(lock3) lock3.style.display = 'none';
             }
+        }
+
+        // Generic version of the crop/zoom trick used on the starter selection cards, for
+        // popups that show arbitrary monster art (recruitment, merge results) where hand-tuning
+        // a focus value per monster isn't practical. Measures the image's actual alpha bounding
+        // box at runtime and zooms/recenters it to fill the element, capped so it never overflows.
+        function autoFocusArt(img, targetFillFraction = 0.6, maxFillFraction = 0.94) {
+            function apply() {
+                try {
+                    const w = img.naturalWidth, h = img.naturalHeight;
+                    if (!w || !h) return;
+                    const c = document.createElement('canvas');
+                    c.width = w; c.height = h;
+                    const ctx = c.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const data = ctx.getImageData(0, 0, w, h).data;
+                    let minX = w, minY = h, maxX = 0, maxY = 0;
+                    const threshold = 10;
+                    for (let y = 0; y < h; y++) {
+                        for (let x = 0; x < w; x++) {
+                            if (data[(y * w + x) * 4 + 3] > threshold) {
+                                if (x < minX) minX = x;
+                                if (x > maxX) maxX = x;
+                                if (y < minY) minY = y;
+                                if (y > maxY) maxY = y;
+                            }
+                        }
+                    }
+                    if (maxX <= minX || maxY <= minY) return;
+                    const bboxW = maxX - minX, bboxH = maxY - minY;
+                    const cx = ((minX + maxX) / 2 / w) * 100;
+                    const cy = ((minY + maxY) / 2 / h) * 100;
+                    const areaFrac = (bboxW * bboxH) / (w * h);
+                    const maxDimFrac = Math.max(bboxW / w, bboxH / h);
+                    const scale = Math.min(Math.sqrt(targetFillFraction / areaFrac), maxFillFraction / maxDimFrac);
+                    img.style.transformOrigin = `${cx}% ${cy}%`;
+                    img.style.transform = `translate(${50 - cx}%, ${50 - cy}%) scale(${scale})`;
+                } catch (e) { /* tainted canvas or decode failure - leave art as-is */ }
+            }
+            if (img.complete && img.naturalWidth) apply();
+            else img.addEventListener('load', apply, { once: true });
+        }
+
+        // Call after inserting HTML that contains `<img class="art-autofocus">` tags (e.g. from
+        // renderFocusedArt below) to measure and crop each one.
+        function applyArtAutoFocus(container) {
+            if (!container) return;
+            container.querySelectorAll('img.art-autofocus').forEach(img => autoFocusArt(img));
+        }
+
+        // Drop-in replacement for renderArt() for popups where the art should be
+        // auto-cropped/centered (see autoFocusArt above). Wrap the returned markup's container
+        // with overflow:hidden and call applyArtAutoFocus(container) after it's in the DOM.
+        function renderFocusedArt(art, size = 40) {
+            if (art.includes('.png') || art.includes('/')) {
+                return `<img src="${art}" class="art-autofocus" style="width:100%; height:100%; object-fit:contain; image-rendering:pixelated;" draggable="false" />`;
+            }
+            return `<div style="font-size:${size}px; line-height:1;">${art}</div>`;
         }
 
         function getElementIcon(type) {
@@ -305,7 +368,7 @@
             toxin: { name: 'Toxin', icons: ['Art/Toxin.png'], desc: 'Deals damage equal to a % of max HP at the start of every turn.' },
             brambles: { name: 'Thorns', icons: ['Art/Thorns.png'], desc: 'Reflects damage back at any attacker that hits this monster.' },
             counter: { name: 'Counter', icons: ['Art/Counter.png'], desc: 'Negates the next hit taken, then reflects a portion of that damage back at the attacker.' },
-            taunt: { name: 'Taunt', icons: ['Art/Taunt.png'], desc: 'Forces all enemies to attack this monster.' },
+            taunt: { name: 'Taunt', icons: ['Art/Taunt.png'], desc: 'Forces all enemies to attack this monster, restricted to damaging abilities while it lasts.' },
             regen: { name: 'Regen', icons: ['Art/Regen.png'], desc: 'Heals this monster at the start of every turn.' },
             lifesteal: { name: 'Lifesteal', icons: ['Art/Lifesteal.png'], desc: "Causes this monster's attacks to heal it for a portion of the damage dealt." },
             guard: { name: 'Guard', icons: ['Art/Guard.png'], desc: 'Reduces incoming damage until this monster is hit once, then breaks.' },

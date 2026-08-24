@@ -2,7 +2,8 @@
         let gameState = {
             unlockedStarters: [],
             discoveredMerges: [],
-            maxActReached: 1
+            maxActReached: 1,
+            hasStartedFirstRun: false
         };
 
         function getMapRoadBackground(arcId) {
