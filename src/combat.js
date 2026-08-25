@@ -1,0 +1,3095 @@
+// --- COMBAT ENGINE ---
+        // Merge-tier moves that share a base move's status icon but show the Ability Evolution badge.
+        const EVOLVED_MOVES = new Set(['Colossal Thorns', 'Crimson Lifesteal', 'Heavy Counter', 'Alpha Howl', 'Elder Guard', 'Giant Poison Cloud']);
+
+        let combatState = {
+            enemies: [],
+            log: [],
+            isPlayerTurn: false,
+            activeUnit: null,
+            targetingMove: null,
+            killedEnemies: [],
+            turnJustStarted: true,
+            ended: false
+        };
+
+        let isExecutingMove = false;
+
+        const _spritePreloadCache = new Map();
+        function preloadSprite(src) {
+            if (!_spritePreloadCache.has(src)) {
+                const img = new Image();
+                img.src = src;
+                const promise = img.decode ? img.decode().catch(() => {}) : new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+                _spritePreloadCache.set(src, promise);
+            }
+            return _spritePreloadCache.get(src);
+        }
+        function preloadSpriteFrames(prefix, start, end) {
+            const promises = [];
+            for (let i = start; i <= end; i++) {
+                promises.push(preloadSprite(`Art/${prefix}_${i}.png`));
+            }
+            return Promise.all(promises);
+        }
+
+        // Picks enemy pool keys for a fight while avoiding all-same-element lineups,
+        // which otherwise let a single elemental disadvantage auto-lose the whole fight.
+        // 1 enemy: unconstrained. 2 enemies: forced to differ. 3 enemies: at least 2 distinct types.
+        function pickEnemyKeysWithElementDiversity(pool, count) {
+            const typeOf = (key) => {
+                const t = STARTERS[key].type;
+                return Array.isArray(t) ? t.join(',') : t;
+            };
+            const keys = [];
+            for (let i = 0; i < count; i++) {
+                let candidatePool = pool;
+                if (count === 2 && i === 1) {
+                    const filtered = pool.filter(k => typeOf(k) !== typeOf(keys[0]));
+                    if (filtered.length > 0) candidatePool = filtered;
+                } else if (count === 3 && i === 2 && typeOf(keys[0]) === typeOf(keys[1])) {
+                    const filtered = pool.filter(k => typeOf(k) !== typeOf(keys[0]));
+                    if (filtered.length > 0) candidatePool = filtered;
+                }
+                keys.push(candidatePool[Math.floor(Math.random() * candidatePool.length)]);
+            }
+            return keys;
+        }
+
+        function initCombat(node, opts) {
+            opts = opts || {};
+            isExecutingMove = false;
+            
+            const arenaBg = document.getElementById('combat-arena');
+            let arenaBgUrl = null;
+            if (arenaBg && currentRun.arcId) {
+                const bgCss = getMapBackground(currentRun.arcId);
+                arenaBg.style.backgroundImage = bgCss;
+                const match = /url\(['"]?([^'")]+)['"]?\)/.exec(bgCss);
+                if (match) arenaBgUrl = match[1];
+            }
+
+            showScreen('screen-combat');
+
+            // Wipe any leftover combatant DOM from the previous encounter. Those divs'
+            // .hp-fill elements carry a `transition: width 1.5s...` inline style, so if we
+            // reused them here, setting the new unit's (full) HP width would visibly
+            // animate up from whatever width was left over (often 0% from a unit that died
+            // last fight) instead of just appearing at full HP.
+            const enemyTeamEl = document.getElementById('enemy-team');
+            const playerTeamEl = document.getElementById('player-team');
+            if (enemyTeamEl) enemyTeamEl.innerHTML = '';
+            if (playerTeamEl) playerTeamEl.innerHTML = '';
+
+            combatState.log = ["Combat Started!"];
+            combatState.targetingMove = null;
+            combatState.activeUnit = null;
+            combatState.ended = false;
+            combatState.killedEnemies = [];
+            combatState.turnJustStarted = true;
+            combatState.ended = false;
+            
+            // Generate Enemies
+            let enemyCount = node.type === 'boss' ? 1 : Math.min(3, node.level + 1);
+            if (currentRun.nodeIndex < 2) enemyCount = 1; // Node 1 & 2 only 1 enemy
+            if (currentRun.nodeIndex === 3) enemyCount = 2; // Node 4: 2 enemies
+            if (currentRun.nodeIndex === 4) enemyCount = 2; // Node 5: 2 enemies
+
+            combatState.enemies = [];
+            
+            // Define pools per Act
+            let simplePool = ['wolf', 'slime', 'sentry'];
+            const advancedPool = ['bear', 'mushroom', 'sparkbot'];
+            let extraEnemies = [];
+            if (gameState.unlockedStarters.includes('bat') || gameState.maxActReached >= 2) extraEnemies.push('bat');
+            if (gameState.unlockedStarters.includes('tree') || gameState.maxActReached >= 3) extraEnemies.push('tree');
+            if (gameState.unlockedStarters.includes('mech_melee') || gameState.maxActReached >= 4) extraEnemies.push('mech_melee');
+            extraEnemies = [...new Set(extraEnemies)];
+
+            let allPool = [...simplePool, ...advancedPool, ...extraEnemies];
+
+            let pool = allPool;
+            if (currentRun.nodeIndex === 0) {
+                // Only the player's very first ever run is guaranteed to have just 2
+                // starters unlocked, so restrict Node 1 to the base pool then. Every
+                // later run can also draw bear/mushroom/drone.
+                pool = currentRun.isFirstRun ? [...simplePool] : [...simplePool, ...advancedPool];
+            } else if (currentRun.nodeIndex === 1) pool = [...simplePool, ...advancedPool]; // Node 2
+
+            if (node.type === 'boss') {
+                let bossId = 'mega_bat';
+                if (currentRun.arcId === 'arc2') bossId = 'mega_treant';
+                if (currentRun.arcId === 'arc3') bossId = 'mega_mech';
+                
+                const base = BOSSES[bossId];
+                const enemyHp = base.hp;
+                const enemyAtk = base.atk;
+                combatState.enemies.push({
+                    ...base,
+                    baseId: base.id,
+                    hp: enemyHp,
+                    currentHp: enemyHp,
+                    atk: enemyAtk,
+                    isEnemy: true,
+                    isBoss: true,
+                    id: `enemy-${Date.now()}-boss`,
+                    energy: base.startingEnergy !== undefined ? base.startingEnergy : 1,
+                    atkMod: 0,
+                    spdMod: 0,
+                    defMod: 0,
+                    buffs: [],
+                    debuffs: [],
+                    stunned: 0,
+                    poison: 0,
+                    toxin: 0
+                });
+            } else {
+                const enemyKeys = pickEnemyKeysWithElementDiversity(pool, enemyCount);
+                for (let i = 0; i < enemyCount; i++) {
+                    const key = enemyKeys[i];
+                    const base = STARTERS[key];
+                    
+                    // Enemies do not scale, they start with full base stats.
+                    const enemyHp = base.hp;
+                    const enemyMatk = base.matk;
+                    const enemyRatk = base.ratk;
+                    const enemyMdef = base.mdef;
+                    const enemyRdef = base.rdef;
+                    const enemySpd = base.spd;
+
+                    combatState.enemies.push({
+                        ...base,
+                        baseId: base.id, // Keep track of base ID for recruitment
+                        hp: enemyHp,
+                        currentHp: enemyHp,
+                        matk: enemyMatk,
+                        ratk: enemyRatk,
+                        mdef: enemyMdef,
+                        rdef: enemyRdef,
+                        spd: enemySpd,
+                        isEnemy: true,
+                        id: `enemy-${Date.now()}-${i}`,
+                        energy: base.startingEnergy !== undefined ? base.startingEnergy : 1,
+                        atkMod: 0,
+                        spdMod: 0,
+                        defMod: 0,
+                        buffs: [],
+                        debuffs: [],
+                        stunned: 0,
+                        poison: 0,
+                        toxin: 0
+                    });
+                }
+            }
+
+            // Reset player mods, but carry energy over from the previous battle
+            currentRun.party.forEach(p => {
+                if (!p) return;
+                if (p.energy === undefined) {
+                    p.energy = p.startingEnergy !== undefined ? p.startingEnergy : 1;
+                }
+                p.atkMod = 0;
+                p.spdMod = 0;
+                p.defMod = 0;
+                p.buffs = [];
+                p.debuffs = [];
+                p.stunned = 0;
+                p.poison = 0;
+                p.toxin = 0;
+            });
+
+            // Pad enemies to 4 slots if not boss
+            if (node.type !== 'boss') {
+                while (combatState.enemies.length < 4) {
+                    combatState.enemies.push(null);
+                }
+            }
+
+            // Preload the arena background and every combatant's sprite before any turns run.
+            // Otherwise a faster enemy's turn (and its attack) can resolve while the arena is
+            // still visually black/blank because its art hasn't finished loading yet.
+            const artUrls = new Set();
+            if (arenaBgUrl) artUrls.add(arenaBgUrl);
+            [...combatState.enemies, ...currentRun.party].forEach(u => {
+                if (u && u.art && (u.art.includes('.png') || u.art.includes('/'))) artUrls.add(u.art);
+            });
+            const assetsReady = Promise.all([...artUrls].map(preloadSprite));
+            const readyTimeout = new Promise(resolve => setTimeout(resolve, 8000));
+            // If we're being launched behind a black transition overlay (e.g. the
+            // "ACT I: THE CAVE" run-start screen), don't let a single turn run until
+            // that overlay has fully faded away - otherwise a faster enemy can land
+            // a hit while the player can't see anything yet.
+            const deferStart = opts.deferStart || Promise.resolve();
+
+            document.getElementById('combat-log').innerHTML = 'Loading battle...';
+
+            Promise.race([assetsReady, readyTimeout]).then(() => {
+                // Render the arena, monsters, and UI as soon as assets are ready, even
+                // while the black transition overlay is still up - that's the whole
+                // point of preloading. Only the first turn (which can let an enemy
+                // attack) waits for the overlay to be gone.
+                calculateTurnOrder();
+                updateCombatUI();
+                return deferStart;
+            }).then(() => {
+                nextTurn();
+            });
+        }
+        function calculateTimeline(activeUnit = null) {
+            let timeline = [];
+            let all = [...currentRun.party, ...combatState.enemies].filter(u => u && u.currentHp > 0);
+            
+            all.forEach(u => {
+                if (u.turnMeter === undefined) u.turnMeter = 0;
+            });
+
+            if (activeUnit) timeline.push(activeUnit);
+
+            let simMeters = new Map();
+            all.forEach(u => simMeters.set(u, u.turnMeter));
+
+            let loopCount = 0;
+            while(timeline.length < 7 && loopCount < 1000) {
+                loopCount++;
+                let readyUnits = all.filter(u => simMeters.get(u) >= 100);
+                if (readyUnits.length > 0) {
+                    readyUnits.sort((a, b) => simMeters.get(b) - simMeters.get(a));
+                    let nextUnit = readyUnits[0];
+                    timeline.push(nextUnit);
+                    simMeters.set(nextUnit, simMeters.get(nextUnit) - 100);
+                } else {
+                    all.forEach(u => {
+                        let spd = u.spd * (1 + (u.spdMod || 0));
+                        if(spd < 1) spd = 1;
+                        simMeters.set(u, simMeters.get(u) + spd);
+                    });
+                }
+            }
+            currentRun.timeline = timeline;
+        }
+
+        function pullNextUnit() {
+            let all = [...currentRun.party, ...combatState.enemies].filter(u => u && u.currentHp > 0);
+            if (all.length === 0) return null;
+            let loopCount = 0;
+            while(loopCount < 1000) {
+                loopCount++;
+                let readyUnits = all.filter(u => (u.turnMeter || 0) >= 100);
+                if (readyUnits.length > 0) {
+                    readyUnits.sort((a, b) => (b.turnMeter || 0) - (a.turnMeter || 0));
+                    let unit = readyUnits[0];
+                    unit.turnMeter -= 100;
+                    return unit;
+                } else {
+                    all.forEach(u => {
+                        let spd = u.spd * (1 + (u.spdMod || 0));
+                        if(spd < 1) spd = 1;
+                        u.turnMeter = (u.turnMeter || 0) + spd;
+                    });
+                }
+            }
+            return null;
+        }
+
+        function calculateTurnOrder(isMidCombat = false) {
+            if (!isMidCombat) {
+                const all = [...currentRun.party, ...combatState.enemies].filter(u => u && u.currentHp > 0);
+                all.forEach(u => u.turnMeter = 0);
+            }
+            calculateTimeline(combatState.activeUnit);
+        }
+
+        
+        function energyGainHtml(amount) {
+            return `+${amount} <img src="Art/EN.png" style="width:32px; height:32px; vertical-align:middle; filter: drop-shadow(1px 1px 1px black);" alt="EN">`;
+        }
+
+        async function playSoulCollectVFX(fromUnit, toUnit, amount) {
+            const arenaEl = document.getElementById('combat-arena');
+            const fromEl = getElementForUnit(fromUnit);
+            const toEl = getElementForUnit(toUnit);
+            if (!arenaEl || !fromEl || !toEl) {
+                showFloatingText(toUnit, energyGainHtml(amount), "#00a8ff", 'energy');
+                return;
+            }
+
+            const arenaRect = arenaEl.getBoundingClientRect();
+            const fromPoint = getArtCenterPoint(fromEl);
+            const toPoint = getArtCenterPoint(toEl);
+            const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080) || 1;
+
+            const fromX = (fromPoint.x - arenaRect.left) / scale;
+            const fromY = (fromPoint.y - arenaRect.top) / scale;
+            const toX = (toPoint.x - arenaRect.left) / scale;
+            const toY = (toPoint.y - arenaRect.top) / scale;
+            const holdY = fromY - 40;
+            const midX = (fromX + toX) / 2;
+            const midY = Math.min(holdY, toY) - 100;
+
+            const orb = document.createElement('img');
+            orb.src = "Art/EN.png";
+            orb.style.cssText = `position:absolute; left:${fromX}px; top:${fromY}px; width:36px; height:36px; z-index:200; pointer-events:none; filter: drop-shadow(0 0 6px #00a8ff) drop-shadow(0 0 14px #00a8ff);`;
+            arenaEl.appendChild(orb);
+
+            // Phase 1: pop out of the dead unit and hover over its head, wiggling in place
+            const holdAnim = orb.animate([
+                { left: `${fromX}px`, top: `${fromY}px`, transform: 'translate(-50%, -50%) scale(0.6)', opacity: 0 },
+                { left: `${fromX}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1.15)', opacity: 1, offset: 0.2 },
+                { left: `${fromX - 16}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.4 },
+                { left: `${fromX + 16}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.6 },
+                { left: `${fromX - 16}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.8 },
+                { left: `${fromX}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 1 }
+            ], { duration: 900, easing: 'ease-in-out', fill: 'forwards' });
+            await holdAnim.finished;
+
+            // Phase 2: fly into the killer, slowed down for visibility
+            const flyAnim = orb.animate([
+                { left: `${fromX}px`, top: `${holdY}px`, transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+                { left: `${midX}px`, top: `${midY}px`, transform: 'translate(-50%, -50%) scale(1.05)', opacity: 1, offset: 0.55 },
+                { left: `${toX}px`, top: `${toY}px`, transform: 'translate(-50%, -50%) scale(0.4)', opacity: 0.7 }
+            ], { duration: 950, easing: 'ease-in-out', fill: 'forwards' });
+            await flyAnim.finished;
+
+            if (orb.parentNode) orb.parentNode.removeChild(orb);
+            showFloatingText(toUnit, energyGainHtml(amount), "#00a8ff", 'energy');
+        }
+
+        // Credits whichever unit actually inflicted the killing damage (direct hit, poison,
+        // toxin, thorns/brambles reflect, or counter reflect) with the usual on-kill energy gain.
+        function grantKillEnergy(killer, deadUnit) {
+            if (!killer || killer.currentHp <= 0) return;
+            const maxE = killer.isBoss ? 5 : 3;
+            if (killer.energy < maxE) {
+                killer.energy = Math.min(maxE, killer.energy + 1);
+                playSoulCollectVFX(deadUnit, killer, 1);
+                combatLog(`${killer.name} gained 1 energy for the kill!`);
+            }
+        }
+
+        // Floating combat numbers (damage/heal/energy) are queued per-unit so that several that
+        // land in the same instant (e.g. thorns damage + lifesteal heal + a kill's energy gain,
+        // all on the same attacker) show one after another instead of stacking on top of each
+        // other. Entries queued within the same batch are ordered damage -> heal -> energy.
+        const floatingTextQueues = new Map();
+        const FLOATING_TEXT_ORDER = { damage: 0, heal: 1, energy: 2 };
+        const FLOATING_TEXT_STAGGER = 500;
+
+        function showFloatingText(unit, text, color, category = 'damage') {
+            if (!unit) return;
+            let q = floatingTextQueues.get(unit);
+            if (!q) {
+                q = { pending: [], active: false };
+                floatingTextQueues.set(unit, q);
+            }
+            q.pending.push({ text, color, category });
+            if (!q.active) {
+                q.active = true;
+                // Defer to the next tick so any other synchronous showFloatingText calls this
+                // same frame (e.g. thorns + lifesteal from one hit) join this batch before it's sorted.
+                setTimeout(() => processFloatingTextQueue(unit, q), 0);
+            }
+        }
+
+        function processFloatingTextQueue(unit, q) {
+            if (q.pending.length === 0) {
+                q.active = false;
+                return;
+            }
+            q.pending.sort((a, b) => (FLOATING_TEXT_ORDER[a.category] ?? 0) - (FLOATING_TEXT_ORDER[b.category] ?? 0));
+            const entry = q.pending.shift();
+            renderFloatingText(unit, entry.text, entry.color);
+            setTimeout(() => processFloatingTextQueue(unit, q), FLOATING_TEXT_STAGGER);
+        }
+
+        function renderFloatingText(unit, text, color) {
+            const teamPrefix = unit.isEnemy ? 'enemy' : 'player';
+            let index = -1;
+            if (unit.isEnemy) {
+                index = combatState.enemies.indexOf(unit);
+            } else {
+                index = currentRun.party.indexOf(unit);
+            }
+            if (index === -1) return;
+
+            const teamContainer = document.getElementById(teamPrefix + '-team');
+            if (!teamContainer || !teamContainer.children[index]) return;
+            const unitEl = teamContainer.children[index];
+
+            const textEl = document.createElement('div');
+            textEl.className = 'floating-damage';
+            textEl.style.color = color;
+            textEl.innerHTML = text;
+
+            // Anchor to the monster's actual head instead of the CSS default (a fixed offset from
+            // the art box top), which sits well above the head for monsters whose art doesn't fill
+            // the box. Falls back to the CSS default (20px) when art bounds aren't measurable yet.
+            const headTop = getArtHeadTopPx(unitEl);
+            if (headTop !== null) {
+                textEl.style.top = `${headTop + 20}px`;
+            }
+
+            unitEl.appendChild(textEl);
+
+            setTimeout(() => {
+                if (textEl && textEl.parentNode) {
+                    textEl.parentNode.removeChild(textEl);
+                }
+            }, 1200);
+        }
+
+        async function playStatusVFX(unit, type, onImpact) {
+            const targetEl = getElementForUnit(unit);
+            if (!targetEl) {
+                if (onImpact) onImpact();
+                return;
+            }
+            
+            const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+            const animEl = document.createElement('img');
+            animEl.src = `Art/${type}_1.png`;
+            animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1.6); width:200px; height:200px; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+            artContainer.appendChild(animEl);
+            
+            const maxFrames = type === 'Hemorrhage' ? 8 : 7;
+
+            // Wait for all frames to be decoded before swapping between them, to avoid stutter
+            await preloadSpriteFrames(type, 2, maxFrames);
+
+            if (type === 'Hemorrhage') {
+                animEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, fill: 'forwards' });
+                animEl.style.transform = 'translate(-50%, -50%) scale(0.5)';
+                animEl.animate([
+                    { transform: 'translate(-50%, -50%) scale(0.5)' },
+                    { transform: 'translate(-50%, -50%) scale(1.6)' }
+                ], { duration: 5 * 80, easing: 'ease-out', fill: 'forwards' });
+
+                for (let i = 1; i <= 5; i++) {
+                    animEl.src = `Art/${type}_${i}.png`;
+                    if (i === 5 && onImpact) onImpact();
+                    await new Promise(r => setTimeout(r, 80));
+                }
+
+                // Squish in and out
+                const squishAnim = animEl.animate([
+                    { transform: 'translate(-50%, -50%) scale(1.6)' },
+                    { transform: 'translate(-50%, -50%) scale(1.2)' },
+                    { transform: 'translate(-50%, -50%) scale(1.8)' },
+                    { transform: 'translate(-50%, -50%) scale(1.6)' }
+                ], { duration: 300, easing: 'ease-in-out' });
+                await squishAnim.finished;
+
+                for (let i = 6; i <= 8; i++) {
+                    animEl.src = `Art/${type}_${i}.png`;
+                    await new Promise(r => setTimeout(r, 80));
+                }
+                animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' });
+                await new Promise(r => setTimeout(r, 150));
+            } else {
+                animEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, fill: 'forwards' });
+                for (let i = 1; i <= maxFrames; i++) {
+                    animEl.src = `Art/${type}_${i}.png`;
+                    if (i === 5 && onImpact) {
+                        onImpact();
+                    }
+                    let delayMs = type === 'Poison' || type === 'Toxin' ? 50 : 75;
+                    await new Promise(r => setTimeout(r, delayMs));
+                }
+                animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' });
+                await new Promise(r => setTimeout(r, 150));
+            }
+            
+            if (animEl.parentNode) {
+                animEl.parentNode.removeChild(animEl);
+            }
+        }
+
+        function playHealVFX(unit) {
+            const teamPrefix = unit.isEnemy ? 'enemy' : 'player';
+            let index = -1;
+            if (unit.isEnemy) {
+                index = combatState.enemies.indexOf(unit);
+            } else {
+                index = currentRun.party.indexOf(unit);
+            }
+            if (index === -1) return;
+            
+            const teamContainer = document.getElementById(teamPrefix + '-team');
+            if (!teamContainer || !teamContainer.children[index]) return;
+            const unitEl = teamContainer.children[index];
+
+            const numPluses = 5;
+            for (let i = 0; i < numPluses; i++) {
+                setTimeout(() => {
+                    const healEl = document.createElement('img');
+                    healEl.src = "Art/Heal_1.png";
+                    
+                    const randomX = Math.random() * 80 - 40;
+                    const randomY = Math.random() * 80 - 40;
+                    const impactTop = getImpactTopPercent(unitEl);
+                    healEl.style.cssText = `position:absolute; top:${impactTop}%; left:50%; transform:translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px)) scale(0.5); width:80px; height:80px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 5px #51cf66);`;
+                    unitEl.appendChild(healEl);
+                    
+                    const anim = healEl.animate([
+                        { opacity: 0, transform: `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY + 30}px)) scale(0.5)` },
+                        { opacity: 1, transform: `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px)) scale(1)` },
+                        { opacity: 0, transform: `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY - 60}px)) scale(1.2)` }
+                    ], { duration: 600, easing: 'ease-out', fill: 'forwards' });
+                    
+                    anim.onfinish = () => {
+                        if (healEl && healEl.parentNode) {
+                            healEl.parentNode.removeChild(healEl);
+                        }
+                    };
+                }, i * 150);
+            }
+        }
+
+        function updateCombatUI() {
+            if (!combatState.activeUnit) {
+                combatState.activeUnit = pullNextUnit();
+                calculateTimeline(combatState.activeUnit);
+            }
+            const unit = combatState.activeUnit;
+            if (!unit) return;
+
+            const enemyTeam = document.getElementById('enemy-team');
+            const playerTeam = document.getElementById('player-team');
+
+            if (combatState.enemies.some(e => e && e.isBoss)) {
+                enemyTeam.classList.add('boss-team');
+            } else {
+                enemyTeam.classList.remove('boss-team');
+            }
+
+            while (enemyTeam.children.length < 4) enemyTeam.appendChild(document.createElement('div'));
+            while (enemyTeam.children.length > 4) enemyTeam.removeChild(enemyTeam.lastChild);
+            while (playerTeam.children.length < 4) playerTeam.appendChild(document.createElement('div'));
+            while (playerTeam.children.length > 4) playerTeam.removeChild(playerTeam.lastChild);
+
+            for (let i = 0; i < 4; i++) {
+                const child = enemyTeam.children[i];
+                const e = combatState.enemies[i];
+                if (e) {
+                    updateCombatantEl(child, e, i);
+                } else {
+                    child.className = 'combatant empty';
+                    child.innerHTML = '';
+                    child.onclick = null;
+                }
+            }
+            currentRun.party.forEach((p, index) => {
+                const child = playerTeam.children[index];
+                if (p) {
+                    updateCombatantEl(child, p, index);
+                } else {
+                    child.className = 'combatant empty';
+                    child.innerHTML = '';
+                    child.onclick = null;
+                }
+            });
+
+            const turnOrderEl = document.getElementById('turn-order');
+            turnOrderEl.innerHTML = '';
+            
+            // Render arrow pointing at first icon
+            const arrow = document.createElement('div');
+            arrow.className = 'timeline-arrow';
+            turnOrderEl.appendChild(arrow);
+            
+            if (currentRun.timeline) {
+                currentRun.timeline.forEach((u, i) => {
+                    if (u.currentHp <= 0 && i !== 0) return; // Keep active unit even if dead during their turn
+                    const div = document.createElement('div');
+                    const isAlly = !u.isEnemy;
+                    div.className = `turn-icon ${isAlly ? 'ally' : 'enemy'} ${i === 0 ? 'active' : ''}`;
+                    const portraitSide = u.isBoss ? 'Boss' : (isAlly ? 'Ally' : 'Enemy');
+                    let baseName = u.name;
+                    if (baseName === "Ultimate Drone") baseName = "Ultimate Spark Bot";
+                    if (baseName === "Crimson Bat") baseName = "Mega Bat";
+                    const formattedName = baseName.replace(/[ \-]/g, '_');
+                    const img = document.createElement('img');
+                    img.src = `Art/${formattedName}_${portraitSide}_Portrait.png`;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    img.style.imageRendering = 'auto';
+                    img.style.borderRadius = '50%';
+                    img.draggable = false;
+                    img.onerror = () => {
+                        div.innerHTML = renderArt(u.art, 50);
+                    };
+                    div.appendChild(img);
+                    div.title = u.name;
+                    div.style.position = 'relative';
+                    div.onmouseenter = () => {
+                        const idx = u.isEnemy ? combatState.enemies.indexOf(u) : currentRun.party.indexOf(u);
+                        const teamEl = document.getElementById(u.isEnemy ? 'enemy-team' : 'player-team');
+                        if (teamEl && teamEl.children[idx]) {
+                            const unitEl = teamEl.children[idx];
+                            unitEl.classList.add('timeline-hover');
+                            // Anchor the hover arrow above the monster's actual head rather than a
+                            // fixed offset from the art box top (see getArtHeadTopPx).
+                            const headTop = getArtHeadTopPx(unitEl);
+                            if (headTop !== null) {
+                                unitEl.style.setProperty('--hover-arrow-top', `${headTop - 30}px`);
+                            }
+                        }
+                    };
+                    div.onmouseleave = () => {
+                        const idx = u.isEnemy ? combatState.enemies.indexOf(u) : currentRun.party.indexOf(u);
+                        const teamEl = document.getElementById(u.isEnemy ? 'enemy-team' : 'player-team');
+                        if (teamEl && teamEl.children[idx]) {
+                            teamEl.children[idx].classList.remove('timeline-hover');
+                        }
+                    };
+                    turnOrderEl.appendChild(div);
+                });
+            }
+
+            const energy = unit.energy;
+            document.getElementById('energy-display').innerHTML = `<div style="display:flex; justify-content:center; align-items:center; gap:5px;"><img src="Art/EN.png" style="width:24px;height:24px;filter:drop-shadow(1px 1px 1px black);" alt="EN" /><span style="font-size:28px; font-weight: normal; color:white; text-shadow:var(--outline-med);">${energy}</span></div>`;
+            const logEl = document.getElementById('combat-log');
+            if (logEl) {
+                logEl.innerHTML = combatState.log.slice(-50).join('<br>');
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+            
+            const endTurnBtn = document.getElementById('btn-end-turn');
+            if (endTurnBtn) {
+                const taunted = isOpponentTaunting(unit);
+                const canEndTurn = combatState.isPlayerTurn && !combatState.ended && !taunted;
+                endTurnBtn.disabled = !canEndTurn;
+                endTurnBtn.style.display = (combatState.isPlayerTurn && !combatState.ended) ? 'block' : 'none';
+                endTurnBtn.title = taunted ? 'Basic Attack is locked while the enemy is Taunting!' : '';
+                const basicAttackLockOverlay = document.getElementById('basic-attack-lock-overlay');
+                if (basicAttackLockOverlay) basicAttackLockOverlay.style.display = taunted ? 'flex' : 'none';
+
+                const hasOtherMove = canEndTurn && unit.moves && unit.moves.some(m => energy >= m.c);
+                endTurnBtn.classList.toggle('only-option-pulse', canEndTurn && !hasOtherMove);
+
+                const isTargetingBasicAttack = !!(combatState.targetingMove && combatState.targetingMove.isBasicAttack);
+                endTurnBtn.style.background = isTargetingBasicAttack ? 'gold' : '';
+            }
+        }
+
+        function animateValue(obj, start, end, duration, maxHp) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const current = Math.floor(progress * (end - start) + start);
+                obj.innerHTML = `${current}/${maxHp}`;
+                obj.setAttribute('data-current-hp', current);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerHTML = `${end}/${maxHp}`;
+                    obj.setAttribute('data-current-hp', end);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function updateCombatantEl(div, u, index) {
+            let isTargetable = false;
+            let isTargeting = !!combatState.targetingMove;
+            if (isTargeting && u.currentHp > 0) {
+                const targetType = combatState.targetingMove.effect?.target || "enemy";
+                if (targetType === "self") {
+                    isTargetable = (u === combatState.activeUnit);
+                } else if (targetType === "all_allies") {
+                    isTargetable = (!!u.isEnemy === !!combatState.activeUnit.isEnemy);
+                } else if (targetType === "all_enemies") {
+                    isTargetable = (!!u.isEnemy !== !!combatState.activeUnit.isEnemy);
+                }
+                let isCorrectSide = false;
+                if (targetType === "ally") {
+                    isCorrectSide = !u.isEnemy;
+                } else {
+                    isCorrectSide = u.isEnemy;
+                }
+
+                if (targetType !== "self" && targetType !== "all_allies" && targetType !== "all_enemies" && isCorrectSide) {
+                    const targetTeam = u.isEnemy ? combatState.enemies : currentRun.party;
+                    const tauntingTargets = targetTeam.filter(e => e && e.currentHp > 0 && e.buffs && e.buffs.some(b => b.type === 'taunt'));
+                    
+                    if (tauntingTargets.length > 0) {
+                        if (u.buffs && u.buffs.some(b => b.type === 'taunt')) {
+                            isTargetable = true;
+                        } else {
+                            isTargetable = false;
+                        }
+                    } else if (combatState.targetingMove.melee) {
+                        const frontlineDead = (!targetTeam[0] || targetTeam[0].currentHp <= 0) && (!targetTeam[1] || targetTeam[1].currentHp <= 0);
+                        if (index < 2 || frontlineDead) {
+                            isTargetable = true;
+                        }
+                    } else {
+                        isTargetable = true;
+                    }
+                }
+            }
+
+            div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargeting ? (isTargetable ? 'targetable' : 'not-targetable') : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''} name-${u.name.replace(/\s+/g, '-').toLowerCase()}`;
+            const hpPerc = Math.max(0, (u.currentHp / u.hp) * 100);
+            let hpColor = '#ff6b6b';
+            if (hpPerc > 66) hpColor = '#51cf66';
+            else if (hpPerc > 33) hpColor = '#fcc419';
+
+            const types = (Array.isArray(u.type) ? u.type : [u.type]).filter(Boolean);
+            
+            let artHtml = '';
+            if (u.art.includes('.png') || u.art.includes('/')) {
+                artHtml = `<img src="${u.art}" alt="${u.name}" />`;
+            } else {
+                artHtml = `<div style="font-size:100px; position:relative; z-index:2; line-height:1;">${u.art}</div>`;
+            }
+
+            let statusHtml = '';
+            if (u.currentHp > 0) {
+                const goodStyle = 'width:40px; height:40px; filter: drop-shadow(0 0 5px rgba(0,255,0,0.8));';
+                const badStyle = 'width:40px; height:40px; filter: drop-shadow(0 0 5px rgba(255,0,0,0.8));';
+                
+                const renderIcon = (src, style, title, turns, evolved) => {
+                    let html = `<div style="position:relative; display:inline-block;">
+                        <img src="${src}" style="${style}" title="${title}" />`;
+                    if (evolved) {
+                        html += `<img src="Art/Ability Evolution.png" style="position:absolute; top:-12px; left:-12px; width:34px; height:34px; z-index:3; filter: drop-shadow(0 0 3px rgba(50,150,255,0.9));" title="Evolved" />`;
+                    }
+                    if (turns !== undefined && turns > 0) {
+                        html += `<div style="position:absolute; bottom:-4px; right:-4px; background:rgba(0,0,0,0.7); color:white; font-size:13px; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
+                    }
+                    html += `</div>`;
+                    return html;
+                };
+
+                const renderEmojiIcon = (emoji, style, title, turns) => {
+                    let html = `<div style="position:relative; display:inline-flex; align-items:center; justify-content:center; background:#333; border-radius:5px; border: 1px solid #777; width:40px; height:40px; ${style}" title="${title}">
+                        <span style="font-size:24px;">${emoji}</span>`;
+                    if (turns !== undefined && turns > 0) {
+                        html += `<div style="position:absolute; bottom:-4px; right:-4px; background:rgba(0,0,0,0.7); color:white; font-size:13px; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-weight: normal; z-index:2;">${turns}</div>`;
+                    }
+                    html += `</div>`;
+                    return html;
+                };
+
+                if (u.poison > 0) statusHtml += renderIcon('Art/Poison.png', badStyle, 'Poisoned', u.poisonTurns, u.poisonEvolved);
+                if (u.toxin > 0) statusHtml += renderIcon('Art/Toxin.png', badStyle, 'Toxin', u.toxinTurns);
+                if (u.sleep > 0) statusHtml += renderIcon('Art/Sleep.png', badStyle, 'Sleeping', u.sleep);
+                if (u.stunned > 0) statusHtml += renderIcon('Art/Stun.png', badStyle, 'Stunned', u.stunned);
+                
+                if (u.buffs) {
+                    const regenBuff = u.buffs.find(b => b.type === 'regen' || b.type === 'regen_flat' || b.type === 'regen_pct');
+                    if (regenBuff) statusHtml += renderIcon('Art/Regen.png', goodStyle, 'Regen', regenBuff.turns);
+                    
+                    const atkBuff = u.buffs.find(b => b.type === 'atk_buff' || b.type === 'atk_buff_pct');
+                    if (atkBuff) statusHtml += renderIcon('Art/Buff DMG.png', goodStyle, 'ATK Up', atkBuff.turns, atkBuff.evolved);
+
+                    const spdBuff = u.buffs.find(b => b.type === 'spd_buff' || b.type === 'spd_buff_pct');
+                    if (spdBuff) statusHtml += renderIcon('Art/Buff Energy.png', goodStyle, 'SPD Up', spdBuff.turns);
+
+                    const lifestealBuff = u.buffs.find(b => b.type === 'lifesteal_buff');
+                    if (lifestealBuff) statusHtml += renderIcon('Art/Lifesteal.png', goodStyle, 'Lifesteal', lifestealBuff.turns, lifestealBuff.evolved);
+
+                    const overchargeBuff = u.buffs.find(b => b.type === 'overcharge_buff');
+                    if (overchargeBuff) statusHtml += renderIcon('Art/Buff Energy.png', goodStyle, 'Overcharge', overchargeBuff.turns);
+
+                    const bramblesBuff = u.buffs.find(b => b.type === 'brambles');
+                    if (bramblesBuff) statusHtml += renderIcon('Art/Thorns.png', goodStyle, 'Thorns', bramblesBuff.turns, bramblesBuff.evolved);
+
+                    const counterBuff = u.buffs.find(b => b.type === 'counter');
+                    if (counterBuff) statusHtml += renderIcon('Art/Counter.png', goodStyle, 'Counter', counterBuff.turns, counterBuff.evolved);
+
+                    const tauntBuff = u.buffs.find(b => b.type === 'taunt');
+                    if (tauntBuff) statusHtml += renderIcon('Art/Taunt.png', goodStyle, 'Taunt', tauntBuff.turns);
+                }
+
+                if (u.debuffs) {
+                    const atkDebuff = u.debuffs.find(b => b.type === 'atk_debuff' || b.type === 'atk_debuff_pct');
+                    if (atkDebuff) statusHtml += renderIcon('Art/Debuff DMG.png', badStyle, 'ATK Down', atkDebuff.turns);
+                }
+
+                if (u.defMod > 0) {
+                    const guardBuffs = (u.buffs || []).filter(b => b.type.includes('guard'));
+                    const guardBuff = guardBuffs[guardBuffs.length - 1];
+                    statusHtml += renderIcon('Art/Guard.png', goodStyle, 'Guarded', undefined, guardBuff && guardBuff.evolved);
+                }
+            }
+
+            const typeIconHtml = getTypeIconHtml(types, 40);
+
+            const iconPosition = u.isEnemy ? 'right: -10px;' : 'left: -10px;';
+            const hasTaunt = u.buffs && u.buffs.some(b => b.type === 'taunt');
+
+            
+let shadowClass = getShadowClass(u.name);
+
+            if (!div.querySelector('.hp-fill') || !div.querySelector('.hp-text')) {
+                div.innerHTML = `
+                    <div class="monster-art-container" style="position: relative;">
+                        <div class="art-content" style="animation-delay: -${index * 0.4}s">${artHtml}</div>
+                        <img src="Art/Taunt_1.png" class="taunt-circle" style="display: ${hasTaunt ? 'block' : 'none'};" />
+                        <div class="shadow-ellipse ${shadowClass}"></div>
+                        <div class="status-container" style="position: absolute; bottom: 0; left: 0; width: 100%; display:flex; justify-content:center; gap:4px; z-index: 10;">
+                            ${statusHtml}
+                        </div>
+                    </div>
+                    <div class="stats-container" style="position: relative; padding-top: 10px; z-index: 10;">
+                        <div class="type-icon-container" style="position: absolute; top: -10px; ${iconPosition} z-index: 11;">
+                            ${typeIconHtml}
+                        </div>
+                        <div class="name" style="text-align: center; color: white; font-weight: normal; font-size: 26px; text-shadow: var(--outline-med); margin-bottom: 4px;">
+                            ${u.name}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                            <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
+                            <div class="hp-bar" style="flex: 1; position: relative;">
+                                <div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor}; transition: width 1.5s ease-out, background-color 1.5s ease-out;"></div>
+                                <div class="hp-text move-description-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; pointer-events: none;" data-current-hp="${Math.ceil(u.currentHp)}">
+                                    ${Math.ceil(u.currentHp)}/${u.hp}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                            <img src="Art/EN.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="EN" />
+                            <div class="energy-blocks" style="display: flex; gap: 4px; flex: 1;">
+                                ${(u.isBoss ? [1,2,3,4,5] : [1,2,3]).map(i => `<div style="flex: 1; height: 6px; background-color: ${u.energy >= i ? '#00a8ff' : '#222'}; border-radius: 2px; transition: background-color 0.3s ease;"></div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                div.querySelector('.art-content').innerHTML = artHtml;
+                const shadowEl = div.querySelector('.shadow-ellipse');
+                if (shadowEl) {
+                    shadowEl.className = `shadow-ellipse ${shadowClass}`;
+                }
+                
+                const tauntCircle = div.querySelector('.taunt-circle');
+                if (tauntCircle) tauntCircle.style.display = hasTaunt ? 'block' : 'none';
+
+                div.querySelector('.status-container').innerHTML = statusHtml;
+                div.querySelector('.type-icon-container').innerHTML = typeIconHtml;
+                div.querySelector('.type-icon-container').style.cssText = `position: absolute; top: -10px; ${iconPosition} z-index: 11;`;
+                div.querySelector('.name').innerHTML = u.name;
+                
+                const hpFill = div.querySelector('.hp-fill');
+                hpFill.style.width = `${hpPerc}%`;
+                hpFill.style.backgroundColor = hpColor;
+
+                const hpTextEl = div.querySelector('.hp-text');
+                const targetHp = Math.ceil(u.currentHp);
+                const currentDisplayedHp = parseInt(hpTextEl.getAttribute('data-current-hp')) || targetHp;
+                
+                if (currentDisplayedHp !== targetHp) {
+                    animateValue(hpTextEl, currentDisplayedHp, targetHp, 1500, u.hp);
+                } else {
+                    hpTextEl.innerHTML = `${targetHp}/${u.hp}`;
+                }
+
+                const energyBlocksEl = div.querySelector('.energy-blocks');
+                if (energyBlocksEl) {
+                    energyBlocksEl.innerHTML = (u.isBoss ? [1,2,3,4,5] : [1,2,3]).map(i => `<div style="flex: 1; height: 6px; background-color: ${u.energy >= i ? '#00a8ff' : '#222'}; border-radius: 2px; transition: background-color 0.3s ease;"></div>`).join('');
+                }
+            }
+
+            if (u === combatState.activeUnit) div.classList.add('active-turn');
+            else div.classList.remove('active-turn');
+            
+            if (isTargetable) {
+                div.onclick = () => executeMove(combatState.activeUnit, combatState.targetingMove, u);
+                div.onmouseover = () => {
+                    if (combatState.targetingMove && combatState.activeUnit && u) {
+                        const dmg = calculateDamage(combatState.activeUnit, combatState.targetingMove, u);
+                        // Make sure the move does damage and it targets an enemy
+                        if (dmg > 0 && !(combatState.targetingMove.effect && combatState.targetingMove.effect.target === "ally")) {
+                            let dmgEl = div.querySelector('.projected-damage');
+                            if (!dmgEl) {
+                                dmgEl = document.createElement('div');
+                                dmgEl.className = 'projected-damage';
+                                dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight: normal; color:#ff4444; z-index:50; text-shadow:var(--outline-thick); pointer-events:none;';
+                                div.appendChild(dmgEl);
+                            }
+                            // Anchor above the monster's actual head (see getArtHeadTopPx) instead of
+                            // the fixed -30px offset baked into cssText above, which sits well above
+                            // the head for monsters whose art doesn't fill the (bottom-aligned) box.
+                            const headTop = getArtHeadTopPx(div);
+                            if (headTop !== null) dmgEl.style.top = `${headTop - 30}px`;
+                            // Calculate hit count for total damage preview if it's a multi-hit move
+                            const hitCount = combatState.targetingMove.hits || 1;
+                            const totalDmg = dmg * hitCount;
+                            
+                            const targetTypes = Array.isArray(u.type) ? u.type : [u.type];
+                            const mult = getElementMultiplier(combatState.targetingMove.t, targetTypes);
+                            let arrow = '';
+                            if (mult > 1) {
+                                arrow = ' <span style="color:#ffcc00;">↑</span>';
+                            } else if (mult < 1) {
+                                arrow = ' <span style="color:#aaa;">↓</span>';
+                            }
+                            
+                            dmgEl.innerHTML = `-${totalDmg}${arrow}`;
+                        } else if (combatState.targetingMove.effect && combatState.targetingMove.effect.type?.includes('heal')) {
+                            let dmgEl = div.querySelector('.projected-damage');
+                            if (!dmgEl) {
+                                dmgEl = document.createElement('div');
+                                dmgEl.className = 'projected-damage';
+                                dmgEl.style.cssText = 'position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:32px; font-weight: normal; color:#51cf66; z-index:50; text-shadow:var(--outline-thick); pointer-events:none;';
+                                div.appendChild(dmgEl);
+                            }
+                            const headTop = getArtHeadTopPx(div);
+                            if (headTop !== null) dmgEl.style.top = `${headTop - 30}px`;
+
+                            const eff = combatState.targetingMove.effect;
+                            let amount = 0;
+                            if (eff.type === 'heal_pct') {
+                                amount = Math.floor(combatState.activeUnit.hp * eff.value);
+                            } else {
+                                amount = eff.value || Math.floor((combatState.activeUnit.matk + combatState.activeUnit.ratk + (combatState.activeUnit.atkMod || 0)) * 1.5 * (combatState.targetingMove.p || 1.0));
+                            }
+                            dmgEl.innerHTML = `+${amount}`;
+                        }
+                    }
+                };
+                div.onmouseout = () => {
+                    const dmgEl = div.querySelector('.projected-damage');
+                    if (dmgEl) dmgEl.remove();
+                };
+            } else {
+                div.onclick = null;
+                div.onmouseover = null;
+                div.onmouseout = null;
+                const dmgEl = div.querySelector('.projected-damage');
+                if (dmgEl) dmgEl.remove();
+            }
+        }
+
+        async function nextTurn() {
+            // Check win/loss
+            if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
+                combatLog("Victory!");
+                setTimeout(endCombat, 1500, true);
+                return;
+            }
+            if (currentRun.party.every(p => !p || p.currentHp <= 0)) {
+                combatLog("Defeat...");
+                setTimeout(() => endCombat(false), 2000);
+                return;
+            }
+
+            if (!combatState.activeUnit) {
+                combatState.activeUnit = pullNextUnit();
+                calculateTimeline(combatState.activeUnit);
+            }
+            const unit = combatState.activeUnit;
+
+            if (!unit || unit.currentHp <= 0) {
+                advanceTurn();
+                return;
+            }
+
+            // Recalculate mods
+            unit.atkMod = 0;
+            unit.spdMod = 0;
+            unit.defMod = 0;
+
+            if (unit.buffs) {
+                unit.buffs.forEach(b => {
+                    if (b.type === 'atk_buff' || b.type === 'atk_buff_pct') unit.atkMod += b.value;
+                    if (b.type === 'spd_buff' || b.type === 'spd_buff_pct') unit.spdMod += b.value;
+                    if (b.type === 'guard' || b.type === 'guard_pct') unit.defMod = b.value;
+                    if (b.type === 'regen' || b.type === 'regen_flat' || b.type === 'regen_pct') {
+                        const healAmount = b.type === 'regen_pct' ? Math.floor(unit.hp * b.value) : b.value;
+                        unit.currentHp = Math.min(unit.hp, unit.currentHp + healAmount);
+                        showFloatingText(unit, "+" + healAmount, "#51cf66", 'heal');
+                        playHealVFX(unit);
+                        combatLog(`${unit.name} regenerated ${healAmount} HP!`);
+                    }
+                });
+            }
+            // Apply debuffs
+            if (unit.debuffs) {
+                unit.debuffs.forEach(d => {
+                    if (d.type === 'atk_debuff' || d.type === 'atk_debuff_pct') unit.atkMod -= d.value;
+                    if (d.type === 'spd_debuff' || d.type === 'spd_debuff_pct') unit.spdMod -= d.value;
+                });
+            }
+
+            // Poison
+            if (unit.poison > 0 && unit.poisonTurns > 0) {
+                let isDead = false;
+                await playStatusVFX(unit, 'Poison', () => {
+                    const dmg = unit.poison;
+                    unit.currentHp -= dmg;
+                    showFloatingText(unit, "-" + dmg, "#a200ff", 'damage');
+                    unit.poisonTurns--;
+                    if (unit.poisonTurns <= 0) unit.poison = 0;
+                    
+                    combatLog(`${unit.name} took ${dmg} poison damage!`);
+                    
+                    if (unit.currentHp <= 0) {
+                        isDead = true;
+                        combatLog(`${unit.name} fainted from poison!`);
+                        if (unit.isEnemy && !combatState.killedEnemies.includes(unit)) {
+                            combatState.killedEnemies.push(unit);
+                        }
+                        grantKillEnergy(unit.poisonSource, unit);
+                        calculateTurnOrder(true);
+                    }
+                });
+
+                if (isDead) {
+                    setTimeout(nextTurn, 1000);
+                    return;
+                }
+            }
+
+            // Toxin
+            if (unit.toxin > 0 && unit.toxinTurns > 0) {
+                let isDead = false;
+                await playStatusVFX(unit, 'Toxin', () => {
+                    const dmg = unit.toxin;
+                    unit.currentHp -= dmg;
+                    showFloatingText(unit, "-" + dmg, "#a200ff", 'damage');
+                    unit.toxinTurns--;
+                    if (unit.toxinTurns <= 0) unit.toxin = 0;
+                    
+                    combatLog(`${unit.name} took ${dmg} toxin damage!`);
+                    
+                    if (unit.currentHp <= 0) {
+                        isDead = true;
+                        combatLog(`${unit.name} fainted from toxin!`);
+                        if (unit.isEnemy && !combatState.killedEnemies.includes(unit)) {
+                            combatState.killedEnemies.push(unit);
+                        }
+                        grantKillEnergy(unit.toxinSource, unit);
+                        calculateTurnOrder(true);
+                    }
+                });
+
+                if (isDead) {
+                    setTimeout(nextTurn, 1000);
+                    return;
+                }
+            }
+
+            if (unit.stunned > 0) {
+                combatLog(`${unit.name} is stunned and skips their turn!`);
+                unit.stunned--;
+                setTimeout(advanceTurn, 1000);
+                return;
+            }
+
+            if (unit.sleep > 0) {
+                combatLog(`${unit.name} is asleep and skips their turn!`);
+                unit.sleep--;
+                setTimeout(advanceTurn, 1000);
+                return;
+            }
+
+            combatState.activeUnit = unit;
+            combatState.isPlayerTurn = !unit.isEnemy;
+
+            // Taunt locks out Basic Attack and every self-buffing move - if that leaves no
+            // affordable move at all (most commonly at 0 energy), there's nothing left to
+            // legally do, so skip the turn instead of soft-locking the player.
+            if (combatState.isPlayerTurn && isOpponentTaunting(unit)) {
+                const hasLegalMove = unit.moves.some(m => unit.energy >= m.c && !isTauntLockedMove(m));
+                if (!hasLegalMove) {
+                    updateCombatUI();
+                    combatLog(`${unit.name} has no valid move while Taunted and skips their turn!`);
+                    setTimeout(advanceTurn, 1000);
+                    return;
+                }
+            }
+
+            updateCombatUI();
+
+            const energyDisplayEl = document.getElementById('energy-display');
+            if (energyDisplayEl) energyDisplayEl.classList.toggle('energy-visible', combatState.isPlayerTurn);
+
+            if (combatState.isPlayerTurn) {
+                renderMoveControls(unit);
+            } else {
+                document.getElementById('move-controls').innerHTML = '';
+                await new Promise(r => setTimeout(r, 1000));
+                enemyAI(unit);
+            }
+        }
+
+        function basicAttack() {
+            if (combatState.ended || !combatState.isPlayerTurn || isExecutingMove) return;
+            const unit = combatState.activeUnit;
+            if (!unit || unit.currentHp <= 0) return;
+            if (isOpponentTaunting(unit)) {
+                combatLog("Basic Attack is locked while the enemy is Taunting!");
+                updateCombatUI();
+                return;
+            }
+
+            const move = {
+                n: "Basic Attack",
+                t: ELEMENTS.NEUTRAL,
+                p: 0.5,
+                c: 0,
+                melee: true,
+                isBasicAttack: true
+            };
+            combatState.targetingMove = move;
+            if (combatState.log[combatState.log.length - 1] !== "Select a target!") {
+                combatLog("Select a target!");
+            } else {
+                updateCombatUI();
+            }
+            renderMoveControls(unit);
+        }
+
+        function applyEnergyOnAdvance(unit) {
+            if (!unit || !unit.gainEnergyOnAdvance) return;
+            const maxE = unit.isBoss ? 5 : 3;
+            const gainE = unit.isBoss ? 2 : 1;
+            const before = unit.energy;
+            unit.energy = Math.min(maxE, unit.energy + gainE);
+            const actualGain = unit.energy - before;
+            if (actualGain > 0) showFloatingText(unit, energyGainHtml(actualGain), "#00a8ff", 'energy');
+            unit.gainEnergyOnAdvance = false;
+        }
+
+        function advanceTurn() {
+            if (combatState.ended) return;
+            combatState.targetingMove = null;
+            combatState.isPlayerTurn = false;
+            updateCombatUI();
+
+            const unit = combatState.activeUnit;
+            if (unit && unit.currentHp > 0) {
+                applyEnergyOnAdvance(unit);
+
+                // Decay buffs and debuffs at turn end
+                if (unit.buffs) {
+                    unit.buffs.forEach(b => {
+                        if (b.isNew) b.isNew = false;
+                        else if (b.type !== 'guard' && b.type !== 'guard_pct') b.turns--;
+                    });
+                    unit.buffs = unit.buffs.filter(b => b.turns > 0 || b.type === 'guard' || b.type === 'guard_pct');
+                }
+                if (unit.debuffs) {
+                    unit.debuffs.forEach(d => {
+                        if (d.isNew) d.isNew = false;
+                        else d.turns--;
+                    });
+                    unit.debuffs = unit.debuffs.filter(d => d.turns > 0);
+                }
+            }
+
+            const turnOrderEl = document.getElementById('turn-order');
+            if (turnOrderEl && turnOrderEl.children.length > 0) {
+                const arrow = turnOrderEl.querySelector('.timeline-arrow');
+                const icons = Array.from(turnOrderEl.querySelectorAll('.turn-icon'));
+                if (icons.length > 0) {
+                    icons[0].style.animation = 'fadeOutLeft 0.5s forwards';
+                }
+                
+                const slideIcons = icons.slice(1);
+                slideIcons.forEach(icon => {
+                    icon.style.animation = 'slideLeft 0.5s forwards';
+                });
+
+                setTimeout(() => {
+                    combatState.activeUnit = null;
+                    nextTurn();
+                }, 500);
+            } else {
+                combatState.activeUnit = null;
+                nextTurn();
+            }
+        }
+
+        // True when the team opposing `unit` has an alive member currently Taunting -
+        // used to lock out self-serving moves and Basic Attack so Taunt can't be ignored.
+        function isOpponentTaunting(unit) {
+            if (!unit) return false;
+            const opposingTeam = unit.isEnemy ? currentRun.party : combatState.enemies;
+            return opposingTeam.some(o => o && o.currentHp > 0 && o.buffs && o.buffs.some(b => b.type === 'taunt'));
+        }
+
+        // Any move that deals no direct damage - buffs, heals, and pure status-effect moves
+        // like Poison Cloud/Toxin alike - locked out while the opponent is Taunting, so Taunt
+        // can't be ignored by using something that never actually attacks.
+        function isTauntLockedMove(m) {
+            return !m.p;
+        }
+
+        function tauntLockOverlayHtml() {
+            return `<div class="taunt-lock-overlay">
+                <div class="taunt-lock-glow"></div>
+                <img src="Art/Lock.png" class="taunt-lock-icon" alt="Locked" />
+            </div>`;
+        }
+
+        function renderMoveControls(unit) {
+            const container = document.getElementById('move-controls');
+            container.innerHTML = '';
+            
+            const currentEnergy = unit.energy;
+            const moveCount = unit.moves.length;
+            container.style.gridTemplateColumns = `repeat(${moveCount}, 1fr)`;
+
+            const isManyMoves = moveCount > 2;
+            const taunted = isOpponentTaunting(unit);
+
+            const nameSize = '27px';
+            const descSize = isManyMoves ? '15px' : '18px';
+            const costSize = '23px';
+            const iconSize = '24px';
+            const elementIconSize = '32px';
+
+            const displayMoves = [...unit.moves].sort((a, b) => (a.t || '').localeCompare(b.t || ''));
+            displayMoves.forEach(m => {
+                const btn = document.createElement('button');
+                const moveType = m.t || '';
+                btn.className = `move-btn ${moveType.toLowerCase()}`;
+                
+                const isTargetingThis = combatState.targetingMove === m;
+                if (isTargetingThis) btn.style.background = 'gold';
+                
+                const lockedByTaunt = taunted && isTauntLockedMove(m);
+                btn.disabled = currentEnergy < m.c || lockedByTaunt;
+                if (lockedByTaunt) btn.title = 'Locked while the enemy is Taunting!';
+                const isAoE = m.effect && (m.effect.target === 'all_enemies' || m.effect.target === 'all_allies');
+                let categoryLabel, categoryColor;
+                if (isAoE) { categoryLabel = 'AoE'; categoryColor = '#b19cd9'; }
+                else if (!m.p) { categoryLabel = 'Utility'; categoryColor = '#ff9ff3'; }
+                else if (m.melee) { categoryLabel = 'Melee'; categoryColor = '#ff6b6b'; }
+                else { categoryLabel = 'Ranged'; categoryColor = '#339af0'; }
+                btn.innerHTML = `
+                    ${getElementIcon(moveType) ? `<img src="${getElementIcon(moveType)}" style="position: absolute; top: -10px; left: -10px; width: ${elementIconSize}; height: ${elementIconSize}; z-index: 25; pointer-events: none; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));" alt="${moveType}" />` : ''}
+                    <div style="display:flex; flex-direction:column; justify-content:flex-start; width:100%; height:100%; padding: 4px; padding-left: 20px; position: relative;">
+                        <span style="position: absolute; top: 2px; right: 6px; font-size: 16px; font-weight: normal; color: ${categoryColor}; z-index: 4;">${categoryLabel}</span>
+                        <span style="font-weight: normal; font-size:${nameSize}; color: ${categoryColor}; text-align: left; margin-bottom: 2px; width: calc(100% - 13px); display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 3px 0 0 3px;">${m.n}</span>
+                        <div class="move-description-text" style="font-size:${descSize}; color:rgba(255,255,255,0.85); text-align:left; line-height:1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; width: 100%; padding-right: 20px; padding-top: 3px; padding-left: 3px;">
+                            ${getMoveDescription(m)}
+                        </div>
+                        <span class="move-cost" style="position: absolute; bottom: 4px; right: 4px; font-size:${costSize}; display:flex; align-items:center; gap:2px; font-weight: normal; background: rgba(30,30,32,0.65); border: 1px solid rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 6px; z-index: 3;">${m.c} <img src="Art/EN.png" style="width:${iconSize}; height:${iconSize};"></span>
+                    </div>
+                    ${lockedByTaunt ? tauntLockOverlayHtml() : ''}
+                `;
+                btn.onclick = () => {
+                    combatState.targetingMove = m;
+                    if (combatState.log[combatState.log.length - 1] !== "Select a target!") {
+                        combatLog("Select a target!");
+                    } else {
+                        updateCombatUI();
+                    }
+                    renderMoveControls(unit);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function getElementForUnit(unit) {
+            if (!unit) return null;
+            let index;
+            if (unit.isEnemy) {
+                index = combatState.enemies.indexOf(unit);
+                if (index !== -1) return document.getElementById('enemy-team').children[index];
+            } else {
+                index = currentRun.party.indexOf(unit);
+                if (index !== -1) return document.getElementById('player-team').children[index];
+            }
+            return null;
+        }
+
+        // The 280x280 art box bottom-aligns every sprite (.monster-art-container in styles.css uses
+        // align-items: flex-end), so a monster whose art doesn't fill the box sits low inside it while
+        // a full-height/floating one fills the box top-to-bottom. Hitting literal box-center misses low
+        // over short monsters. We measure each art file's actual opaque pixel bounds once (cached by
+        // src) and use that as the true vertical anchor for impact VFX instead of a flat 50%.
+        // Cache values are { center, top }: fractions (0-1) down the image of the opaque
+        // pixels' vertical center and topmost row, respectively.
+        const _artHitFractionCache = new Map();
+        function computeArtHitFraction(img, src) {
+            try {
+                const w = img.naturalWidth, h = img.naturalHeight;
+                if (!w || !h) return;
+                const maxDim = 128;
+                const scale = Math.min(1, maxDim / Math.max(w, h));
+                const cw = Math.max(1, Math.round(w * scale));
+                const ch = Math.max(1, Math.round(h * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = cw;
+                canvas.height = ch;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, cw, ch);
+                const data = ctx.getImageData(0, 0, cw, ch).data;
+                const alphaThreshold = 20;
+                let minY = -1, maxY = -1;
+                for (let y = 0; y < ch; y++) {
+                    let rowHasOpaque = false;
+                    for (let x = 0; x < cw; x++) {
+                        if (data[(y * cw + x) * 4 + 3] > alphaThreshold) { rowHasOpaque = true; break; }
+                    }
+                    if (rowHasOpaque) {
+                        if (minY === -1) minY = y;
+                        maxY = y;
+                    }
+                }
+                if (maxY >= 0) {
+                    _artHitFractionCache.set(src, { center: ((minY + maxY) / 2) / ch, top: minY / ch });
+                }
+            } catch (e) {
+                // Tainted/undecodable canvas - keep the 0.5/0 fallback already cached above.
+            }
+        }
+        // Takes the actual on-screen <img> (not just its src) so that when it's already loaded/painted
+        // - the normal case, since this is only called on art already rendered in the arena - the scan
+        // runs synchronously right here instead of via a fresh Image()'s onload, which always fires on a
+        // later event-loop tick (even for a cached src) and previously left the very first VFX per src
+        // stuck on the 0.5 fallback.
+        function ensureArtHitFraction(imgEl) {
+            const src = imgEl && imgEl.src;
+            if (!src || _artHitFractionCache.has(src)) return;
+            _artHitFractionCache.set(src, { center: 0.5, top: 0 }); // defaults until measured
+            if (imgEl.complete && imgEl.naturalWidth) {
+                computeArtHitFraction(imgEl, src);
+            } else {
+                imgEl.addEventListener('load', () => computeArtHitFraction(imgEl, src), { once: true });
+            }
+        }
+
+        // Real on-screen point where a monster's visible art is centered, using the opaque-pixel
+        // fraction above mapped onto the actual rendered <img> rect. Falls back to the art box's own
+        // center (old behavior) if there's no image yet (e.g. emoji-art placeholder) or before the
+        // async pixel scan for this src resolves.
+        function getArtCenterPoint(containerEl) {
+            if (!containerEl) return null;
+            const artBox = containerEl.classList && containerEl.classList.contains('monster-art-container')
+                ? containerEl
+                : containerEl.querySelector('.monster-art-container');
+            const boxRect = (artBox || containerEl).getBoundingClientRect();
+            const img = artBox && artBox.querySelector('.art-content img');
+            if (!img) {
+                return { x: boxRect.left + boxRect.width / 2, y: boxRect.top + boxRect.height / 2 };
+            }
+            ensureArtHitFraction(img);
+            const frac = _artHitFractionCache.get(img.src)?.center ?? 0.5;
+            const imgRect = img.getBoundingClientRect();
+            if (!imgRect.height) {
+                return { x: boxRect.left + boxRect.width / 2, y: boxRect.top + boxRect.height / 2 };
+            }
+            return { x: imgRect.left + imgRect.width / 2, y: imgRect.top + frac * imgRect.height };
+        }
+
+        // Same idea as getArtCenterPoint, but the topmost opaque row (the monster's actual head)
+        // instead of its vertical center. Used to anchor UI that should sit just above a monster's
+        // head - the hover arrow and floating combat numbers - since a fixed offset from the (always
+        // bottom-aligned) 280px art box top lands way above the head for monsters whose art doesn't
+        // fill the box.
+        function getArtTopPoint(containerEl) {
+            if (!containerEl) return null;
+            const artBox = containerEl.classList && containerEl.classList.contains('monster-art-container')
+                ? containerEl
+                : containerEl.querySelector('.monster-art-container');
+            const boxRect = (artBox || containerEl).getBoundingClientRect();
+            const img = artBox && artBox.querySelector('.art-content img');
+            if (!img) {
+                return { x: boxRect.left + boxRect.width / 2, y: boxRect.top };
+            }
+            ensureArtHitFraction(img);
+            const frac = _artHitFractionCache.get(img.src)?.top ?? 0;
+            const imgRect = img.getBoundingClientRect();
+            if (!imgRect.height) {
+                return { x: boxRect.left + boxRect.width / 2, y: boxRect.top };
+            }
+            return { x: imgRect.left + imgRect.width / 2, y: imgRect.top + frac * imgRect.height };
+        }
+
+        // Px distance from the top of `unitEl` (the .combatant element, which starts right at its
+        // art box) down to the top of the monster's actual art. 0 for a full-height sprite; a
+        // positive value for a shorter one sitting lower in its bottom-aligned box.
+        function getArtHeadTopPx(unitEl) {
+            const point = getArtTopPoint(unitEl);
+            const unitRect = unitEl && unitEl.getBoundingClientRect();
+            if (!point || !unitRect) return null;
+            return point.y - unitRect.top;
+        }
+
+        // Percentage (relative to positionEl, the element VFX are positioned/appended against) to use
+        // in place of a hardcoded "top: 50%" so effects land on the monster's actual art rather than
+        // the middle of its (possibly mostly-empty) bounding box. extraOffset preserves any deliberate
+        // extra downward nudge a specific animation already had (e.g. a lower-body hit).
+        function getImpactTopPercent(positionEl, extraOffset = 0) {
+            if (!positionEl) return 50 + extraOffset;
+            const point = getArtCenterPoint(positionEl);
+            const posRect = positionEl.getBoundingClientRect();
+            if (!point || !posRect.height) return 50 + extraOffset;
+            const percent = ((point.y - posRect.top) / posRect.height) * 100 + extraOffset;
+            if (!isFinite(percent)) return 50 + extraOffset;
+            return Math.min(92, Math.max(8, percent));
+        }
+
+        // Ground-impact VFX (e.g. Slam) should land on the monster's shadow rather than its
+        // body center - find the actual .shadow-ellipse and use its vertical position instead
+        // of guessing a fixed percentage, since shadow size/offset varies per monster.
+        function getShadowTopPercent(positionEl) {
+            if (!positionEl) return 95;
+            const shadowEl = positionEl.querySelector('.shadow-ellipse');
+            const posRect = positionEl.getBoundingClientRect();
+            if (!shadowEl || !posRect.height) return 95;
+            const shadowRect = shadowEl.getBoundingClientRect();
+            const percent = ((shadowRect.top + shadowRect.height / 2) - posRect.top) / posRect.height * 100;
+            if (!isFinite(percent)) return 95;
+            return Math.min(100, Math.max(50, percent));
+        }
+
+        async function executeMove(attacker, move, target) {
+            if (isExecutingMove) return;
+            if (attacker.energy < move.c) return;
+            isExecutingMove = true;
+            attacker.energy -= move.c;
+            attacker.gainEnergyOnAdvance = !!move.isBasicAttack;
+            combatState.targetingMove = null;
+            document.getElementById('move-controls').innerHTML = ''; // Disable UI during move
+
+            const targetType = move.effect?.target || "enemy";
+            let targets = [];
+
+            if (targetType === "self") {
+                targets = [attacker];
+            } else if (targetType === "all_allies") {
+                targets = attacker.isEnemy ? combatState.enemies.filter(e => e && e.currentHp > 0) : currentRun.party.filter(p => p && p.currentHp > 0);
+            } else if (targetType === "all_enemies") {
+                targets = attacker.isEnemy ? currentRun.party.filter(p => p && p.currentHp > 0) : combatState.enemies.filter(e => e && e.currentHp > 0);
+            } else if (targetType === "ally") {
+                if (!target) {
+                    const allies = attacker.isEnemy ? combatState.enemies : currentRun.party;
+                    const aliveAllies = allies.filter(a => a && a.currentHp > 0);
+                    aliveAllies.sort((a, b) => (a.currentHp / a.hp) - (b.currentHp / b.hp));
+                    target = aliveAllies[0];
+                }
+                targets = [target];
+            } else { // enemy
+                if (!target) {
+                    const enemies = attacker.isEnemy ? currentRun.party : combatState.enemies;
+                    const aliveEnemies = enemies.filter(e => e && e.currentHp > 0);
+                    if (aliveEnemies.length > 0) {
+                        let tauntingEnemies = aliveEnemies.filter(e => e.buffs && e.buffs.some(b => b.type === 'taunt'));
+                        let validTargets = tauntingEnemies.length > 0 ? tauntingEnemies : aliveEnemies;
+                        if (move.melee && tauntingEnemies.length === 0) {
+                            const frontline = enemies.slice(0, 2).filter(e => e && e.currentHp > 0);
+                            if (frontline.length > 0) validTargets = frontline;
+                        }
+                        target = validTargets[Math.floor(Math.random() * validTargets.length)];
+                    }
+                }
+                if (target) targets = [target];
+            }
+
+            combatLog(`${attacker.name} used ${move.n}!`);
+
+            if (move.p > 0 && !move.effect?.type?.includes('heal')) {
+                const attackerEl = getElementForUnit(attacker);
+                if (attackerEl) {
+                    const dashDist = attacker.isEnemy ? '-30px' : '30px';
+                    attackerEl.animate([
+                        { transform: 'translateX(0)' },
+                        { transform: `translateX(${dashDist})` },
+                        { transform: 'translateX(0)' }
+                    ], { duration: 300, easing: 'ease-in-out' });
+                }
+                await new Promise(r => setTimeout(r, 250));
+            }
+
+            for (const t of targets) {
+                if (!t || t.currentHp <= 0) continue;
+
+                let animDelay = 0;
+                let anyCountered = false;
+
+                if (move.n.includes("Bite")) {
+                    animDelay = 315; // 75 (stay) + 4*60 (fast close) - matches when the mouth visually shuts
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const biteAnimEl = document.createElement('img');
+                        biteAnimEl.src = "Art/Bite_1.png";
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        biteAnimEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;`;
+                        artContainer.appendChild(biteAnimEl);
+                        const bitePreload = preloadSpriteFrames('Bite', 2, 5);
+
+                        // Play animation concurrently with the damage step
+                        (async () => {
+                            biteAnimEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, fill: 'forwards' });
+                            await new Promise(r => setTimeout(r, 75)); // Stay on frame 1
+                            await bitePreload;
+                            for (let frame = 2; frame <= 5; frame++) {
+                                await new Promise(r => setTimeout(r, 60)); // Fast close
+                                if (biteAnimEl) biteAnimEl.src = `Art/Bite_${frame}.png`;
+                            }
+
+                            // Shake
+                            biteAnimEl.animate([
+                                { transform: 'translate(-50%, -50%) rotate(0deg) scale(1)' },
+                                { transform: 'translate(-55%, -45%) rotate(-5deg) scale(1.05)' },
+                                { transform: 'translate(-45%, -55%) rotate(5deg) scale(1.05)' },
+                                { transform: 'translate(-55%, -55%) rotate(-5deg) scale(1.05)' },
+                                { transform: 'translate(-45%, -45%) rotate(5deg) scale(1.05)' },
+                                { transform: 'translate(-50%, -50%) rotate(0deg) scale(1)' }
+                            ], { duration: 200, easing: 'ease-in-out' });
+
+                            await new Promise(r => setTimeout(r, 300)); // Stay closed
+                            
+                            const fadeOut = biteAnimEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && biteAnimEl.parentNode === targetEl) {
+                                targetEl.removeChild(biteAnimEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Snipe")) {
+                    animDelay = 450; // 150 appear + 200 stay + 100 tremble
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Snipe_1.png";
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1.5); width:250px; height:250px; z-index:100; pointer-events:none; opacity: 0;`;
+                        artContainer.appendChild(animEl);
+                        
+                        // Play animation concurrently with the damage step
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: 'translate(-50%, -50%) scale(2)' }, 
+                                { opacity: 1, transform: 'translate(-50%, -50%) scale(1)' }
+                            ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 150));
+                            
+                            // Stay
+                            await new Promise(r => setTimeout(r, 200));
+
+                            // Impact flash / tremble
+                            animEl.animate([
+                                { transform: 'translate(-50%, -50%) scale(1)', filter: 'brightness(1) drop-shadow(0 0 0px red)' },
+                                { transform: 'translate(-55%, -45%) scale(1.05)', filter: 'brightness(1.5) drop-shadow(0 0 10px red) drop-shadow(0 0 20px red)' },
+                                { transform: 'translate(-45%, -55%) scale(1.05)', filter: 'brightness(1.5) drop-shadow(0 0 10px red) drop-shadow(0 0 20px red)' },
+                                { transform: 'translate(-50%, -50%) scale(1)', filter: 'brightness(1) drop-shadow(0 0 0px red)' }
+                            ], { duration: 100, easing: 'linear' });
+                            
+                            await new Promise(r => setTimeout(r, 200)); 
+                            
+                            const fadeOut = animEl.animate([{ opacity: 1, transform: 'translate(-50%, -50%) scale(1)' }, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.8)' }], { duration: 150, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Spit") || move.n.includes("Slumber Sludge")) {
+                    const animPrefix = move.n.includes("Slumber Sludge") ? "SlumberSludge" : "Spit";
+                    animDelay = 300; 
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const spitAnimEl = document.createElement('img');
+                        spitAnimEl.src = `Art/${animPrefix}_1.png`;
+                        
+                        const startX = attacker.isEnemy ? '250px' : '-250px';
+                        const startY = '-250px';
+                        const endX = attacker.isEnemy ? '50px' : '-50px';
+                        const endY = '-50px';
+                        const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        const spitImpactTop = getImpactTopPercent(artContainer);
+                        spitAnimEl.style.cssText = `position:absolute; top:${spitImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX}), calc(-50% + ${startY})) ${flip}; width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
+                        artContainer.appendChild(spitAnimEl);
+                        const spitPreload = preloadSpriteFrames(animPrefix, 2, 2);
+
+                        // Play animation concurrently with the damage step
+                        (async () => {
+                            spitAnimEl.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX}), calc(-50% + ${startY})) ${flip}` },
+                                { opacity: 1, transform: `translate(calc(-50% + ${startX} * 0.8), calc(-50% + ${startY} * 0.8)) ${flip}`, offset: 0.2 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX}), calc(-50% + ${endY})) ${flip}` }
+                            ], { duration: 300, easing: 'ease-in', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 300));
+                            await spitPreload;
+
+                            spitAnimEl.src = `Art/${animPrefix}_2.png`;
+                            spitAnimEl.style.width = "250px";
+                            spitAnimEl.style.height = "250px";
+                            
+                            spitAnimEl.animate([
+                                { transform: `translate(-50%, -50%) scale(0.5) ${flip}` },
+                                { transform: `translate(-50%, -50%) scale(1.1) ${flip}` },
+                                { transform: `translate(-50%, -50%) scale(1) ${flip}` }
+                            ], { duration: 200, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 400));
+                            
+                            const fadeOut = spitAnimEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && spitAnimEl.parentNode === targetEl) {
+                                targetEl.removeChild(spitAnimEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Maul")) {
+                    animDelay = 250; 
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Maul_1.png";
+                        
+                        const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        const startX = attacker.isEnemy ? -80 : 80;
+                        const endX = attacker.isEnemy ? 80 : -80;
+                        
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        const maulImpactTop = getImpactTopPercent(artContainer);
+                        animEl.style.cssText = `position:absolute; top:${maulImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX}px), calc(-50% - 90px)) scale(1.3) ${flip}; width:215px; height:215px; z-index:100; pointer-events:none; opacity: 0;`;
+                        artContainer.appendChild(animEl);
+
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX}px), calc(-50% - 90px)) scale(1.3) ${flip}` },
+                                { opacity: 1, transform: `translate(-50%, calc(-50% - 17px)) scale(1.1) ${flip}`, offset: 0.4 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX * 0.2}px), calc(-50%)) scale(1.1) ${flip}`, offset: 0.7 },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX}px), calc(-50% + 17px)) scale(0.75) ${flip}` }
+                            ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+                            
+                            setTimeout(() => {
+                                animEl.animate([
+                                    { filter: 'brightness(1) drop-shadow(0 0 0px red)' },
+                                    { filter: 'brightness(1.5) drop-shadow(0 0 20px red)' },
+                                    { filter: 'brightness(1) drop-shadow(0 0 0px red)' }
+                                ], { duration: 150 });
+                            }, 150);
+
+                            await new Promise(r => setTimeout(r, 450));
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Devour")) {
+                    animDelay = 250; 
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl1 = document.createElement('img');
+                        animEl1.src = "Art/Maul_1.png";
+                        const animEl2 = document.createElement('img');
+                        animEl2.src = "Art/Maul_1.png";
+                        
+                        const flip1 = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        const flip2 = attacker.isEnemy ? 'scaleX(1)' : 'scaleX(-1)'; // Mirrored
+                        const startX1 = attacker.isEnemy ? -80 : 80;
+                        const endX1 = attacker.isEnemy ? 80 : -80;
+                        const startX2 = attacker.isEnemy ? 80 : -80;
+                        const endX2 = attacker.isEnemy ? -80 : 80;
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        const devourImpactTop = getImpactTopPercent(artContainer);
+                        animEl1.style.cssText = `position:absolute; top:${devourImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX1}px), calc(-50% - 80px)) scale(1.15) ${flip1}; width:190px; height:190px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
+                        animEl2.style.cssText = `position:absolute; top:${devourImpactTop}%; left:50%; transform:translate(calc(-50% + ${startX2}px), calc(-50% - 80px)) scale(1.15) ${flip2}; width:190px; height:190px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff0000);`;
+
+                        artContainer.appendChild(animEl1);
+                        artContainer.appendChild(animEl2);
+
+                        (async () => {
+                            animEl1.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX1}px), calc(-50% - 80px)) scale(1.15) ${flip1}` },
+                                { opacity: 1, transform: `translate(-50%, calc(-50% - 15px)) scale(1.05) ${flip1}`, offset: 0.4 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX1 * 0.2}px), calc(-50%)) scale(1.05) ${flip1}`, offset: 0.7 },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX1}px), calc(-50% + 15px)) scale(0.7) ${flip1}` }
+                            ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+                            animEl2.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX2}px), calc(-50% - 80px)) scale(1.15) ${flip2}` },
+                                { opacity: 1, transform: `translate(-50%, calc(-50% - 15px)) scale(1.05) ${flip2}`, offset: 0.4 },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX2 * 0.2}px), calc(-50%)) scale(1.05) ${flip2}`, offset: 0.7 },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX2}px), calc(-50% + 15px)) scale(0.7) ${flip2}` }
+                            ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+                            
+                            setTimeout(() => {
+                                [animEl1, animEl2].forEach(el => el.animate([
+                                    { filter: 'brightness(1) drop-shadow(0 0 10px #ff0000)' },
+                                    { filter: 'brightness(1.5) drop-shadow(0 0 30px #ff0000)' },
+                                    { filter: 'brightness(1) drop-shadow(0 0 10px #ff0000)' }
+                                ], { duration: 150 }));
+                            }, 150);
+
+                            await new Promise(r => setTimeout(r, 450));
+                            if (targetEl && animEl1.parentNode === targetEl) targetEl.removeChild(animEl1);
+                            if (targetEl && animEl2.parentNode === targetEl) targetEl.removeChild(animEl2);
+                        })();
+                    }
+                }
+
+                if (move.n === "Spore" || move.n === "Giant Spore") {
+                    animDelay = 500;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const mushroomEl = document.createElement('img');
+                        mushroomEl.src = "Art/Spore_1.png";
+                        mushroomEl.style.cssText = "position:absolute; bottom:-10px; left:50%; transform:translateX(-50%) scale(0); width:200px; height:auto; z-index:5; pointer-events:none; transform-origin: bottom center;";
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(mushroomEl);
+
+                        (async () => {
+                            mushroomEl.animate([
+                                { transform: 'translateX(-50%) scale(0)' },
+                                { transform: 'translateX(-50%) scale(0.99)' },
+                                { transform: 'translateX(-50%) scale(0.9)' }
+                            ], { duration: 250, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 250));
+                            
+                            mushroomEl.animate([
+                                { transform: 'translateX(-50%) scale(0.9, 0.9)' },
+                                { transform: 'translateX(-50%) scale(1.17, 0.63)' },
+                                { transform: 'translateX(-50%) scale(0.72, 1.17)' },
+                                { transform: 'translateX(-50%) scale(0.9, 0.9)' }
+                            ], { duration: 300, easing: 'ease-in-out' });
+                            
+                            await new Promise(r => setTimeout(r, 250)); 
+                            
+                            for (let i=0; i<20; i++) {
+                                const sporeEl = document.createElement('img');
+                                sporeEl.src = "Art/Spore_2.png";
+                                const startX = (Math.random() - 0.5) * 80;
+                                const startY = -40 - Math.random() * 20;
+                                const endX = startX + (Math.random() - 0.5) * 200;
+                                const endY = -150 - Math.random() * 100;
+                                
+                                sporeEl.style.cssText = `position:absolute; bottom:-10px; left:50%; transform:translate(calc(-50% + ${startX}px), ${startY}px) scale(0.5); width:40px; height:40px; z-index:101; pointer-events:none; opacity:1; filter: drop-shadow(0 0 5px #51cf66);`;
+                                const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                                artContainer.appendChild(sporeEl);
+                                
+                                const sporeAnim = sporeEl.animate([
+                                    { transform: `translate(calc(-50% + ${startX}px), ${startY}px) scale(0.5)`, opacity: 1 },
+                                    { transform: `translate(calc(-50% + ${endX}px), ${endY}px) scale(1.5)`, opacity: 0 }
+                                ], { duration: 400 + Math.random() * 200, easing: 'ease-out', fill: 'forwards' });
+                                
+                                sporeAnim.finished.then(() => {
+                                    if (sporeEl.parentNode) sporeEl.parentNode.removeChild(sporeEl);
+                                });
+                            }
+                            
+                            await new Promise(r => setTimeout(r, 300));
+                            
+                            const fadeOut = mushroomEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+                            await fadeOut.finished;
+                            if (mushroomEl.parentNode) mushroomEl.parentNode.removeChild(mushroomEl);
+                        })();
+                    }
+                }
+
+                
+                if (move.n.includes("Root Crush")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/RootCrush_1.png";
+                        animEl.style.cssText = "position:absolute; bottom:-30px; left:50%; transform:translate(-50%, 0); width:320px; height:auto; z-index:100; pointer-events:none; opacity: 1;";
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        artContainer.appendChild(animEl);
+                        const rootCrushPreload = preloadSpriteFrames('RootCrush', 2, 6);
+
+                        (async () => {
+                            animEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, fill: 'forwards' });
+                            await rootCrushPreload;
+                            for (let frame = 1; frame <= 6; frame++) {
+                                if (animEl) animEl.src = `Art/RootCrush_${frame}.png`;
+                                await new Promise(r => setTimeout(r, 60));
+                            }
+                            
+                            const bScale = 1.0;
+                            artContainer.animate([
+                                { transform: `scale(${bScale}, ${bScale})` },
+                                { transform: `scale(${bScale * 1.1}, ${bScale * 0.9})` },
+                                { transform: `scale(${bScale * 0.95}, ${bScale * 1.05})` },
+                                { transform: `scale(${bScale}, ${bScale})` }
+                            ], { duration: 250, easing: 'ease-out' });
+                            
+                            animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' });
+                            await new Promise(r => setTimeout(r, 150));
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Slam")) {
+                    animDelay = 350;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Slam_1.png";
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        const slamShadowTop = getShadowTopPercent(artContainer);
+                        animEl.style.cssText = `position:absolute; top:${slamShadowTop}%; left:50%; transform:translate(-50%, -50%) scale(1.1); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        artContainer.appendChild(animEl);
+
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -400px) scale(1.1)` },
+                                { opacity: 1, transform: `translate(-50%, -200px) scale(1.1)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.1)` }
+                            ], { duration: 350, easing: 'ease-in', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 350));
+                            
+                            const bScale = 1.0;
+                            artContainer.animate([
+                                { transform: `translate(0, 0) scale(${bScale}, ${bScale})` },
+                                { transform: `translate(0, 20px) scale(${bScale * 1.2}, ${bScale * 0.7})` },
+                                { transform: `translate(0, -5px) scale(${bScale * 0.9}, ${bScale * 1.1})` },
+                                { transform: `translate(0, 0) scale(${bScale}, ${bScale})` }
+                            ], { duration: 300, easing: 'ease-out' });
+                            
+                            await new Promise(r => setTimeout(r, 300));
+                            
+                            const fadeOut = animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, delay: 200, fill: 'forwards' });
+                            await fadeOut.finished;
+                            
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Punch")) {
+                    animDelay = 250;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Punch_1.png";
+                        const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        const startX = attacker.isEnemy ? '150px' : '-150px';
+                        const endX = attacker.isEnemy ? '50px' : '-50px';
+                        
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        artContainer.appendChild(animEl);
+
+                        (async () => {
+                            const punchAnim = animEl.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(0.8)` },
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX}), -50%) ${flip} scale(1.2)` }
+                            ], { duration: 250, easing: 'ease-in', fill: 'forwards' });
+
+                            await punchAnim.finished;
+
+                            animEl.animate([
+                                { opacity: 1, transform: `translate(calc(-50% + ${endX}), -50%) ${flip} scale(1.2)` },
+                                { opacity: 0, transform: `translate(calc(-50% + ${endX}), -50%) ${flip} scale(1.3)` }
+                            ], { duration: 500, delay: 300, fill: 'forwards' });
+
+                            const bScale = 'scale(1.0, 1.0)';
+                            artContainer.animate([
+                                { transform: `translate(0, 0) ${bScale}`, offset: 0 },
+                                { transform: `translate(${attacker.isEnemy ? '-20px' : '20px'}, 0) ${bScale}`, offset: 0.15 },
+                                { transform: `translate(${attacker.isEnemy ? '-90px' : '90px'}, 0) ${bScale}`, offset: 0.5 },
+                                { transform: `translate(0, 0) ${bScale}`, offset: 1 }
+                            ], { duration: 1000, easing: 'ease-in-out' });
+
+                            await new Promise(r => setTimeout(r, 1000));
+
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Echo")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Echo_1.png";
+                        const flip = attacker.isEnemy ? 'scaleX(-1)' : 'scaleX(1)';
+                        const startX = attacker.isEnemy ? '90px' : '-90px';
+                        
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0); width:150px; height:auto; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        artContainer.appendChild(animEl);
+                        const echoPreload = preloadSpriteFrames('Echo', 2, 7);
+
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(0.8)` },
+                                { opacity: 1, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.1)` },
+                                { opacity: 1, transform: `translate(calc(-50% + ${startX}), -50%) ${flip} scale(1.0)` }
+                            ], { duration: 200, easing: 'ease-out', fill: 'forwards' });
+                            await echoPreload;
+
+                            for (let i = 1; i <= 7; i++) {
+                                animEl.src = `Art/Echo_${i}.png`;
+                                if (i >= 4) {
+                                    artContainer.animate([
+                                        { filter: 'brightness(1)', transform: 'scale(1)' },
+                                        { filter: 'brightness(1.5) drop-shadow(0 0 10px #ffea00)', transform: 'scale(1.05)' },
+                                        { filter: 'brightness(1)', transform: 'scale(1)' }
+                                    ], { duration: 100 });
+                                }
+                                await new Promise(r => setTimeout(r, i === 3 ? 150 : 50)); // hold briefly before blast
+                            }
+                            animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' });
+                            await new Promise(r => setTimeout(r, 150));
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Hemorrhage")) {
+                    animDelay = 800;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Hemorrhage_1.png";
+                        const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(0.5); width:200px; height:200px; z-index:100; pointer-events:none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));`;
+                        artContainer.appendChild(animEl);
+                        const hemorrhagePreload = preloadSpriteFrames('Hemorrhage', 2, 8);
+
+                        (async () => {
+                            animEl.animate([
+                                { transform: 'translate(-50%, -50%) scale(0.5)' },
+                                { transform: 'translate(-50%, -50%) scale(1.6)' }
+                            ], { duration: 5 * 80, easing: 'ease-out', fill: 'forwards' });
+                            await hemorrhagePreload;
+
+                            for (let i = 1; i <= 5; i++) {
+                                animEl.src = `Art/Hemorrhage_${i}.png`;
+                                await new Promise(r => setTimeout(r, 80));
+                            }
+                            
+                            const squishAnim = animEl.animate([
+                                { transform: 'translate(-50%, -50%) scale(1.6)' },
+                                { transform: 'translate(-50%, -50%) scale(1.2)' },
+                                { transform: 'translate(-50%, -50%) scale(1.8)' },
+                                { transform: 'translate(-50%, -50%) scale(1.6)' }
+                            ], { duration: 300, easing: 'ease-in-out' });
+                            await squishAnim.finished;
+                            
+                            for (let i = 6; i <= 8; i++) {
+                                animEl.src = `Art/Hemorrhage_${i}.png`;
+                                await new Promise(r => setTimeout(r, 80));
+                            }
+                            if (animEl.parentNode) animEl.parentNode.removeChild(animEl);
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Stun Bolt")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/StunBolt_1.png";
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:340px; height:340px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -50%) scale(0.2)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.0)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(0.85)` }
+                            ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 150));
+                            
+                            await new Promise(r => setTimeout(r, 200));
+
+                            animEl.animate([
+                                { filter: 'drop-shadow(0 0 20px #00a8ff) brightness(1.2)' },
+                                { filter: 'drop-shadow(0 0 40px #fff) brightness(2.0)' },
+                                { filter: 'drop-shadow(0 0 20px #00a8ff) brightness(1.2)' }
+                            ], { duration: 100 });
+                            
+                            targetEl.animate([
+                                { transform: 'translate(2px, 2px) rotate(0deg)' },
+                                { transform: 'translate(-2px, -2px) rotate(-1deg)' },
+                                { transform: 'translate(-3px, 0px) rotate(1deg)' },
+                                { transform: 'translate(3px, 2px) rotate(0deg)' },
+                                { transform: 'translate(1px, -1px) rotate(1deg)' },
+                                { transform: 'translate(-1px, 2px) rotate(-1deg)' },
+                                { transform: 'translate(-3px, 1px) rotate(0deg)' },
+                                { transform: 'translate(0px, 0px) rotate(0deg)' }
+                            ], { duration: 250, easing: 'linear' });
+
+                            await new Promise(r => setTimeout(r, 200));
+
+                            const fadeOut = animEl.animate([{ opacity: 1, transform: 'translate(-50%, -50%) scale(0.85)' }, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.6)' }], { duration: 150, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Bulletstorm")) {
+                    animDelay = 150; 
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        (async () => {
+                            for (let i=0; i<3; i++) {
+                                const animEl = document.createElement('img');
+                                animEl.src = "Art/Snipe_1.png";
+                                const offsetX = (Math.random() - 0.5) * 80;
+                                const offsetY = (Math.random() - 0.5) * 80;
+                                const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                                animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8); width:150px; height:150px; z-index:100; pointer-events:none; opacity: 0;`;
+                                artContainer.appendChild(animEl);
+                                
+                                animEl.animate([
+                                    { opacity: 0, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(1.5)` }, 
+                                    { opacity: 1, transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8)` }
+                                ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                                
+                                setTimeout(() => {
+                                    animEl.animate([
+                                        { transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8)`, filter: 'brightness(1) drop-shadow(0 0 0px red)' },
+                                        { transform: `translate(calc(-50% + ${offsetX - 5}px), calc(-50% + ${offsetY + 5}px)) scale(0.9)`, filter: 'brightness(1.5) drop-shadow(0 0 10px red)' },
+                                        { transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(0.8)`, filter: 'brightness(1) drop-shadow(0 0 0px red)' }
+                                    ], { duration: 100, easing: 'linear' });
+                                }, 150);
+
+                                setTimeout(() => {
+                                    const fadeOut = animEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, delay: 200, fill: 'forwards' });
+                                    fadeOut.finished.then(() => {
+                                        if (targetEl && animEl.parentNode === targetEl) targetEl.removeChild(animEl);
+                                    });
+                                }, 350);
+                                
+                                await new Promise(r => setTimeout(r, 400));
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Zap")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Zap_1.png";
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #00a8ff) brightness(1.2);`;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -50%) scale(0.2)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.0)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(0.8)` }
+                            ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 150));
+                            
+                            await new Promise(r => setTimeout(r, 200));
+
+                            animEl.animate([
+                                { filter: 'drop-shadow(0 0 20px #00a8ff) brightness(1.2)' },
+                                { filter: 'drop-shadow(0 0 40px #fff) brightness(2.0)' },
+                                { filter: 'drop-shadow(0 0 20px #00a8ff) brightness(1.2)' }
+                            ], { duration: 100 });
+                            
+                            // Flinch animation
+                            targetEl.animate([
+                                { transform: 'translate(4px, 4px) rotate(2deg) scale(0.95)' },
+                                { transform: 'translate(-4px, -2px) rotate(-2deg) scale(0.95)' },
+                                { transform: 'translate(-6px, 2px) rotate(1deg) scale(0.95)' },
+                                { transform: 'translate(4px, -2px) rotate(-1deg) scale(0.95)' },
+                                { transform: 'translate(2px, 3px) rotate(2deg) scale(0.95)' },
+                                { transform: 'translate(-2px, -3px) rotate(-2deg) scale(0.95)' },
+                                { transform: 'translate(0px, 0px) rotate(0deg) scale(1)' }
+                            ], { duration: 300, easing: 'linear' });
+
+                            await new Promise(r => setTimeout(r, 200));
+
+                            const fadeOut = animEl.animate([{ opacity: 1, transform: 'translate(-50%, -50%) scale(0.8)' }, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.5)' }], { duration: 150, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (move.n.includes("Shockwave")) {
+                    animDelay = 450;
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Shockwave_1.png";
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(0.2); width:260px; height:260px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 20px #ffea00) brightness(1.2);`;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -50%) scale(0.2)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.0)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(0.8)` }
+                            ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 150));
+                            
+                            await new Promise(r => setTimeout(r, 200));
+
+                            animEl.animate([
+                                { filter: 'drop-shadow(0 0 20px #ffea00) brightness(1.2)' },
+                                { filter: 'drop-shadow(0 0 40px #fff) brightness(2.0)' },
+                                { filter: 'drop-shadow(0 0 20px #ffea00) brightness(1.2)' }
+                            ], { duration: 100 });
+                            
+                            // Flinch animation
+                            targetEl.animate([
+                                { transform: 'translate(4px, 4px) rotate(2deg) scale(0.95)' },
+                                { transform: 'translate(-4px, -2px) rotate(-2deg) scale(0.95)' },
+                                { transform: 'translate(-6px, 2px) rotate(1deg) scale(0.95)' },
+                                { transform: 'translate(4px, -2px) rotate(-1deg) scale(0.95)' },
+                                { transform: 'translate(2px, 3px) rotate(2deg) scale(0.95)' },
+                                { transform: 'translate(-2px, -3px) rotate(-2deg) scale(0.95)' },
+                                { transform: 'translate(0px, 0px) rotate(0deg) scale(1)' }
+                            ], { duration: 300, easing: 'linear' });
+
+                            await new Promise(r => setTimeout(r, 200));
+
+                            const fadeOut = animEl.animate([{ opacity: 1, transform: 'translate(-50%, -50%) scale(0.8)' }, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.5)' }], { duration: 150, fill: 'forwards' });
+                            await fadeOut.finished;
+
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                const isBuff = move.n.includes("Howl") || move.n.includes("Guard") || move.n.includes("Renewal Spores") || move.n.includes("Full Throttle") || move.n.includes("Overcharge") || move.n.includes("Savage Stance") || move.n.includes("Lifesteal") || move.n.includes("Thorns") || move.n.includes("Counter");
+                const isDebuff = move.n.includes("Intimidate") || move.n.includes("Poison Cloud") || move.n.includes("Toxin");
+
+                if (isBuff) {
+                    animDelay = Math.max(animDelay, 300);
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Buff_1.png";
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #51cf66);`;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -20%) scale(0.5)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.2)` },
+                                { opacity: 0, transform: `translate(-50%, -80%) scale(1.5)` }
+                            ], { duration: 600, easing: 'ease-out', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 650));
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (isDebuff) {
+                    animDelay = Math.max(animDelay, 300);
+                    const targetEl = getElementForUnit(t);
+                    if (targetEl) {
+                        const animEl = document.createElement('img');
+                        animEl.src = "Art/Debuff_1.png";
+                        const artContainer = targetEl.querySelector(".monster-art-container") || targetEl;
+                        animEl.style.cssText = `position:absolute; top:${getImpactTopPercent(artContainer)}%; left:50%; transform:translate(-50%, -50%) scale(1); width:165px; height:165px; z-index:100; pointer-events:none; opacity: 0; filter: drop-shadow(0 0 10px #ff4444);`;
+                        artContainer.appendChild(animEl);
+                        
+                        (async () => {
+                            animEl.animate([
+                                { opacity: 0, transform: `translate(-50%, -80%) scale(1.5)` },
+                                { opacity: 1, transform: `translate(-50%, -50%) scale(1.2)` },
+                                { opacity: 0, transform: `translate(-50%, -20%) scale(0.5)` }
+                            ], { duration: 600, easing: 'ease-in', fill: 'forwards' });
+                            
+                            await new Promise(r => setTimeout(r, 650));
+                            if (targetEl && animEl.parentNode === targetEl) {
+                                targetEl.removeChild(animEl);
+                            }
+                        })();
+                    }
+                }
+
+                if (animDelay > 0) {
+                    await new Promise(r => setTimeout(r, animDelay));
+                }
+
+                // Damage
+                if (move.p > 0 && !move.effect?.type?.includes('heal')) {
+                    const hitCount = move.hits || 1;
+
+                    for (let i = 0; i < hitCount; i++) {
+                        if (t.currentHp <= 0) break;
+                        
+                        let damage = calculateDamage(attacker, move, t);
+                        damage = Math.max(1, Math.floor(damage));
+                        
+                        // Guard reduction is already applied in calculateDamage, but we need to consume it
+                        if (t.defMod > 0) {
+                            t.defMod = 0; // Guard is consumed on hit
+                            if (t.buffs) {
+                                t.buffs = t.buffs.filter(b => b.type !== 'guard' && b.type !== 'guard_pct');
+                            }
+                        }
+
+                        let countered = false;
+                        if (t.buffs) {
+                            const counterBuffIdx = t.buffs.findIndex(b => b.type === 'counter');
+                            if (counterBuffIdx !== -1) {
+                                countered = true;
+                                anyCountered = true;
+                                const counterBuff = t.buffs[counterBuffIdx];
+                                const counterDamage = Math.floor(damage * counterBuff.value);
+                                t.buffs.splice(counterBuffIdx, 1); // remove counter after hit
+                                attacker.currentHp -= counterDamage;
+                                showFloatingText(attacker, "-" + counterDamage, "#ff4444", 'damage');
+                                combatLog(`${t.name} countered! ${attacker.name} took ${counterDamage} damage!`);
+                                if (attacker.currentHp <= 0) {
+                                    if (attacker.isEnemy && !combatState.killedEnemies.includes(attacker)) combatState.killedEnemies.push(attacker);
+                                    else if (!attacker.isEnemy) { combatLog(`${attacker.name} has fallen!`); calculateTurnOrder(true); }
+                                    grantKillEnergy(t, attacker);
+                                }
+                                const attackerEl = getElementForUnit(attacker);
+                                if (attackerEl) {
+                                    attackerEl.animate([
+                                        { transform: 'translateX(0)' },
+                                        { transform: 'translateX(-5px)' },
+                                        { transform: 'translateX(5px)' },
+                                        { transform: 'translateX(-5px)' },
+                                        { transform: 'translateX(0)' }
+                                    ], { duration: 300, easing: 'ease-in-out' });
+                                }
+                                damage = 0;
+                            }
+                        }
+
+                        if (!countered) {
+                            t.currentHp -= damage;
+                            const targetTypesList = Array.isArray(t.type) ? t.type : [t.type];
+                            const dmgMult = getElementMultiplier(move.t, targetTypesList);
+                            let arrow = '';
+                            if (dmgMult > 1) arrow = ' <span style="color:#ffcc00; text-shadow: var(--outline-thick);">↑</span>';
+                            else if (dmgMult < 1) arrow = ' <span style="color:#aaa; text-shadow: var(--outline-thick);">↓</span>';
+                            showFloatingText(t, "-" + damage + arrow, "#ff4444", 'damage');
+                            combatLog(`${t.name} took ${damage} damage!`);
+
+                            const targetEl = getElementForUnit(t);
+                            if (targetEl) {
+                                const artContainer = targetEl.querySelector('.monster-art-container') || targetEl;
+                                const baseScale = 1.0;
+                                artContainer.animate([
+                                    { transform: `scale(${baseScale}, ${baseScale})` },
+                                    { transform: `scale(${baseScale * 1.2}, ${baseScale * 0.8})` },
+                                    { transform: `scale(${baseScale * 0.9}, ${baseScale * 1.1})` },
+                                    { transform: `scale(${baseScale}, ${baseScale})` }
+                                ], { duration: 300, easing: 'ease-out' });
+                            }
+                        }
+
+                        if (t.buffs) {
+                            const bramblesBuffs = t.buffs.filter(b => b.type === 'brambles');
+                            if (bramblesBuffs.length > 0) {
+                                const reflectAmt = bramblesBuffs[0].value;
+                                if (reflectAmt > 0) {
+                                    attacker.currentHp -= reflectAmt;
+                                    showFloatingText(attacker, "-" + reflectAmt, "#ff4444", 'damage');
+                                    combatLog(`${attacker.name} took ${reflectAmt} damage from Thorns!`);
+                                    if (attacker.currentHp <= 0) {
+                                        if (attacker.isEnemy && !combatState.killedEnemies.includes(attacker)) combatState.killedEnemies.push(attacker);
+                                        else if (!attacker.isEnemy) { combatLog(`${attacker.name} has fallen!`); calculateTurnOrder(true); }
+                                        grantKillEnergy(t, attacker);
+                                    }
+                                    const attackerEl = getElementForUnit(attacker);
+                                    if (attackerEl) {
+                                        attackerEl.animate([
+                                            { transform: 'translateX(0)' },
+                                            { transform: 'translateX(-5px)' },
+                                            { transform: 'translateX(5px)' },
+                                            { transform: 'translateX(-5px)' },
+                                            { transform: 'translateX(0)' }
+                                        ], { duration: 300, easing: 'ease-in-out' });
+                                    }
+                                }
+                            }
+                        }
+
+                        if (attacker.buffs) {
+                            const lifestealBuffs = attacker.buffs.filter(b => b.type === 'lifesteal_buff');
+                            if (lifestealBuffs.length > 0) {
+                                const lifestealAmt = lifestealBuffs[0].value;
+                                const healAmt = Math.floor(damage * lifestealAmt);
+                                if (healAmt > 0) {
+                                    attacker.currentHp = Math.min(attacker.hp, attacker.currentHp + healAmt);
+                                    showFloatingText(attacker, "+" + healAmt, "#51cf66", 'heal');
+                                    playHealVFX(attacker);
+                                    combatLog(`${attacker.name} lifestealed ${healAmt} HP!`);
+                                }
+                            }
+
+                            const overchargeBuffs = attacker.buffs.filter(b => b.type === 'overcharge_buff');
+                            if (overchargeBuffs.length > 0) {
+                                const chance = overchargeBuffs[0].value || 0.2;
+                                if (Math.random() < chance) {
+                                    attacker.energy = Math.min(attacker.isBoss ? 5 : 3, attacker.energy + 1);
+                                    showFloatingText(attacker, energyGainHtml(1), "#00a8ff", 'energy');
+                                    combatLog(`${attacker.name} gained bonus energy from Overcharge!`);
+                                }
+                            }
+                        }
+
+                        // Wake up if sleeping
+                        if (t.sleep > 0) {
+                            t.sleep = 0;
+                            combatLog(`${t.name} woke up!`);
+                        }
+                        
+                        updateCombatUI();
+
+                        if (hitCount > 1 && i < hitCount - 1) {
+                            await new Promise(r => setTimeout(r, 400));
+                        }
+                    }
+                }
+
+                // Effects
+                if (move.effect && move.effect.type) {
+                    const eff = move.effect;
+                    // If the attack was countered, its effects bounce back onto the attacker instead of landing on the counterer.
+                    const fxTarget = anyCountered ? attacker : t;
+                    // Evolved (merge-tier) moves show the Ability Evolution badge on their shared status icon.
+                    const isEvolvedMove = EVOLVED_MOVES.has(move.n);
+                    function applyStatus(isDebuff, bType, bValue, bTurns) {
+                        const list = isDebuff ? (fxTarget.debuffs = fxTarget.debuffs || []) : (fxTarget.buffs = fxTarget.buffs || []);
+                        const existing = list.find(b => b.type === bType);
+                        if (existing) {
+                            if (bType === 'taunt' || bType === 'counter') {
+                                existing.turns = Math.max(existing.turns, bTurns);
+                            } else {
+                                existing.turns += bTurns;
+                            }
+                            existing.isNew = true;
+                            if (bValue !== undefined) existing.value = Math.max(existing.value || 0, bValue);
+                            if (isEvolvedMove) existing.evolved = true;
+                        } else {
+                            list.push({ type: bType, value: bValue, turns: bTurns, isNew: true, evolved: isEvolvedMove });
+                        }
+                    }
+                    function recalcMods(unit) {
+                        unit.atkMod = 0; unit.spdMod = 0; unit.defMod = 0;
+                        if (unit.buffs) unit.buffs.forEach(b => {
+                            if (b.type.includes('atk_buff')) unit.atkMod += b.value;
+                            if (b.type.includes('spd_buff')) unit.spdMod += b.value;
+                            if (b.type.includes('guard')) unit.defMod = b.value;
+                        });
+                        if (unit.debuffs) unit.debuffs.forEach(d => {
+                            if (d.type.includes('atk_debuff')) unit.atkMod -= d.value;
+                            if (d.type.includes('spd_debuff')) unit.spdMod -= d.value;
+                        });
+                    }
+
+                    if (eff.type.includes('debuff')) {
+                        applyStatus(true, eff.type, eff.value, eff.turns);
+                        recalcMods(fxTarget);
+                        combatLog(anyCountered ? `${fxTarget.name}'s stats were lowered by the reflected attack!` : `${fxTarget.name}'s stats were lowered!`);
+                    } else if (eff.type.includes('buff') || eff.type.includes('guard') || eff.type.includes('savage_stance') || eff.type.includes('regen') || eff.type === 'brambles' || eff.type === 'counter' || eff.type === 'taunt' || move.n === 'Ultimate Overcharge' || move.n === 'Overcharge') {
+                        if (eff.type === 'savage_stance' || eff.type === 'savage_stance_pct') {
+                            applyStatus(false, 'atk_buff_pct', eff.atk_value, eff.atk_turns);
+                            applyStatus(false, 'guard_pct', eff.guard_value, eff.guard_turns);
+                            combatLog(`${fxTarget.name} entered Savage Stance!`);
+                        } else if (eff.type === 'overcharge_buff') {
+                            applyStatus(false, 'overcharge_buff', eff.value || 0.2, eff.turns || 3);
+                            combatLog(`${fxTarget.name} is Overcharged!`);
+                        } else {
+                            const turns = move.n === 'Overcharge' ? 3 : eff.turns;
+                            let appliedType = eff.type;
+                            let appliedValue = eff.value;
+                            if (eff.type === 'regen_pct') {
+                                appliedType = 'regen';
+                                appliedValue = Math.floor(attacker.hp * eff.value);
+                            }
+                            applyStatus(false, appliedType, appliedValue, turns);
+                            if (eff.type.includes('regen')) combatLog(`${fxTarget.name} gained Health Regen!`);
+                            else if (eff.type === 'lifesteal_buff') combatLog(`${fxTarget.name} gained Lifesteal!`);
+                            else if (eff.type === 'brambles') combatLog(`${fxTarget.name} gained Thorns!`);
+                            else if (eff.type === 'counter') combatLog(`${fxTarget.name} prepared to Counter!`);
+                            else if (eff.type === 'taunt') combatLog(`${fxTarget.name} is Taunting enemies!`);
+                            else combatLog(`${fxTarget.name} boosted stats!`);
+                        }
+                        recalcMods(fxTarget);
+                    } else if (eff.type.includes('heal')) {
+                        let amount = 0;
+                        if (eff.type === 'heal_pct') {
+                            amount = Math.floor(attacker.hp * eff.value);
+                            if (eff.maxHeal) amount = Math.min(amount, eff.maxHeal);
+                        } else {
+                            amount = eff.value || Math.floor((attacker.matk + attacker.ratk + (attacker.atkMod || 0)) * 1.5 * (move.p || 1.0));
+                        }
+                        t.currentHp = Math.min(t.hp, t.currentHp + amount);
+                        showFloatingText(t, "+" + amount, "#51cf66", 'heal');
+                        playHealVFX(t);
+                        combatLog(`${t.name} was healed for ${amount}!`);
+                    } else if (eff.type === 'stun' && Math.random() < eff.chance) {
+                        fxTarget.stunned = (fxTarget.stunned || 0) + eff.turns;
+                        combatLog(anyCountered ? `${fxTarget.name} was stunned by the reflected attack!` : `${fxTarget.name} was stunned!`);
+                    } else if (eff.type === 'sleep' && Math.random() < eff.chance) {
+                        fxTarget.sleep = (fxTarget.sleep || 0) + eff.turns;
+                        combatLog(anyCountered ? `${fxTarget.name} fell asleep from the reflected attack!` : `${fxTarget.name} fell asleep!`);
+
+} else if (eff.type.includes('poison')) {
+                        let poisonDmg = 0;
+                        if (eff.type === 'poison_pct') {
+                            poisonDmg = Math.floor(fxTarget.hp * eff.value);
+                        } else {
+                            poisonDmg = eff.value || 8;
+                        }
+                        if (poisonDmg >= (fxTarget.poison || 0)) fxTarget.poisonEvolved = isEvolvedMove;
+                        fxTarget.poison = Math.max(fxTarget.poison || 0, poisonDmg);
+                        fxTarget.poisonTurns = eff.turns;
+                        fxTarget.poisonSource = anyCountered ? t : attacker;
+                        combatLog(anyCountered ? `${fxTarget.name} was poisoned by the reflected attack!` : `${fxTarget.name} was poisoned!`);
+                    } else if (eff.type.includes('toxin')) {
+                        let toxinDmg = 0;
+                        if (eff.type === 'toxin_pct') {
+                            toxinDmg = Math.floor(fxTarget.hp * eff.value);
+                        } else {
+                            toxinDmg = eff.value || 8;
+                        }
+                        fxTarget.toxin = Math.max(fxTarget.toxin || 0, toxinDmg);
+                        fxTarget.toxinTurns = eff.turns;
+                        fxTarget.toxinSource = anyCountered ? t : attacker;
+                        combatLog(anyCountered ? `${fxTarget.name} was inflicted with Toxin by the reflected attack!` : `${fxTarget.name} was inflicted with Toxin!`);
+                    }
+                }
+
+                if (t.currentHp <= 0) {
+                    if (t.isEnemy && !combatState.killedEnemies.includes(t)) {
+                        combatState.killedEnemies.push(t);
+                    } else if (!t.isEnemy) {
+                        combatLog(`${t.name} has fallen!`);
+                        calculateTurnOrder(true);
+                    }
+
+                    grantKillEnergy(attacker, t);
+                }
+            }
+
+            updateCombatUI();
+
+            // The killing blow can end combat before advanceTurn() normally runs,
+            // so apply any pending basic-attack energy bonus now or it's lost.
+            applyEnergyOnAdvance(attacker);
+
+            // Check win/loss immediately after move
+            if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
+                combatLog("Victory!");
+                setTimeout(endCombat, 1500, true);
+                return;
+            }
+            if (currentRun.party.every(p => !p || p.currentHp <= 0)) {
+                combatLog("Defeat...");
+                setTimeout(() => endCombat(false), 2000);
+                return;
+            }
+
+            // If the attacker died from a reflected counter/thorns hit during their own move,
+            // end their turn immediately instead of letting them act again with leftover energy.
+            if (attacker.currentHp <= 0) {
+                setTimeout(advanceTurn, attacker.isEnemy ? 800 : 500);
+                isExecutingMove = false;
+                return;
+            }
+
+            // If enemy, check if can move again
+            if (attacker.isEnemy) {
+                if (move.isBasicAttack || attacker.energy === 0) {
+                    setTimeout(advanceTurn, 800);
+                } else {
+                    setTimeout(() => enemyAI(attacker), 800);
+                }
+            } else {
+                // For player, just re-render controls. Basic Attack's energy gain is already applied
+                // above (killing-blow edge case), so skip re-rendering abilities here or they'd flash
+                // as unlocked for the ~500ms before advanceTurn() ends the turn.
+                if (!move.isBasicAttack) renderMoveControls(attacker);
+                if (attacker.energy === 0 || move.isBasicAttack) {
+                    setTimeout(advanceTurn, 500);
+                }
+            }
+            isExecutingMove = false;
+        }
+
+        function getElementMultiplier(moveType, targetTypes) {
+            let tier = 0;
+            targetTypes.forEach(bt => {
+                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.NATURE) tier += 1;
+                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.MECH) tier += 1;
+                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.BEAST) tier += 1;
+                if (moveType === ELEMENTS.NATURE && bt === ELEMENTS.BEAST) tier -= 1;
+                if (moveType === ELEMENTS.MECH && bt === ELEMENTS.NATURE) tier -= 1;
+                if (moveType === ELEMENTS.BEAST && bt === ELEMENTS.MECH) tier -= 1;
+            });
+            if (tier > 0) return 1.25;
+            if (tier < 0) return 0.75;
+            return 1.0;
+        }
+
+        function calculateDamage(attacker, move, target) {
+            if (move.isBasicAttack) {
+                // Flat base damage, unaffected by matk/ratk - but still scales with
+                // status effects like ATK Up/Down (atkMod) and Guard (defMod).
+                const atkMod = attacker.atkMod || 0;
+                const defMod = target.defMod || 0;
+                const dmg = 5 * (1 + atkMod) * (1 - defMod);
+                return Math.max(1, Math.round(dmg));
+            }
+
+            const moveType = move.t;
+            const targetTypes = Array.isArray(target.type) ? target.type : [target.type];
+
+            let maxMult = getElementMultiplier(moveType, targetTypes);
+
+            let atkStat = 0;
+            let defStat = 0;
+            if (move.melee) {
+                atkStat = attacker.matk || 0;
+                defStat = target.mdef || 0;
+            } else {
+                atkStat = attacker.ratk || 0;
+                defStat = target.rdef || 0;
+            }
+
+            // Apply atkMod (which is a percentage buff now, e.g. 0.4 for +40%)
+            let atkMod = attacker.atkMod || 0;
+            let movePower = move.p !== undefined ? move.p : 1.0;
+            if (movePower === 0) return 0;
+            let rawAttack = (atkStat * (1 + atkMod)) * movePower * maxMult;
+            
+            // Apply defMod (which is a percentage guard, e.g. 0.4 for -40% damage)
+            let defMod = target.defMod || 0; // 0 means no guard, 0.4 means 40% reduction
+            
+            let defMultiplier = Math.max(0, 1 - (defStat / 100));
+            let finalDamage = rawAttack * defMultiplier;
+            finalDamage = finalDamage * (1 - defMod);
+
+            return Math.max(1, Math.round(finalDamage));
+        }
+
+        function enemyAI(unit) {
+            // Check if win/loss already
+            if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
+                combatLog("Victory!");
+                setTimeout(endCombat, 1500, true);
+                return;
+            }
+            if (currentRun.party.every(p => !p || p.currentHp <= 0)) {
+                combatLog("Defeat...");
+                setTimeout(() => endCombat(false), 2000);
+                return;
+            }
+
+            if (unit.isBoss) {
+                bossAI(unit);
+                return;
+            }
+
+            const affordableMoves = unit.moves.filter(m => m.c <= unit.energy);
+
+            // AI logic:
+            // 1. If low energy (1), 60% chance to hold back and Basic Attack to build energy instead of spending it
+            const shouldBasicAttack = affordableMoves.length === 0 || (unit.energy <= 1 && Math.random() < 0.6);
+
+            if (shouldBasicAttack) {
+                executeMove(unit, {
+                    n: "Basic Attack",
+                    t: ELEMENTS.NEUTRAL,
+                    p: 0.5,
+                    c: 0,
+                    melee: true,
+                    isBasicAttack: true
+                });
+            } else {
+                // Pick a move
+                affordableMoves.sort((a, b) => b.c - a.c);
+                const move = Math.random() < 0.7 ? affordableMoves[0] : affordableMoves[Math.floor(Math.random() * affordableMoves.length)];
+
+                executeMove(unit, move);
+            }
+        }
+
+        // A buff effect can end up stored under a different `type` than the move that granted it
+        // (e.g. Savage Stance grants 'atk_buff_pct' + 'guard_pct', regen_pct is stored as 'regen') -
+        // this mirrors that remapping so the AI can correctly tell if it's already active.
+        function isBuffEffectActive(unit, effect) {
+            if (!unit.buffs) return false;
+            if (effect.type === 'savage_stance_pct' || effect.type === 'savage_stance') {
+                return unit.buffs.some(b => b.type === 'atk_buff_pct' || b.type === 'guard_pct');
+            }
+            const checkType = effect.type === 'regen_pct' ? 'regen' : effect.type;
+            return unit.buffs.some(b => b.type === checkType);
+        }
+
+        // Shared by bossAI's priority-1 check and the Heavy Robot opening script -
+        // finds the highest-value kill (AoE kill count beats a single kill) among
+        // already-affordable attack moves, respecting an active Taunt on single-target picks.
+        function findBestKillMove(unit, affordableMoves, livingParty) {
+            const tauntingParty = livingParty.filter(p => p.buffs && p.buffs.some(b => b.type === 'taunt'));
+            const singleTargetPool = tauntingParty.length > 0 ? tauntingParty : livingParty;
+
+            const attackMovesForKillCheck = affordableMoves.filter(m => m.p > 0);
+            let bestKill = null; // { move, target, killCount }
+            for (const m of attackMovesForKillCheck) {
+                const isAoe = m.effect && m.effect.target === 'all_enemies';
+                if (isAoe) {
+                    const killCount = livingParty.filter(p => calculateDamage(unit, m, p) >= p.currentHp).length;
+                    if (killCount > 0 && (!bestKill || killCount > bestKill.killCount)) {
+                        bestKill = { move: m, target: null, killCount };
+                    }
+                } else if (!bestKill || bestKill.killCount < 1) {
+                    const killTarget = singleTargetPool.find(p => calculateDamage(unit, m, p) >= p.currentHp);
+                    if (killTarget) bestKill = { move: m, target: killTarget, killCount: 1 };
+                }
+            }
+            return bestKill;
+        }
+
+        const BASIC_ATTACK_MOVE = { n: "Basic Attack", t: ELEMENTS.NEUTRAL, p: 0.5, c: 0, melee: true, isBasicAttack: true };
+
+        // Heavy Robot's scripted opener: never opens on Taunt, spends turn 1 building energy
+        // (unless Heavy Punch can already close out a kill), then commits its first 3 energy
+        // to Counter followed immediately by Taunt on the turn after, before handing off to the
+        // regular bossAI priority list for everything past that. Returns true if it acted.
+        function heavyRobotOpeningAI(unit) {
+            if (unit.robotOpening === 'done') return false;
+            if (!unit.robotOpening) unit.robotOpening = 'basic_attack';
+
+            const affordableMoves = unit.moves.filter(m => m.c <= unit.energy);
+            const livingParty = currentRun.party.filter(p => p && p.currentHp > 0);
+            const bestKill = findBestKillMove(unit, affordableMoves, livingParty);
+            if (bestKill) {
+                executeMove(unit, bestKill.move, bestKill.target || undefined);
+                return true;
+            }
+
+            if (unit.robotOpening === 'basic_attack') {
+                executeMove(unit, BASIC_ATTACK_MOVE);
+                unit.robotOpening = 'counter';
+                return true;
+            }
+
+            if (unit.robotOpening === 'counter') {
+                const counterMove = unit.moves.find(m => m.effect && m.effect.type === 'counter');
+                if (counterMove && unit.energy >= 3) {
+                    executeMove(unit, counterMove);
+                    unit.robotOpening = 'taunt';
+                } else {
+                    // Not at 3 energy yet - keep building and re-check next turn.
+                    executeMove(unit, BASIC_ATTACK_MOVE);
+                }
+                return true;
+            }
+
+            // unit.robotOpening === 'taunt'
+            const tauntMove = unit.moves.find(m => m.effect && m.effect.type === 'taunt');
+            if (tauntMove && unit.energy >= tauntMove.c) {
+                executeMove(unit, tauntMove);
+                unit.robotOpening = 'done';
+            } else {
+                executeMove(unit, BASIC_ATTACK_MOVE);
+            }
+            return true;
+        }
+
+        function bossAI(unit) {
+            if (unit.baseId === 'mega_mech' && heavyRobotOpeningAI(unit)) {
+                return;
+            }
+
+            const holdBackForEnergy = unit.energy <= 1 && Math.random() < 0.5;
+            const affordableMoves = holdBackForEnergy ? [] : unit.moves.filter(m => m.c <= unit.energy);
+
+            if (affordableMoves.length === 0) {
+                executeMove(unit, BASIC_ATTACK_MOVE);
+                return;
+            }
+
+            const hpPct = unit.currentHp / unit.hp;
+            const livingParty = currentRun.party.filter(p => p && p.currentHp > 0);
+
+            // 1. Take a kill if one is available - finishing off the party is worth more than
+            // topping off its own HP, even while hurt.
+            const bestKill = findBestKillMove(unit, affordableMoves, livingParty);
+            if (bestKill) {
+                executeMove(unit, bestKill.move, bestKill.target || undefined);
+                return;
+            }
+
+            // 2. Heal up when hurt, instead of attacking into a losing trade.
+            const healMove = affordableMoves.find(m => m.effect && (m.effect.type === 'heal_pct' || m.effect.type === 'heal_flat'));
+            if (healMove && hpPct <= 0.5) {
+                executeMove(unit, healMove);
+                return;
+            }
+
+            // 3. Weaken the party with a debuff if it isn't already applied to someone.
+            const debuffMove = affordableMoves.find(m => m.effect && m.effect.type.includes('debuff'));
+            if (debuffMove) {
+                const alreadyDebuffed = livingParty.some(p => p.debuffs && p.debuffs.some(d => d.type === debuffMove.effect.type));
+                if (!alreadyDebuffed) {
+                    executeMove(unit, debuffMove);
+                    return;
+                }
+            }
+
+            // 4. Set up with a self-buff/utility move (Taunt, Counter, Savage Stance...) before it's needed,
+            // but not while critically low - that turn is better spent healing next time around.
+            // Checks every buff move, not just the first one, so an already-active buff doesn't
+            // block a different, still-unused one (e.g. Counter is up but Taunt isn't yet).
+            if (hpPct > 0.3) {
+                const buffMove = affordableMoves.find(m => m.p === 0 && m.effect && !m.effect.type.includes('debuff') && !m.effect.type.includes('heal') && !isBuffEffectActive(unit, m.effect));
+                if (buffMove) {
+                    executeMove(unit, buffMove);
+                    return;
+                }
+            }
+
+            // 5. Otherwise, attack - favor an AoE move while there's more than one target to hit.
+            const attackMoves = affordableMoves.filter(m => m.p > 0);
+            if (attackMoves.length > 0) {
+                const aoeMoves = attackMoves.filter(m => m.effect && m.effect.target === 'all_enemies');
+                const pool = (livingParty.length > 1 && aoeMoves.length > 0) ? aoeMoves : attackMoves;
+                pool.sort((a, b) => (b.p * (1 + b.c * 0.15)) - (a.p * (1 + a.c * 0.15)));
+                executeMove(unit, pool[0]);
+                return;
+            }
+
+            executeMove(unit, affordableMoves[Math.floor(Math.random() * affordableMoves.length)]);
+        }
+
+        function combatLog(msg) {
+            combatState.log.push(colorizeCombatLogMessage(msg));
+            updateCombatUI();
+        }
+
+        function colorizeCombatLogMessage(msg) {
+            const units = [...(currentRun && currentRun.party ? currentRun.party : []), ...(combatState.enemies || [])];
+            const seen = new Set();
+            const uniqueUnits = units.filter(u => {
+                if (!u || !u.name || seen.has(u.name)) return false;
+                seen.add(u.name);
+                return true;
+            }).sort((a, b) => b.name.length - a.name.length);
+
+            let result = msg;
+            uniqueUnits.forEach(u => {
+                const escapedName = u.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const re = new RegExp(`\\b${escapedName}\\b`, 'g');
+                const cls = u.isEnemy ? 'log-enemy' : 'log-ally';
+                result = result.replace(re, `<span class="${cls}">${u.name}</span>`);
+            });
+            return result;
+        }
+
+        function endCombat(isWin) {
+            if (combatState.ended) return;
+            combatState.ended = true;
+
+            // Remove dead party members
+            currentRun.party = currentRun.party.map(p => p && p.currentHp > 0 ? p : null);
+
+            if (isWin) {
+                // If it's the final boss, show You Win screen
+                if (currentRun.nodeIndex >= currentRun.nodes.length - 1) {
+                    advanceRun();
+                    return;
+                }
+
+                // Recruitment: any defeated non-Alpha starter species can join, deduped by species
+                const seenBaseIds = new Set();
+                const recruitCandidates = combatState.killedEnemies.filter(e => {
+                    if (!e || seenBaseIds.has(e.baseId)) return false;
+                    const isStarter = Object.keys(STARTERS).includes(e.baseId);
+                    const isAlpha = e.name.includes('Alpha');
+                    if (!isStarter || isAlpha) return false;
+                    seenBaseIds.add(e.baseId);
+                    return true;
+                });
+
+                if (recruitCandidates.length === 1) {
+                    recruitMonster(recruitCandidates[0]);
+                    return;
+                } else if (recruitCandidates.length > 1) {
+                    showRecruitChoiceModal(recruitCandidates);
+                    return;
+                }
+
+                advanceRun();
+            } else {
+                showGameAlert("YOU DIED!", "Your party was defeated.", () => {
+                    showScreen('screen-menu');
+                });
+            }
+        }
+
+        function showRecruitChoiceModal(candidates) {
+            const modal = document.getElementById('modal-recruit-choice');
+            const list = document.getElementById('recruit-choice-list');
+            list.innerHTML = '';
+
+            candidates.forEach(e => {
+                const base = STARTERS[e.baseId];
+                const btn = document.createElement('div');
+                btn.className = 'collection-square recruit-choice-card';
+                btn.style.width = '260px';
+                btn.style.cursor = 'pointer';
+                btn.style.transition = 'all 0.2s';
+                btn.style.position = 'relative';
+
+                btn.innerHTML = `
+                    <div style="position: absolute; top: 5px; right: 5px; filter: drop-shadow(0px 0px 2px #000);">${getTypeIconHtml(base.type, 40)}</div>
+                    <div class="monster-art" style="pointer-events:none;">${renderArt(base.art, 190)}</div>
+                    <strong style="font-size: 26px; color: #fff; text-shadow: var(--outline-med); pointer-events:none;">${base.name}</strong>
+                `;
+                btn.onclick = () => {
+                    closeModal('modal-recruit-choice');
+                    recruitMonster(e);
+                };
+                list.appendChild(btn);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        function recruitMonster(e) {
+            const base = STARTERS[e.baseId];
+            const recruit = {
+                ...base,
+                isEnemy: false,
+                currentHp: base.hp, // FULL HP
+                hp: base.hp,
+                atk: base.atk
+            };
+
+            const emptyIndex = currentRun.party.findIndex(p => p === null);
+            const artHtml = `<div style="display:flex; justify-content:center; align-items:center; margin:10px auto; width:200px; height:200px; overflow:hidden;">${renderFocusedArt(recruit.art)}</div>`;
+
+            if (emptyIndex !== -1) {
+                currentRun.party[emptyIndex] = recruit;
+                // Unlock in collection
+                if (!gameState.unlockedStarters.includes(recruit.id)) {
+                    gameState.unlockedStarters.push(recruit.id);
+                    saveGame();
+                    showMergeResultDetails(recruit, advanceRun);
+                } else {
+                    showRecruitmentAlert(recruit, advanceRun);
+                }
+                return;
+            } else {
+                const mergesInParty = currentRun.party.filter(p => p && p.parents).length;
+                const nonMerges = currentRun.party.filter(p => p && !p.parents);
+
+                if (mergesInParty === 3 && nonMerges.length === 1) {
+                    const p1 = nonMerges[0];
+                    const p2 = recruit;
+                    const outcome = MERGES.find(m =>
+                        (m.parents[0] === p1.id && m.parents[1] === p2.id) ||
+                        (m.parents[0] === p2.id && m.parents[1] === p1.id)
+                    );
+
+                    if (outcome) {
+                        const mergeArt = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; gap: 10px; height:190px;">
+                            <div style="width:190px; height:190px; overflow:hidden; display:flex; justify-content:center; align-items:center;">${renderFocusedArt(p1.art)}</div>
+                            <span style="font-size: 48px; color:#fff;">+</span>
+                            <div style="width:190px; height:190px; overflow:hidden; display:flex; justify-content:center; align-items:center;">${renderFocusedArt(p2.art)}</div>
+                            <span style="font-size: 48px; color:#fff;">=</span>
+                            <div style="width:190px; height:190px; overflow:hidden; display:flex; justify-content:center; align-items:center;">${renderFocusedArt(outcome.art)}</div>
+                        </div>`;
+
+                        showGameConfirm(
+                            "Auto Merge Opportunity",
+                            `You have 3 Merged monsters and 1 base monster (${p1.name}). Do you want to fuse ${p1.name} with ${p2.name} to create ${outcome.name}?`,
+                            () => {
+                                if (!gameState.unlockedStarters.includes(recruit.id)) {
+                                    gameState.unlockedStarters.push(recruit.id);
+                                }
+                                if (!gameState.discoveredMerges.includes(outcome.name)) {
+                                    gameState.discoveredMerges.push(outcome.name);
+                                }
+                                saveGame();
+
+                                const destIdx = currentRun.party.indexOf(p1);
+                                currentRun.party[destIdx] = {
+                                    ...outcome,
+                                    isEnemy: false,
+                                    currentHp: outcome.hp,
+                                    energy: outcome.startingEnergy || 0
+                                };
+
+                                showGameAlert("Merge Successful!", `Created ${outcome.name}!`, advanceRun, mergeArt);
+                            },
+                            () => {
+                                let replaceText = `Replace a monster with ${recruit.name}?`;
+                                if (!gameState.unlockedStarters.includes(recruit.id)) {
+                                    replaceText += ` (This will also unlock it in your Collection)`;
+                                }
+                                showGameConfirm("Recruitment", replaceText,
+                                    () => openReplacementModal(recruit),
+                                    advanceRun,
+                                    artHtml
+                                );
+                            },
+                            mergeArt
+                        );
+                        return;
+                    }
+                }
+
+                let replaceText = `Your party is full. Replace a monster with ${recruit.name}?`;
+                if (!gameState.unlockedStarters.includes(recruit.id)) {
+                    replaceText += ` (This will also unlock it in your Collection)`;
+                }
+                showGameConfirm("Recruitment", replaceText,
+                    () => openReplacementModal(recruit),
+                    advanceRun,
+                    artHtml
+                );
+                return;
+            }
+        }
+
+        function openReplacementModal(recruit) {
+            const modal = document.getElementById('modal-selection');
+            const list = document.getElementById('modal-list');
+            document.getElementById('modal-title').innerText = "Select to Replace";
+            list.className = '';
+            list.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+                    <div>
+                        <div style="display: grid; grid-template-columns: 240px 240px; gap: 50px; justify-content: center; margin-bottom: 15px; color: white; font-weight: normal; font-size: 20px; text-shadow: var(--outline-thin);">
+                            <div style="text-align: center;">BACKLINE</div>
+                            <div style="text-align: center;">FRONTLINE</div>
+                        </div>
+                        <div style="position: relative; padding: 25px 45px; background: ${getMapBackground(currentRun.arcId)} center/cover; border-radius: 15px; border: 2px solid #444;">
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); border-radius: 15px;"></div>
+                            <div class="team" style="position: relative; z-index: 2; width: auto; padding: 0; direction: rtl;" id="replace-list-team">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const teamContainer = document.getElementById('replace-list-team');
+            
+            const closeBtn = document.getElementById('modal-selection-close-btn');
+            closeBtn.onclick = () => {
+                closeModal('modal-selection');
+                advanceRun();
+            };
+            
+            for(let idx = 0; idx < 4; idx++) {
+                const m = currentRun.party[idx];
+                const btn = document.createElement('div');
+                btn.className = 'select-slot';
+                btn.style.direction = 'ltr';
+                btn.style.width = '220px';
+                btn.style.height = '220px';
+
+                if (!m) {
+                    teamContainer.appendChild(btn);
+                    continue;
+                }
+
+                btn.innerHTML = `
+                    <button style="width: 100%; height: 100%; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0;">
+                        <div style="width:170px; height:170px; margin-bottom:8px; pointer-events:none;">
+                            ${renderArt(m.art, 150)}
+                        </div>
+                        <strong style="font-size:28px; text-align:center; pointer-events:none; color: white; text-shadow: var(--outline-med);">${m.name}</strong>
+                    </button>
+                `;
+                btn.querySelector('button').onclick = () => {
+                    currentRun.party[idx] = recruit;
+                    // Unlock in collection
+                    if (!gameState.unlockedStarters.includes(recruit.id)) {
+                        gameState.unlockedStarters.push(recruit.id);
+                        saveGame();
+                        setTimeout(() => {
+                            showMergeResultDetails(recruit, advanceRun);
+                        }, 500);
+                    } else {
+                        setTimeout(() => {
+                            showRecruitmentAlert(recruit, advanceRun);
+                        }, 500);
+                    }
+                    closeModal('modal-selection');
+                };
+                teamContainer.appendChild(btn);
+            }
+            modal.style.display = 'flex';
+        }
+
+        function advanceRun() {
+            currentRun.nodeIndex++;
+            if (currentRun.nodeIndex >= currentRun.nodes.length) {
+                // Victory Run
+                let msg = "Congratulations! You have completed the run.";
+                let winHtml = '';
+
+                let bossId = 'mega_bat';
+                if (currentRun.arcId === 'arc2') bossId = 'mega_treant';
+                if (currentRun.arcId === 'arc3') bossId = 'mega_mech';
+
+                const bossData = BOSSES[bossId];
+                if (bossData && bossData.unlocks) {
+                    const unlocksId = bossData.unlocks;
+                    if (!gameState.unlockedStarters.includes(unlocksId)) {
+                        gameState.unlockedStarters.push(unlocksId);
+                        const starter = STARTERS[unlocksId];
+                        msg += `\nUnlocked new starter: ${starter.name}!`;
+                        if (starter && starter.art) {
+                            winHtml = `<div style="display:flex; justify-content:center; margin: 12px 0;">${renderArt(starter.art, 340)}</div>`;
+                        }
+                    }
+                }
+
+                // Act unlocks
+                if (currentRun.arcId === 'arc1' && gameState.maxActReached < 2) {
+                    gameState.maxActReached = 2;
+                    msg += `\n\nUNLOCKED ACT 2: The Forest!`;
+                } else if (currentRun.arcId === 'arc2' && gameState.maxActReached < 3) {
+                    gameState.maxActReached = 3;
+                    msg += `\n\nUNLOCKED ACT 3: The Laboratory!`;
+                }
+
+                saveGame();
+                showGameAlert("YOU WIN!", msg, () => {
+                    showScreen('screen-menu');
+                }, winHtml);
+            } else {
+                showScreen('screen-map');
+                renderMap();
+            }
+        }
