@@ -557,6 +557,10 @@ button, input, select, textarea {
         }
 
         .combatant.boss.name-colossal-treant {
+            top: 100px;
+        }
+
+        .combatant.boss.name-crimson-bat {
             top: 90px;
         }
 

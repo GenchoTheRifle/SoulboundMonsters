@@ -7,6 +7,14 @@
 
         window.addEventListener('resize', scaleGame);
 
+        document.addEventListener('click', function(e) {
+            const settingsMenu = document.getElementById('settings-menu');
+            const settingsBtn = document.getElementById('settings-btn');
+            if (!settingsMenu || settingsMenu.style.display === 'none') return;
+            if (settingsMenu.contains(e.target) || (settingsBtn && settingsBtn.contains(e.target))) return;
+            settingsMenu.style.display = 'none';
+        }, true);
+
         async function init() {
             scaleGame();
             try {

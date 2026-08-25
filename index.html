@@ -78,10 +78,10 @@
             </div>
 
             <div style="position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; z-index: 50;">
-                <button onclick="document.getElementById('settings-menu').style.display = document.getElementById('settings-menu').style.display === 'none' ? 'flex' : 'none'" style="font-size: 50px; background: none; border: none; cursor: pointer; color: white; filter: drop-shadow(2px 2px 4px black);"><img src="Art/Settings.png" style="width: 70px; height: 70px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));" alt="Settings" /></button>
+                <button id="settings-btn" onclick="document.getElementById('settings-menu').style.display = document.getElementById('settings-menu').style.display === 'none' ? 'flex' : 'none'" style="font-size: 50px; background: none; border: none; cursor: pointer; color: white; filter: drop-shadow(2px 2px 4px black);"><img src="Art/Settings.png" style="width: 70px; height: 70px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));" alt="Settings" /></button>
                 <div id="settings-menu" class="nine-cut-panel" style="display: none; flex-direction: column; gap: 6px; padding: 10px; border-width: 16px;">
-                    <button onclick="resetProgress()" class="nine-cut-button" style="font-size: 24px; padding: 4px 20px; width: 220px; border-width: 12px 20px; color: #f99;">RESET PROGRESS</button>
-                    <button onclick="unlockAllProgress()" class="nine-cut-button" style="font-size: 24px; padding: 4px 20px; width: 220px; border-width: 12px 20px; color: #9f9;">UNLOCK ALL</button>
+                    <button onclick="document.getElementById('settings-menu').style.display='none'; resetProgress()" class="nine-cut-button" style="font-size: 24px; padding: 4px 20px; width: 220px; border-width: 12px 20px; color: #f99;">RESET PROGRESS</button>
+                    <button onclick="document.getElementById('settings-menu').style.display='none'; unlockAllProgress()" class="nine-cut-button" style="font-size: 24px; padding: 4px 20px; width: 220px; border-width: 12px 20px; color: #9f9;">UNLOCK ALL</button>
                 </div>
             </div>
         </div>

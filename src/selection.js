@@ -429,7 +429,7 @@
                 if (s.id === 'wolf') {
                     extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #c62828; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; border: 1px solid #ff5252; z-index: 10;">Attacker</div>`;
                 } else if (s.id === 'slime') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #1565c0; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; border: 1px solid #42a5f5; z-index: 10;">Defender</div>`;
+                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #2e7d32; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; border: 1px solid #66bb6a; z-index: 10;">Support</div>`;
                 } else if (s.id === 'sentry') {
                     extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #e6c200; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; color: #fff; border: 1px solid #ffee58; z-index: 10;">Balanced</div>`;
                 }

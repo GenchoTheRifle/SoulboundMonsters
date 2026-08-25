@@ -113,7 +113,7 @@
         // when, unlike the "Available" screen's name-overlaid-on-art layout, the name sits
         // in its own space below the art box, so the character doesn't need to be shifted
         // as far up to leave room for it and can sit lower/bigger instead.
-        function renderFocusedArt(id, monster, size, extraZoom = 1, vBias = 0) {
+        function renderFocusedStarterArt(id, monster, size, extraZoom = 1, vBias = 0) {
             if (!monster.art.includes('.png')) return renderArt(monster.art, size);
             const focus = (typeof STARTER_ART_FOCUS !== 'undefined') ? STARTER_ART_FOCUS[id] : null;
             const imgTransform = focus
@@ -125,7 +125,7 @@
         }
 
         function renderMergeParentArt(id, monster, size) {
-            return renderFocusedArt(id, monster, size, 1.3);
+            return renderFocusedStarterArt(id, monster, size, 1.3);
         }
 
         // Collection screen's starter cards only - deliberately not applied to merges.
@@ -142,7 +142,7 @@
         };
         function renderStarterCollectionArt(s, size) {
             const o = STARTER_CARD_ART_OVERRIDES[s.id] || {};
-            return renderFocusedArt(s.id, s, size, o.extraZoom !== undefined ? o.extraZoom : 1.3, o.vBias !== undefined ? o.vBias : 18);
+            return renderFocusedStarterArt(s.id, s, size, o.extraZoom !== undefined ? o.extraZoom : 1.3, o.vBias !== undefined ? o.vBias : 18);
         }
 
         // Kept deliberately compact (small text, small portraits) - this box's height eats

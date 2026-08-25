@@ -2515,6 +2515,14 @@ let shadowClass = getShadowClass(u.name);
                 return;
             }
 
+            // If the attacker died from a reflected counter/thorns hit during their own move,
+            // end their turn immediately instead of letting them act again with leftover energy.
+            if (attacker.currentHp <= 0) {
+                setTimeout(advanceTurn, attacker.isEnemy ? 800 : 500);
+                isExecutingMove = false;
+                return;
+            }
+
             // If enemy, check if can move again
             if (attacker.isEnemy) {
                 if (move.isBasicAttack || attacker.energy === 0) {
@@ -2644,33 +2652,13 @@ let shadowClass = getShadowClass(u.name);
             return unit.buffs.some(b => b.type === checkType);
         }
 
-        function bossAI(unit) {
-            const holdBackForEnergy = unit.energy <= 1 && Math.random() < 0.5;
-            const affordableMoves = holdBackForEnergy ? [] : unit.moves.filter(m => m.c <= unit.energy);
-
-            if (affordableMoves.length === 0) {
-                executeMove(unit, {
-                    n: "Basic Attack",
-                    t: ELEMENTS.NEUTRAL,
-                    p: 0.5,
-                    c: 0,
-                    melee: true,
-                    isBasicAttack: true
-                });
-                return;
-            }
-
-            const hpPct = unit.currentHp / unit.hp;
-            const livingParty = currentRun.party.filter(p => p && p.currentHp > 0);
-
-            // Single-target moves must respect an active Taunt (AoE ignores it, same as
-            // everywhere else Taunt is checked) - so a kill shot can't be used to snipe a
-            // non-taunting party member while the taunter is still standing.
+        // Shared by bossAI's priority-1 check and the Heavy Robot opening script -
+        // finds the highest-value kill (AoE kill count beats a single kill) among
+        // already-affordable attack moves, respecting an active Taunt on single-target picks.
+        function findBestKillMove(unit, affordableMoves, livingParty) {
             const tauntingParty = livingParty.filter(p => p.buffs && p.buffs.some(b => b.type === 'taunt'));
             const singleTargetPool = tauntingParty.length > 0 ? tauntingParty : livingParty;
 
-            // 1. Take a kill if one is available - finishing off the party is worth more than
-            // topping off its own HP, even while hurt.
             const attackMovesForKillCheck = affordableMoves.filter(m => m.p > 0);
             let bestKill = null; // { move, target, killCount }
             for (const m of attackMovesForKillCheck) {
@@ -2685,6 +2673,75 @@ let shadowClass = getShadowClass(u.name);
                     if (killTarget) bestKill = { move: m, target: killTarget, killCount: 1 };
                 }
             }
+            return bestKill;
+        }
+
+        const BASIC_ATTACK_MOVE = { n: "Basic Attack", t: ELEMENTS.NEUTRAL, p: 0.5, c: 0, melee: true, isBasicAttack: true };
+
+        // Heavy Robot's scripted opener: never opens on Taunt, spends turn 1 building energy
+        // (unless Heavy Punch can already close out a kill), then commits its first 3 energy
+        // to Counter followed immediately by Taunt on the turn after, before handing off to the
+        // regular bossAI priority list for everything past that. Returns true if it acted.
+        function heavyRobotOpeningAI(unit) {
+            if (unit.robotOpening === 'done') return false;
+            if (!unit.robotOpening) unit.robotOpening = 'basic_attack';
+
+            const affordableMoves = unit.moves.filter(m => m.c <= unit.energy);
+            const livingParty = currentRun.party.filter(p => p && p.currentHp > 0);
+            const bestKill = findBestKillMove(unit, affordableMoves, livingParty);
+            if (bestKill) {
+                executeMove(unit, bestKill.move, bestKill.target || undefined);
+                return true;
+            }
+
+            if (unit.robotOpening === 'basic_attack') {
+                executeMove(unit, BASIC_ATTACK_MOVE);
+                unit.robotOpening = 'counter';
+                return true;
+            }
+
+            if (unit.robotOpening === 'counter') {
+                const counterMove = unit.moves.find(m => m.effect && m.effect.type === 'counter');
+                if (counterMove && unit.energy >= 3) {
+                    executeMove(unit, counterMove);
+                    unit.robotOpening = 'taunt';
+                } else {
+                    // Not at 3 energy yet - keep building and re-check next turn.
+                    executeMove(unit, BASIC_ATTACK_MOVE);
+                }
+                return true;
+            }
+
+            // unit.robotOpening === 'taunt'
+            const tauntMove = unit.moves.find(m => m.effect && m.effect.type === 'taunt');
+            if (tauntMove && unit.energy >= tauntMove.c) {
+                executeMove(unit, tauntMove);
+                unit.robotOpening = 'done';
+            } else {
+                executeMove(unit, BASIC_ATTACK_MOVE);
+            }
+            return true;
+        }
+
+        function bossAI(unit) {
+            if (unit.baseId === 'mega_mech' && heavyRobotOpeningAI(unit)) {
+                return;
+            }
+
+            const holdBackForEnergy = unit.energy <= 1 && Math.random() < 0.5;
+            const affordableMoves = holdBackForEnergy ? [] : unit.moves.filter(m => m.c <= unit.energy);
+
+            if (affordableMoves.length === 0) {
+                executeMove(unit, BASIC_ATTACK_MOVE);
+                return;
+            }
+
+            const hpPct = unit.currentHp / unit.hp;
+            const livingParty = currentRun.party.filter(p => p && p.currentHp > 0);
+
+            // 1. Take a kill if one is available - finishing off the party is worth more than
+            // topping off its own HP, even while hurt.
+            const bestKill = findBestKillMove(unit, affordableMoves, livingParty);
             if (bestKill) {
                 executeMove(unit, bestKill.move, bestKill.target || undefined);
                 return;
@@ -3013,7 +3070,7 @@ let shadowClass = getShadowClass(u.name);
                         const starter = STARTERS[unlocksId];
                         msg += `\nUnlocked new starter: ${starter.name}!`;
                         if (starter && starter.art) {
-                            winHtml = `<div style="display:flex; justify-content:center; margin: 12px 0;">${renderArt(starter.art, 220)}</div>`;
+                            winHtml = `<div style="display:flex; justify-content:center; margin: 12px 0;">${renderArt(starter.art, 340)}</div>`;
                         }
                     }
                 }
