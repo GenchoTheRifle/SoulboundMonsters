@@ -1,0 +1,3 @@
+const currentRun = { party: [], timeline: [] };
+const combatState = { enemies: [], activeUnit: null };
+// ...
