@@ -113,8 +113,115 @@
             }, 100);
         }
 
+        // Node marker positions (fraction of track image width/height), read off the
+        // red dots baked into each road art asset. One set per arc since each road
+        // image lays its path out differently.
+        const MAP_NODE_POSITIONS_BY_ARC = {
+            arc1: [
+                { x: 0.07698, y: 0.50275 },
+                { x: 0.16330, y: 0.56714 },
+                { x: 0.24490, y: 0.40286 },
+                { x: 0.32545, y: 0.45275 },
+                { x: 0.40386, y: 0.57145 },
+                { x: 0.51187, y: 0.49178 },
+                { x: 0.61466, y: 0.35463 },
+                { x: 0.71960, y: 0.46944 },
+                { x: 0.81806, y: 0.51389 },
+                { x: 0.94860, y: 0.48263 }
+            ],
+            arc2: [
+                { x: 0.08294, y: 0.62932 },
+                { x: 0.18477, y: 0.70001 },
+                { x: 0.27376, y: 0.48857 },
+                { x: 0.34461, y: 0.45513 },
+                { x: 0.42433, y: 0.67481 },
+                { x: 0.52448, y: 0.56065 },
+                { x: 0.60463, y: 0.57761 },
+                { x: 0.71308, y: 0.60802 },
+                { x: 0.81641, y: 0.68874 },
+                { x: 0.92580, y: 0.67183 }
+            ],
+            arc3: [
+                { x: 0.07067, y: 0.60459 },
+                { x: 0.17811, y: 0.68241 },
+                { x: 0.26188, y: 0.41304 },
+                { x: 0.34522, y: 0.52422 },
+                { x: 0.41929, y: 0.62152 },
+                { x: 0.49569, y: 0.44098 },
+                { x: 0.59891, y: 0.42392 },
+                { x: 0.68919, y: 0.43800 },
+                { x: 0.77485, y: 0.61580 },
+                { x: 0.90958, y: 0.61578 }
+            ]
+        };
+
+        function getMapNodePositions(arcId) {
+            return MAP_NODE_POSITIONS_BY_ARC[arcId] || MAP_NODE_POSITIONS_BY_ARC.arc1;
+        }
+
+        // Little party-lead marker standing on a map node (normal and tutorial maps alike).
+        function buildMapToken(monster, left, top) {
+            const token = document.createElement('div');
+            token.id = 'map-token';
+            token.className = 'map-token';
+            token.style.left = left;
+            token.style.top = top;
+            token.innerHTML = `
+                <div class="map-token-ring"></div>
+                <div class="map-token-shadow"></div>
+                <div class="map-token-bob"><img src="${monster.art}" draggable="false" /></div>`;
+            return token;
+        }
+
+        // Hops the token over to another node position; resolves once it has landed.
+        function moveMapToken(left, top) {
+            const token = document.getElementById('map-token');
+            if (!token) return Promise.resolve();
+            token.classList.remove('landed');
+            token.classList.add('moving');
+            token.style.left = left;
+            token.style.top = top;
+            return new Promise(resolve => setTimeout(() => {
+                token.classList.remove('moving');
+                token.classList.add('landed');
+                setTimeout(resolve, 300);
+            }, 1000));
+        }
+
+        // Path lines between nodes, same style as the tutorial map: solid behind the party,
+        // marching dashes to the next stage, faint dashes beyond. Drawn in the road image's own
+        // pixel space so they stay pinned to the nodes however the track scales.
+        function drawMapTrackPath(positions) {
+            const svg = document.getElementById('map-track-path');
+            const trackImg = document.getElementById('map-track-img');
+            if (!svg || !trackImg) return;
+            const draw = () => {
+                const w = trackImg.naturalWidth || 3240;
+                const h = trackImg.naturalHeight || 540;
+                svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+                const at = currentRun.nodeIndex - 1; // the node the party is standing on
+                let paths = '';
+                for (let i = 0; i < currentRun.nodes.length - 1; i++) {
+                    const a = positions[i], b = positions[i + 1];
+                    if (!a || !b) continue;
+                    const state = i < at ? 'done' : (i === at ? 'next' : 'todo');
+                    paths += `<path class="map-path map-path-${state}" d="M ${a.x * w} ${a.y * h} L ${b.x * w} ${b.y * h}" />`;
+                }
+                svg.innerHTML = paths;
+            };
+            draw();
+            if (!trackImg.complete) trackImg.addEventListener('load', draw, { once: true });
+        }
+
+        let mapTravelBusy = false;
+
         function renderMap() {
+            if (currentRun.isTutorial) {
+                renderTutorialMap();
+                return;
+            }
             const screenMap = document.getElementById('screen-map');
+            if (screenMap) screenMap.classList.remove('tutorial-mode');
             if (screenMap && currentRun.arcId) {
                 // Remove background from screenMap
                 screenMap.style.background = 'none';
@@ -137,49 +244,8 @@
             if (!container) return;
             container.innerHTML = '';
 
-            // Node marker positions (fraction of track image width/height), read off the
-            // red dots baked into each road art asset. One set per arc since each road
-            // image lays its path out differently.
-            const MAP_NODE_POSITIONS_BY_ARC = {
-                arc1: [
-                    { x: 0.07698, y: 0.50275 },
-                    { x: 0.16330, y: 0.56714 },
-                    { x: 0.24490, y: 0.40286 },
-                    { x: 0.32545, y: 0.45275 },
-                    { x: 0.40386, y: 0.57145 },
-                    { x: 0.51187, y: 0.49178 },
-                    { x: 0.61466, y: 0.35463 },
-                    { x: 0.71960, y: 0.46944 },
-                    { x: 0.81806, y: 0.51389 },
-                    { x: 0.94860, y: 0.48263 }
-                ],
-                arc2: [
-                    { x: 0.08294, y: 0.62932 },
-                    { x: 0.18477, y: 0.70001 },
-                    { x: 0.27376, y: 0.48857 },
-                    { x: 0.34461, y: 0.45513 },
-                    { x: 0.42433, y: 0.67481 },
-                    { x: 0.52448, y: 0.56065 },
-                    { x: 0.60463, y: 0.57761 },
-                    { x: 0.71308, y: 0.60802 },
-                    { x: 0.81641, y: 0.68874 },
-                    { x: 0.92580, y: 0.67183 }
-                ],
-                arc3: [
-                    { x: 0.07067, y: 0.60459 },
-                    { x: 0.17811, y: 0.68241 },
-                    { x: 0.26188, y: 0.41304 },
-                    { x: 0.34522, y: 0.52422 },
-                    { x: 0.41929, y: 0.62152 },
-                    { x: 0.49569, y: 0.44098 },
-                    { x: 0.59891, y: 0.42392 },
-                    { x: 0.68919, y: 0.43800 },
-                    { x: 0.77485, y: 0.61580 },
-                    { x: 0.90958, y: 0.61578 }
-                ]
-            };
-
-            const MAP_NODE_POSITIONS = MAP_NODE_POSITIONS_BY_ARC[currentRun.arcId] || MAP_NODE_POSITIONS_BY_ARC.arc1;
+            const MAP_NODE_POSITIONS = getMapNodePositions(currentRun.arcId);
+            drawMapTrackPath(MAP_NODE_POSITIONS);
 
             currentRun.nodes.forEach((n, i) => {
                 const pos = MAP_NODE_POSITIONS[i] || { x: 0.5, y: 0.5 };
@@ -237,7 +303,7 @@
 
                 div.innerHTML = `
                     ${isActive ? `<div class="node-active-arrow">&#9660;</div>` : ''}
-                    <div style="position:absolute; top:-35px; left:50%; transform:translateX(-50%); color:${textColor}; font-size:24px; font-weight: normal; text-shadow:var(--outline-med); white-space:nowrap; z-index:10;">${nodeText}</div>
+                    ${i === currentRun.nodeIndex - 1 ? '' : `<div style="position:absolute; top:-35px; left:50%; transform:translateX(-50%); color:${textColor}; font-size:24px; font-weight: normal; text-shadow:var(--outline-med); white-space:nowrap; z-index:10;">${nodeText}</div>`}
                     <img src="${iconSrc}" style="width: 80%; height: 80%; object-fit: contain; filter: ${filterStr}; transition: filter 0.3s;" />
                     ${isCompleted ? `<img src="Art/Victory.png" style="position:absolute; top:0; right:0; width: 36%; height: 36%; object-fit: contain; filter: drop-shadow(1px 1px 2px black); z-index: 11;" />` : ''}
                 `;
@@ -252,7 +318,14 @@
 
                 container.appendChild(nodeWrapper);
             });
-            
+
+            // The party lead stands on the last cleared node and hops to the next one on CONTINUE.
+            const lead = currentRun.party.find(Boolean);
+            const leadPos = MAP_NODE_POSITIONS[currentRun.nodeIndex - 1];
+            if (lead && leadPos) {
+                container.appendChild(buildMapToken(lead, `${leadPos.x * 100}%`, `${leadPos.y * 100}%`));
+            }
+
             document.getElementById('btn-continue-node').disabled = currentRun.nodeIndex >= currentRun.nodes.length;
 
             // Auto-scroll to current node. The track image can still be mid-decode here
@@ -449,11 +522,23 @@
         
 
 window.proceedToNode = function() {
-    if (!currentRun || currentRun.nodeIndex >= currentRun.nodes.length) return;
-    const node = currentRun.nodes[currentRun.nodeIndex];
-    if (node.type === 'combat' || node.type === 'boss') {
-        if (typeof initCombat === 'function') initCombat(node);
-    } else if (node.type === 'merge') {
-        if (typeof initMerge === 'function') initMerge();
+    if (currentRun && currentRun.isTutorial) {
+        tutorialProceed();
+        return;
     }
+    if (!currentRun || currentRun.nodeIndex >= currentRun.nodes.length || mapTravelBusy) return;
+    const node = currentRun.nodes[currentRun.nodeIndex];
+    const pos = getMapNodePositions(currentRun.arcId)[currentRun.nodeIndex] || { x: 0.5, y: 0.5 };
+    mapTravelBusy = true;
+    document.getElementById('btn-continue-node').disabled = true;
+    moveMapToken(`${pos.x * 100}%`, `${pos.y * 100}%`).then(() => {
+        fadeThroughBlack(() => {
+            mapTravelBusy = false;
+            if (node.type === 'combat' || node.type === 'boss') {
+                if (typeof initCombat === 'function') initCombat(node);
+            } else if (node.type === 'merge') {
+                if (typeof initMerge === 'function') initMerge();
+            }
+        });
+    });
 }

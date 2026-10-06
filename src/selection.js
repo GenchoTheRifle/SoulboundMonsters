@@ -172,6 +172,7 @@
                 
                 // If slot is empty and we already have 2, don't allow
                 if (!selectionSlots[slotIndex] && filledCount >= 2) {
+                    showToast('MAX 2 STARTERS');
                     return;
                 }
                 
@@ -297,10 +298,25 @@
             modal.style.display = 'flex';
         }
 
-        // Index 0 = left popup slot, index 1 = right popup slot. Kept as fixed
-        // slots (rather than a plain selection list) so deselecting one starter
-        // doesn't shift the other one's popup to the opposite side.
-        let firstTimeSlots = [null, null];
+        // First-time starter pick: the 3 base starters, one of which the player bonds with before
+        // the tutorial (which then unlocks the one it counters as the second starter).
+        const FIRST_TIME_STARTERS = ['wolf', 'slime', 'sentry'];
+        const STARTER_INTRO = {
+            wolf: {
+                role: 'Attacker', color: '#c62828', border: '#ff5252', glow: '255, 82, 82',
+                quote: 'Ah, the Wolf... A ferocious hunter that bites first and asks questions never. A great choice for an aggressive playstyle.'
+            },
+            slime: {
+                role: 'Support', color: '#2e7d32', border: '#66bb6a', glow: '102, 187, 106',
+                quote: 'Ah, the Slime... Squishy, stubborn and surprisingly hard to put down. It patches up its allies and outlasts its foes. Perfect for a patient, supportive playstyle.'
+            },
+            sentry: {
+                role: 'Balanced', color: '#e6c200', border: '#ffee58', glow: '255, 220, 60',
+                quote: 'Ah, the Sentry... A steady sharpshooter that picks off foes from afar and stuns them in their tracks. A reliable choice for a balanced playstyle.'
+            }
+        };
+        let focusedStarterId = null;
+        let starterFocusBusy = false;
 
         window.playClicked = function() {
             if (window.isStartingPlay) return;
@@ -375,7 +391,8 @@
                         ftOverlay.style.transition = 'none';
                         ftOverlay.style.background = 'rgba(0,0,0,0)';
                     }
-                    
+
+                    resetStarterFocus();
                     renderFirstTimeStarters();
 
                     // Fade in background from black
@@ -405,109 +422,138 @@
             }, 500);
         }
 
-        window.renderFirstTimeStarters = function() {
+        // `animateIn` replays a staggered pop-in, used when coming BACK from the focused view.
+        window.renderFirstTimeStarters = function(animateIn = false) {
             const list = document.getElementById('first-time-list');
             list.innerHTML = '';
-            const options = ['wolf', 'slime', 'sentry'];
-            
-            options.forEach(id => {
+
+            FIRST_TIME_STARTERS.forEach((id, i) => {
                 const s = STARTERS[id];
+                const intro = STARTER_INTRO[id];
                 const btn = document.createElement('div');
-                btn.className = 'collection-square';
+                btn.className = `collection-square ft-starter-card${animateIn ? ' ft-return' : ''}`;
                 btn.style.width = '200px';
                 btn.style.cursor = 'pointer';
-                btn.style.transition = 'all 0.2s';
-                
-                const isSelected = firstTimeSlots.includes(id);
-                if (isSelected) {
-                    btn.style.borderColor = '#ffcc00';
-                    btn.style.boxShadow = '0 0 15px #ffcc00';
-                    btn.style.transform = 'scale(1.05)';
-                }
-                
-                let extraLabels = '';
-                if (s.id === 'wolf') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #c62828; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; border: 1px solid #ff5252; z-index: 10;">Attacker</div>`;
-                } else if (s.id === 'slime') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #2e7d32; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; border: 1px solid #66bb6a; z-index: 10;">Support</div>`;
-                } else if (s.id === 'sentry') {
-                    extraLabels += `<div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #e6c200; padding: 3px 10px; border-radius: 4px; font-size: 18px; font-weight: normal; color: #fff; border: 1px solid #ffee58; z-index: 10;">Balanced</div>`;
-                }
-                
-                let elementIcon = `<div style="position: absolute; top: 5px; right: 5px; filter: drop-shadow(0px 0px 2px #000);">${getTypeIconHtml(s.type, 40)}</div>`;
-                
+                btn.style.setProperty('--i', i);
+
                 btn.innerHTML = `
-                    ${extraLabels}
-                    ${elementIcon}
+                    <div class="ft-role-badge" style="background: ${intro.color}; border-color: ${intro.border};">${intro.role}</div>
+                    <div style="position: absolute; top: 5px; right: 5px; filter: drop-shadow(0px 0px 2px #000);">${getTypeIconHtml(s.type, 40)}</div>
                     <div class="monster-art" style="pointer-events:none;">${renderArt(s.art, 140)}</div>
                     <strong style="font-size: 26px; color: #fff; text-shadow: var(--outline-med); pointer-events:none;">${s.name}</strong>
                 `;
-                
-                btn.onclick = () => toggleFirstTimeStarter(id);
+
+                btn.onclick = () => openStarterFocus(id, btn);
                 list.appendChild(btn);
             });
-            
-            document.getElementById('btn-confirm-first-time').disabled = firstTimeSlots.filter(Boolean).length !== 2;
-
-            renderStarterStatPopups();
         }
 
-        function renderStarterStatPopups() {
-            const leftPopup = document.getElementById('starter-popup-left');
-            const rightPopup = document.getElementById('starter-popup-right');
-            if (!leftPopup || !rightPopup) return;
-
-            const leftId = firstTimeSlots[0];
-            const rightId = firstTimeSlots[1];
-
-            if (leftId && STARTERS[leftId]) {
-                leftPopup.querySelector('.monster-detail-card').innerHTML = buildStarterPopupDetailHtml(STARTERS[leftId]);
-                leftPopup.classList.add('visible');
-            } else {
-                leftPopup.classList.remove('visible');
+        function resetStarterFocus() {
+            focusedStarterId = null;
+            starterFocusBusy = false;
+            const focus = document.getElementById('starter-focus');
+            if (focus) focus.classList.remove('visible');
+            const quote = document.getElementById('starter-focus-quote');
+            if (quote) quote._typeToken = null;
+            const content = document.getElementById('first-time-content');
+            if (content) {
+                content.style.visibility = '';
+                content.style.pointerEvents = '';
             }
-
-            if (rightId && STARTERS[rightId]) {
-                rightPopup.querySelector('.monster-detail-card').innerHTML = buildStarterPopupDetailHtml(STARTERS[rightId]);
-                rightPopup.classList.add('visible');
-            } else {
-                rightPopup.classList.remove('visible');
-            }
+            document.querySelectorAll('#screen-first-time .ft-fadeable').forEach(el => el.classList.remove('ft-hide'));
         }
 
-        window.toggleFirstTimeStarter = function(id) {
-            const slotIndex = firstTimeSlots.indexOf(id);
-            if (slotIndex !== -1) {
-                // Deselecting: clear only this starter's own slot, leave the other side alone.
-                firstTimeSlots[slotIndex] = null;
-            } else {
-                // Selecting: drop into the first empty slot (left, then right).
-                const emptyIndex = firstTimeSlots.indexOf(null);
-                if (emptyIndex !== -1) {
-                    firstTimeSlots[emptyIndex] = id;
-                }
-            }
-            renderFirstTimeStarters();
-        }
+        // Clicked starter flares up and dissolves while the others and the header fall away,
+        // then its stat card sweeps in from the left and the flavor text from the right.
+        function openStarterFocus(id, cardEl) {
+            if (starterFocusBusy || focusedStarterId) return;
+            starterFocusBusy = true;
+            focusedStarterId = id;
 
-        window.confirmFirstTime = function() {
-            const chosen = firstTimeSlots.filter(Boolean);
-            if (chosen.length === 2) {
-                gameState.unlockedStarters = chosen;
-                saveGame();
-                
-                const fadeOut = document.getElementById('first-time-fade-out');
-                if (fadeOut) {
-                    fadeOut.style.opacity = '1';
-                    setTimeout(() => {
-                        fadeOut.style.opacity = '0';
-                        showScreen('screen-menu');
-                    }, 1000);
+            const list = document.getElementById('first-time-list');
+            [...list.children].forEach((card, i) => {
+                card.classList.remove('ft-return');
+                if (card === cardEl) {
+                    card.classList.add('ft-chosen');
                 } else {
-                    showScreen('screen-menu');
+                    card.style.animationDelay = `${i * 60}ms`;
+                    card.classList.add('ft-dismiss');
                 }
-            }
+            });
+            document.querySelectorAll('#screen-first-time .ft-fadeable').forEach(el => el.classList.add('ft-hide'));
+            const overlay = document.getElementById('first-time-overlay');
+            if (overlay) overlay.style.background = 'rgba(0,0,0,0.88)';
+
+            const s = STARTERS[id];
+            const intro = STARTER_INTRO[id];
+            document.querySelector('#starter-focus-card .monster-detail-card').innerHTML = buildStarterPopupDetailHtml(s, 230);
+            const role = document.getElementById('starter-focus-role');
+            role.innerText = intro.role;
+            role.style.background = intro.color;
+            role.style.borderColor = intro.border;
+            document.getElementById('starter-focus-glow').style.setProperty('--glow', intro.glow);
+
+            const strong = ELEMENT_STRONG_AGAINST[s.type];
+            const weak = getElementWeakAgainst(s.type);
+            document.getElementById('starter-focus-matchups').innerHTML = `
+                <div class="matchup matchup-good">Strong vs ${getTypeIconHtml(strong, 38)} ${strong}</div>
+                <div class="matchup matchup-bad">Weak vs ${getTypeIconHtml(weak, 38)} ${weak}</div>
+            `;
+            const quote = document.getElementById('starter-focus-quote');
+            quote._typeToken = null;
+            quote.textContent = '';
+
+            setTimeout(() => {
+                const content = document.getElementById('first-time-content');
+                content.style.visibility = 'hidden';
+                content.style.pointerEvents = 'none';
+                document.getElementById('starter-focus').classList.add('visible');
+                setTimeout(() => typeText(quote, intro.quote, 28), 450);
+                starterFocusBusy = false;
+            }, 550);
         }
+
+        window.closeStarterFocus = function() {
+            if (starterFocusBusy || !focusedStarterId) return;
+            starterFocusBusy = true;
+            document.getElementById('starter-focus-quote')._typeToken = null;
+            document.getElementById('starter-focus').classList.remove('visible');
+            const overlay = document.getElementById('first-time-overlay');
+            if (overlay) overlay.style.background = 'rgba(0,0,0,0.8)';
+
+            setTimeout(() => {
+                focusedStarterId = null;
+                const content = document.getElementById('first-time-content');
+                content.style.visibility = '';
+                content.style.pointerEvents = '';
+                document.querySelectorAll('#screen-first-time .ft-fadeable').forEach(el => el.classList.remove('ft-hide'));
+                renderFirstTimeStarters(true);
+                starterFocusBusy = false;
+            }, 380);
+        };
+
+        window.chooseFocusedStarter = function() {
+            if (starterFocusBusy || !focusedStarterId) return;
+            const id = focusedStarterId;
+            const s = STARTERS[id];
+            const artHtml = `<div style="width:220px; height:220px; margin:10px auto; overflow:hidden; display:flex; align-items:center; justify-content:center;">${renderFocusedArt(s.art)}</div>`;
+            showGameConfirm('CHOOSE YOUR STARTER', `Are you sure you want to start with the ${s.name}?`, () => {
+                starterFocusBusy = true;
+                document.getElementById('starter-focus').classList.add('chosen');
+                const fadeOut = document.getElementById('first-time-fade-out');
+                fadeOut.style.opacity = '1';
+                setTimeout(() => {
+                    startTutorial(id);
+                    // The tutorial's boot screen now covers everything - quietly reset this screen.
+                    fadeOut.style.transition = 'none';
+                    fadeOut.style.opacity = '0';
+                    void fadeOut.offsetWidth;
+                    fadeOut.style.transition = 'opacity 1s';
+                    document.getElementById('starter-focus').classList.remove('chosen');
+                    resetStarterFocus();
+                }, 1000);
+            }, null, artHtml);
+        };
 
         window.resetProgress = function() {
             showGameConfirm("RESET PROGRESS", "Are you sure you want to reset all your progress?", () => {
@@ -519,7 +565,6 @@
                     maxActReached: 1,
                     hasStartedFirstRun: false
                 };
-                firstTimeSlots = [null, null];
                 playClicked();
             });
         }

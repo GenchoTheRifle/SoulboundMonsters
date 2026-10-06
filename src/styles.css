@@ -1623,39 +1623,13 @@ button, input, select, textarea {
     cursor: not-allowed;
 }
 
-/* Starter stat popups: slide in from the side each starter was picked into,
-   reusing the same .monster-detail-card popup as the collection screen */
+/* Focused starter's stat card (first-time pick), reusing the same .monster-detail-card
+   popup as the collection screen. Slides in from the left - see .starter-focus below. */
 .starter-stat-popup {
-    position: absolute;
-    top: 50%;
-    width: 460px;
-    z-index: 20;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-}
-
-.starter-stat-popup-left {
-    left: 20px;
-    transform: translateY(-50%) translateX(-40px);
-}
-
-.starter-stat-popup-right {
-    right: 20px;
-    transform: translateY(-50%) translateX(40px);
-}
-
-.starter-stat-popup.visible {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.starter-stat-popup-left.visible {
-    transform: translateY(-50%) translateX(0);
-}
-
-.starter-stat-popup-right.visible {
-    transform: translateY(-50%) translateX(0);
+    position: relative;
+    width: 500px;
+    flex-shrink: 0;
+    z-index: 2;
 }
 
 /* .modal-content caps width at 400px for the centered collection modal;
@@ -1710,4 +1684,1265 @@ button, input, select, textarea {
     font-size: 18px;
     text-shadow: var(--outline-thin);
     padding: 12px;
+}
+
+/* ===================================================================
+   FIRST-TIME STARTER PICK
+   =================================================================== */
+.ft-role-badge {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+    font-size: 18px;
+    color: #fff;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+#first-time-list .ft-starter-card {
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+#first-time-list .ft-starter-card:hover {
+    transform: translateY(-8px) scale(1.04);
+}
+
+#first-time-list .ft-starter-card.ft-chosen {
+    animation: ftChosen 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    pointer-events: none;
+    z-index: 5;
+}
+
+#first-time-list .ft-starter-card.ft-dismiss {
+    animation: ftDismiss 0.42s ease-in forwards;
+    pointer-events: none;
+}
+
+#first-time-list .ft-starter-card.ft-return {
+    animation: ftReturn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+    animation-delay: calc(var(--i) * 80ms);
+}
+
+@keyframes ftChosen {
+    0% { transform: scale(1); filter: brightness(1); }
+    35% { transform: scale(1.2); filter: brightness(1.5) drop-shadow(0 0 25px #ffcc00); }
+    100% { transform: scale(1.6) translateY(-12px); opacity: 0; filter: brightness(2.4) drop-shadow(0 0 50px #ffcc00); }
+}
+
+@keyframes ftDismiss {
+    to { opacity: 0; transform: translateY(80px) scale(0.8); filter: blur(6px); }
+}
+
+@keyframes ftReturn {
+    from { opacity: 0; transform: translateY(50px) scale(0.85); }
+}
+
+.ft-fadeable {
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.ft-fadeable.ft-hide {
+    opacity: 0;
+    transform: translateY(-30px);
+}
+
+/* Focused starter: stat card on the left, flavor text + BACK/CHOOSE on the right */
+.starter-focus {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 70px;
+    visibility: hidden;
+    pointer-events: none;
+    transition: visibility 0s linear 0.4s;
+}
+
+.starter-focus.visible {
+    visibility: visible;
+    pointer-events: auto;
+    transition: visibility 0s;
+}
+
+.starter-focus-glow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%) scale(0.6);
+    /* Fixed-size ellipse centered behind the stat card that fades out well before the screen
+       edges - a size relative to this box made it still visible at the box's edge, where it cut off. */
+    background: radial-gradient(ellipse 760px 560px at 31.5% 50%, rgba(var(--glow, 255, 204, 0), 0.38) 0%, rgba(var(--glow, 255, 204, 0), 0.12) 45%, transparent 85%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.8s ease;
+}
+
+.starter-focus.visible .starter-focus-glow {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    animation: focusGlowPulse 3s ease-in-out 0.8s infinite;
+}
+
+@keyframes focusGlowPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+.starter-focus .starter-stat-popup {
+    opacity: 0;
+    transform: translateX(-160px) scale(0.92) rotate(-2deg);
+    transition: opacity 0.3s ease, transform 0.35s ease-in;
+}
+
+.starter-focus.visible .starter-stat-popup {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.45s ease, transform 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.starter-focus.chosen .starter-stat-popup {
+    animation: focusChosenFlash 1s ease forwards;
+}
+
+@keyframes focusChosenFlash {
+    0% { filter: brightness(1); }
+    30% { filter: brightness(1.9) drop-shadow(0 0 40px #ffcc00); transform: scale(1.04); }
+    100% { filter: brightness(1.2); transform: scale(1); }
+}
+
+.starter-focus-side {
+    position: relative;
+    z-index: 2;
+    width: 640px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 26px;
+    opacity: 0;
+    transform: translateX(160px);
+    transition: opacity 0.3s ease, transform 0.35s ease-in;
+}
+
+.starter-focus.visible .starter-focus-side {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.45s ease 0.12s, transform 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.12s;
+}
+
+.starter-focus-role {
+    font-size: 28px;
+    color: #fff;
+    padding: 4px 18px;
+    border-radius: 6px;
+    border: 2px solid;
+    text-shadow: var(--outline-med);
+    transform: scale(0);
+}
+
+.starter-focus.visible .starter-focus-role {
+    animation: ftPopIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.4s forwards;
+}
+
+@keyframes ftPopIn {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+.starter-focus-quote-wrap {
+    min-height: 230px;
+    color: #fff;
+}
+
+.starter-focus-quote {
+    font-size: 34px;
+    line-height: 1.4;
+}
+
+.starter-focus-caret {
+    font-size: 34px;
+    color: #ffcc00;
+    margin-left: 2px;
+    animation: caretBlink 0.8s steps(1) infinite;
+}
+
+@keyframes caretBlink {
+    50% { opacity: 0; }
+}
+
+.starter-focus-matchups {
+    display: flex;
+    gap: 24px;
+    font-size: 26px;
+    opacity: 0;
+    transform: translateY(15px);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.starter-focus.visible .starter-focus-matchups {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.4s 0.6s, transform 0.4s 0.6s;
+}
+
+.matchup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.45);
+    text-shadow: var(--outline-med);
+}
+
+.matchup-good {
+    color: #51cf66;
+    border: 1px solid rgba(81, 207, 102, 0.5);
+}
+
+.matchup-bad {
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 107, 107, 0.5);
+}
+
+.starter-focus-buttons {
+    display: flex;
+    gap: 24px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.starter-focus.visible .starter-focus-buttons {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.4s 0.75s, transform 0.4s 0.75s;
+}
+
+.starter-focus-buttons .nine-cut-button {
+    font-size: 32px;
+    padding: 10px 46px;
+}
+
+/* ===================================================================
+   TUTORIAL: spotlight overlay
+   =================================================================== */
+#tutorial-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 500;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#tutorial-overlay.visible {
+    opacity: 1;
+}
+
+.tut-hole {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    border-radius: 18px;
+    box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.74);
+    pointer-events: none;
+    transition: left 0.5s cubic-bezier(0.65, 0, 0.35, 1), top 0.5s cubic-bezier(0.65, 0, 0.35, 1),
+                width 0.5s cubic-bezier(0.65, 0, 0.35, 1), height 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.tut-hole::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 22px;
+    border: 3px solid rgba(255, 214, 80, 0.95);
+    box-shadow: 0 0 18px rgba(255, 204, 0, 0.8), inset 0 0 14px rgba(255, 204, 0, 0.5);
+    animation: tutRingPulse 1.4s ease-in-out infinite;
+}
+
+.tut-hole.no-target::after {
+    display: none;
+}
+
+@keyframes tutRingPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}
+
+.tut-block {
+    position: absolute;
+    pointer-events: auto;
+}
+
+.tut-arrow {
+    position: absolute;
+    width: 96px;
+    height: 120px;
+    pointer-events: none;
+    transition: left 0.5s cubic-bezier(0.65, 0, 0.35, 1), top 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Art/Arrow.png is a full 1920x1080 canvas with the arrow near the bottom middle -
+   crop to just the arrow (scaled 0.8x). Points up; .tut-arrow is rotated to aim it. */
+.tut-arrow-img {
+    width: 100%;
+    height: 100%;
+    background: url('../Art/Arrow.png') no-repeat;
+    background-size: 1536px 864px;
+    background-position: -752px -624px;
+    filter: drop-shadow(0 0 10px rgba(255, 204, 0, 0.9));
+    animation: tutArrowBob 0.9s ease-in-out infinite;
+}
+
+@keyframes tutArrowBob {
+    0%, 100% { transform: translateY(6px); }
+    50% { transform: translateY(-10px); }
+}
+
+.tut-box {
+    position: absolute;
+    pointer-events: auto;
+    box-sizing: border-box;
+    padding: 6px 12px;
+    text-align: left;
+    transition: left 0.45s cubic-bezier(0.65, 0, 0.35, 1), top 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.tut-box.pop {
+    animation: tutBoxPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes tutBoxPop {
+    from { opacity: 0; transform: scale(0.85) translateY(10px); }
+}
+
+#tutorial-overlay.idle .tut-box,
+#tutorial-overlay.idle .tut-arrow,
+#tutorial-overlay.idle .tut-hole::after {
+    visibility: hidden;
+}
+
+.tut-title {
+    font-size: 36px;
+    color: #ffcc00;
+    text-shadow: var(--outline-thick);
+    margin-bottom: 8px;
+}
+
+.tut-text {
+    font-size: 25px;
+    color: #fff;
+    line-height: 1.4;
+}
+
+.tut-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+.tut-next {
+    font-size: 26px;
+    padding: 4px 30px;
+    border-width: 12px 22px;
+}
+
+.tut-hl {
+    color: #ffcc00;
+}
+
+.tut-inline-icon {
+    width: 1.15em;
+    height: 1.15em;
+    vertical-align: middle;
+    filter: drop-shadow(1px 1px 1px #000);
+}
+
+.tut-element {
+    white-space: nowrap;
+}
+
+#btn-skip-tutorial {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    z-index: 600;
+    font-size: 24px;
+    padding: 4px 24px;
+    border-width: 14px 24px;
+    display: none;
+}
+
+#btn-skip-tutorial.visible {
+    display: block;
+    animation: tutBoxPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+body.tutorial-active #btn-pause,
+body.tutorial-active #btn-pause-map {
+    display: none;
+}
+
+/* The spotlight already points at the button - its "only option" pulse would just make
+   the spotlight wobble along with it. */
+body.tutorial-spotlight .only-option-pulse {
+    animation: none;
+}
+
+body.tutorial-active #modal-confirm {
+    z-index: 700;
+}
+
+/* ===================================================================
+   TUTORIAL: blueprint backdrop
+   =================================================================== */
+.blueprint-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 50% 40%, #1d5fb4 0%, #0f3f86 45%, #08254f 100%);
+}
+
+#screen-map:not(.tutorial-mode) > .blueprint-layer {
+    display: none;
+}
+
+.bp-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.28) 2px, transparent 2px),
+        linear-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+    background-size: 200px 200px, 200px 200px, 40px 40px, 40px 40px;
+    background-position: -2px -2px;
+}
+
+.bp-floor {
+    position: absolute;
+    left: -60%;
+    width: 220%;
+    bottom: 0;
+    height: 100%;
+    background-image:
+        linear-gradient(rgba(190, 225, 255, 0.7) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(190, 225, 255, 0.7) 2px, transparent 2px);
+    background-size: 90px 90px;
+    transform: perspective(900px) rotateX(60deg);
+    transform-origin: 50% 100%;
+    -webkit-mask-image: linear-gradient(to top, #000 25%, transparent 92%);
+    mask-image: linear-gradient(to top, #000 25%, transparent 92%);
+    opacity: 0.6;
+}
+
+.bp-horizon {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 74.5%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(220, 240, 255, 0.85), transparent);
+    box-shadow: 0 0 22px 5px rgba(150, 200, 255, 0.45);
+}
+
+.bp-cube-wrap {
+    position: absolute;
+    width: var(--s);
+    height: var(--s);
+    perspective: 700px;
+}
+
+.bp-cube-float {
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    animation: bpFloat 6s ease-in-out infinite;
+}
+
+.bp-cube {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    animation: bpSpin 20s linear infinite;
+}
+
+.bp-cube i {
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgba(225, 240, 255, 0.75);
+    background: rgba(140, 190, 255, 0.06);
+    box-shadow: inset 0 0 12px rgba(160, 210, 255, 0.25);
+}
+
+.bp-cube .f1 { transform: translateZ(calc(var(--s) / 2)); }
+.bp-cube .f2 { transform: rotateY(180deg) translateZ(calc(var(--s) / 2)); }
+.bp-cube .f3 { transform: rotateY(90deg) translateZ(calc(var(--s) / 2)); }
+.bp-cube .f4 { transform: rotateY(-90deg) translateZ(calc(var(--s) / 2)); }
+.bp-cube .f5 { transform: rotateX(90deg) translateZ(calc(var(--s) / 2)); }
+.bp-cube .f6 { transform: rotateX(-90deg) translateZ(calc(var(--s) / 2)); }
+
+@keyframes bpSpin {
+    from { transform: rotateX(-24deg) rotateY(0deg) rotateZ(8deg); }
+    to { transform: rotateX(-24deg) rotateY(360deg) rotateZ(8deg); }
+}
+
+@keyframes bpFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-18px); }
+}
+
+@keyframes bpSpinFlat {
+    to { transform: rotate(360deg); }
+}
+
+.bp-scan {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 160px;
+    top: 0;
+    will-change: transform;
+    background: linear-gradient(to bottom, transparent, rgba(180, 220, 255, 0.1) 70%, rgba(220, 240, 255, 0.3) 98%, transparent);
+    animation: bpScan 6s linear infinite;
+}
+
+@keyframes bpScan {
+    from { transform: translateY(-160px); }
+    to { transform: translateY(1080px); }
+}
+
+.bp-label {
+    position: absolute;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: rgba(225, 240, 255, 0.75);
+    text-shadow: none;
+}
+
+.bp-label-tl { left: 40px; top: 130px; }
+.bp-label-br { right: 40px; bottom: 30px; }
+
+/* Map "generating" reveal, played once as the tutorial map first appears */
+#screen-map.tutorial-revealing .tutorial-map,
+#screen-map.tutorial-revealing .blueprint-layer > * {
+    opacity: 0;
+}
+
+#screen-map.tutorial-reveal .bp-grid {
+    animation: bpWipe 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+#screen-map.tutorial-reveal .bp-floor {
+    animation: bpFloorRise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s backwards;
+}
+
+#screen-map.tutorial-reveal .bp-cube-wrap {
+    animation: bpCubeIn 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+    animation-delay: calc(0.5s + var(--i) * 0.12s);
+}
+
+#screen-map.tutorial-reveal .tutorial-map-path {
+    animation: bpWipe 1s ease-out 0.7s backwards;
+}
+
+#screen-map.tutorial-reveal .tut-node {
+    animation: tutNodeIn 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+    animation-delay: calc(0.9s + var(--i) * 0.2s);
+}
+
+#screen-map.tutorial-reveal .map-token {
+    animation: tutTokenDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.6s backwards;
+}
+
+@keyframes bpWipe {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes bpFloorRise {
+    from { opacity: 0; transform: perspective(900px) rotateX(88deg); }
+}
+
+@keyframes bpCubeIn {
+    from { opacity: 0; transform: scale(0); }
+}
+
+@keyframes tutNodeIn {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+}
+
+@keyframes tutTokenDrop {
+    from { opacity: 0; transform: translate(-50%, calc(-100% - 300px)); }
+}
+
+/* ===================================================================
+   TUTORIAL: map
+   =================================================================== */
+.tutorial-map {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+#screen-map.tutorial-mode .tutorial-map {
+    display: block;
+}
+
+#screen-map.tutorial-mode #map-viewport,
+#screen-map.tutorial-mode #btn-team-formation {
+    display: none;
+}
+
+.tutorial-map-path {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 0 6px rgba(160, 210, 255, 0.85));
+}
+
+.map-path {
+    fill: none;
+    stroke-linecap: round;
+}
+
+.map-path-done {
+    stroke: rgba(255, 255, 255, 0.95);
+    stroke-width: 8;
+}
+
+.map-path-next {
+    stroke: #ffe066;
+    stroke-width: 7;
+    stroke-dasharray: 18 16;
+    animation: tutPathMarch 0.9s linear infinite;
+}
+
+.map-path-todo {
+    stroke: rgba(255, 255, 255, 0.45);
+    stroke-width: 6;
+    stroke-dasharray: 14 18;
+}
+
+@keyframes tutPathMarch {
+    to { stroke-dashoffset: -34; }
+}
+
+.tut-node {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tut-node-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.tut-node-label {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 32px;
+    color: #fff;
+    text-shadow: var(--outline-thick);
+    white-space: nowrap;
+}
+
+.tut-node.next .tut-node-icon {
+    animation: tutNodePulse 1.3s ease-in-out infinite;
+}
+
+.tut-node.next .tut-node-label {
+    color: #ffcc00;
+}
+
+.tut-node-boss .tut-node-label,
+.tut-node-boss.next .tut-node-label {
+    color: #ff5a5a;
+}
+
+.tut-node.upcoming .tut-node-icon {
+    filter: brightness(0.5) drop-shadow(0 0 12px rgba(160, 210, 255, 0.8));
+}
+
+.tut-node.completed .tut-node-icon,
+.tut-node.current .tut-node-icon {
+    filter: grayscale(1) brightness(0.65) drop-shadow(0 0 14px rgba(120, 255, 140, 0.9));
+}
+
+@keyframes tutNodePulse {
+    0%, 100% { filter: drop-shadow(0 0 10px #ffcc00); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 28px #ffcc00) brightness(1.15); transform: scale(1.08); }
+}
+
+.tut-node-victory {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 38%;
+    height: 38%;
+    object-fit: contain;
+    filter: drop-shadow(1px 1px 2px #000);
+}
+
+.tut-start-ring {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 4px dashed rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 18px rgba(160, 210, 255, 0.8), inset 0 0 18px rgba(160, 210, 255, 0.5);
+    animation: bpSpinFlat 12s linear infinite;
+}
+
+.tut-start-core {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 20px #fff;
+}
+
+/* Party-lead token standing on a map node (normal and tutorial maps); hops along the
+   road to the next node on CONTINUE, with a spinning magic circle under its feet. */
+.map-token {
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    transform: translate(-50%, calc(-100% - 30px));
+    z-index: 12;
+    pointer-events: none;
+    transition: left 1s cubic-bezier(0.45, 0, 0.55, 1), top 1s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+#tutorial-map-nodes .map-token {
+    width: 170px;
+    height: 170px;
+    transform: translate(-50%, calc(-100% - 45px));
+    z-index: 3;
+}
+
+.map-token-bob {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-origin: 50% 100%;
+    animation: tokenBob 1.6s ease-in-out infinite;
+}
+
+.map-token-bob img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+}
+
+.map-token-shadow {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    width: 100px;
+    height: 20px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.5), transparent 70%);
+}
+
+/* A circle tilted flat onto the ground (centered on the token's feet), spinning in place */
+.map-token-ring {
+    position: absolute;
+    left: 50%;
+    bottom: -60px;
+    width: 120px;
+    height: 120px;
+    margin-left: -60px;
+    border-radius: 50%;
+    border: 3px dashed rgba(255, 230, 140, 0.95);
+    box-shadow: 0 0 14px rgba(255, 204, 0, 0.8), inset 0 0 14px rgba(255, 204, 0, 0.5);
+    animation: tokenRingSpin 6s linear infinite;
+}
+
+.map-token.moving .map-token-bob {
+    animation: tokenHop 0.33s ease-in-out infinite;
+}
+
+.map-token.moving .map-token-ring {
+    animation-duration: 1.2s;
+}
+
+.map-token.landed .map-token-bob {
+    animation: tokenLand 0.35s ease-out, tokenBob 1.6s ease-in-out 0.35s infinite;
+}
+
+@keyframes tokenRingSpin {
+    from { transform: rotateX(72deg) rotateZ(0deg); }
+    to { transform: rotateX(72deg) rotateZ(360deg); }
+}
+
+@keyframes tokenBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes tokenHop {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-26px); }
+}
+
+@keyframes tokenLand {
+    0% { transform: scale(1.18, 0.78); }
+    60% { transform: scale(0.94, 1.08); }
+    100% { transform: none; }
+}
+
+/* ===================================================================
+   TUTORIAL: boot screen
+   =================================================================== */
+#tutorial-boot {
+    position: absolute;
+    inset: 0;
+    z-index: 900;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    transition: opacity 0.6s ease;
+}
+
+#tutorial-boot.done {
+    opacity: 0;
+}
+
+.boot-title {
+    font-size: 84px;
+    letter-spacing: 12px;
+    color: #cfe6ff;
+    text-shadow: 0 0 20px rgba(80, 160, 255, 0.9), var(--outline-thick);
+    animation: bootFlicker 2.3s steps(1) both;
+}
+
+@keyframes bootFlicker {
+    0% { opacity: 0; }
+    8% { opacity: 1; }
+    10% { opacity: 0.2; }
+    13% { opacity: 1; }
+    42% { opacity: 0.4; }
+    44% { opacity: 1; }
+    100% { opacity: 1; }
+}
+
+.boot-line {
+    font-size: 28px;
+    color: #9fc8ff;
+    min-height: 36px;
+}
+
+.boot-bar {
+    width: 620px;
+    height: 14px;
+    border: 2px solid rgba(160, 210, 255, 0.8);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 16px rgba(80, 160, 255, 0.6);
+}
+
+.boot-bar-fill {
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #4aa3ff, #e0f0ff);
+    box-shadow: 0 0 14px #8cc8ff;
+}
+
+#tutorial-boot.run .boot-bar-fill {
+    width: 100%;
+    transition: width 1.9s cubic-bezier(0.3, 0.1, 0.3, 1) 0.2s;
+}
+
+/* ===================================================================
+   TUTORIAL: combat extras
+   =================================================================== */
+/* Mystery boss: its art is already a smoky shadow, so just add a dim, eerie aura */
+.combatant.silhouette .monster-art-container > .art-content > img {
+    filter: drop-shadow(0 0 14px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 34px rgba(120, 50, 200, 0.55));
+}
+
+.turn-icon.silhouette {
+    border-radius: 50%;
+    background: radial-gradient(circle, #3a1257 0%, #0b0310 72%);
+    box-shadow: inset 0 0 0 2px rgba(185, 140, 255, 0.7);
+}
+
+.turn-icon-mystery {
+    font-size: 58px;
+    line-height: 1;
+    color: #e2bfff;
+    text-shadow: 0 0 12px #a64dff, var(--outline-thick);
+}
+
+/* Simulation fights: monsters stand on glowing blueprint pads instead of plain shadows */
+.tutorial-arena .shadow-ellipse {
+    background: radial-gradient(ellipse at center, rgba(170, 215, 255, 0.55) 0%, rgba(70, 130, 230, 0.35) 55%, rgba(20, 60, 140, 0.2) 75%);
+    border: 2px solid rgba(220, 240, 255, 0.9);
+    box-shadow: 0 0 16px 3px rgba(140, 200, 255, 0.75), inset 0 0 10px rgba(200, 230, 255, 0.6);
+}
+
+.tutorial-arena .shadow-ellipse::after {
+    content: '';
+    position: absolute;
+    inset: 22%;
+    border-radius: 50%;
+    border: 2px dashed rgba(255, 255, 255, 0.7);
+}
+
+.tutorial-arena .combatant:not(.boss) .monster-art-container > .shadow-ellipse {
+    transform: translateX(-50%) scale(1.25);
+}
+
+/* No 3D floor in the fight itself - the pads are the ground. (A full-screen perspective plane
+   behind the teams was expensive to repaint every frame and made combat stutter.) */
+.tutorial-arena .bp-floor,
+.tutorial-arena .bp-horizon {
+    display: none;
+}
+
+/* "SOUL BOUND!" unlock popup after the first tutorial battle */
+.tut-soulbound {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    margin: 6px auto 0;
+}
+
+.tut-soulbound-rays {
+    position: absolute;
+    inset: -50px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, rgba(255, 214, 90, 0.5) 0deg 10deg, transparent 10deg 30deg);
+    -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 70%);
+    mask-image: radial-gradient(circle, #000 25%, transparent 70%);
+    animation: bpSpinFlat 9s linear infinite;
+}
+
+.tut-soulbound-art {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 0 16px rgba(255, 214, 90, 0.8));
+    animation: soulBoundIn 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+}
+
+@keyframes soulBoundIn {
+    from { transform: scale(0.2); opacity: 0; }
+}
+
+.tut-soulbound-sub {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 4px 0 14px;
+    font-size: 28px;
+    color: #ffcc00;
+    text-shadow: var(--outline-thick);
+}
+
+/* "TUTORIAL COMPLETE" card, shown after the tutorial boss's final words */
+#tutorial-finale {
+    position: absolute;
+    inset: 0;
+    z-index: 800;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.6s ease;
+}
+
+#tutorial-finale.show {
+    background: rgba(0, 0, 0, 0.92);
+}
+
+
+.finale-complete {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 820px;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.7);
+    transition: opacity 0.5s ease 0.4s, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.4s;
+}
+
+#tutorial-finale.complete .finale-complete {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.finale-complete h2 {
+    margin: 0 0 10px;
+    font-size: 60px;
+    color: #ffcc00;
+    text-shadow: var(--outline-thick);
+}
+
+.finale-team {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin: 10px 0;
+}
+
+.finale-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.finale-card-art {
+    width: 200px;
+    height: 200px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.finale-card strong {
+    font-size: 30px;
+    color: #fff;
+    text-shadow: var(--outline-med);
+}
+
+.finale-complete p {
+    margin: 10px 20px 20px;
+    font-size: 24px;
+    line-height: 1.4;
+    color: #fff;
+}
+
+.finale-complete .nine-cut-button {
+    font-size: 32px;
+    padding: 8px 50px;
+}
+
+/* ===================================================================
+   BOSS DIALOGUE (dialogue.js)
+   =================================================================== */
+.boss-dialogue {
+    position: absolute;
+    inset: 0;
+    z-index: 550;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.8s ease;
+}
+
+.boss-dialogue.show {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.boss-dialogue.closing {
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.5s ease 0.1s;
+}
+
+.boss-dialogue.defeated.closing {
+    transition-delay: 0.6s;
+}
+
+.boss-dialogue-art {
+    width: 560px;
+    height: 560px;
+    opacity: 0;
+    transform: scale(0.6) translateY(60px);
+    transition: opacity 0.9s ease 0.15s, transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s;
+}
+
+.boss-dialogue.show .boss-dialogue-art {
+    opacity: 1;
+    transform: none;
+}
+
+.boss-dialogue-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: scaleX(-1);
+    filter: drop-shadow(0 0 22px rgba(255, 50, 60, 0.7)) drop-shadow(0 0 60px rgba(255, 50, 60, 0.35));
+    animation: bossBreath 3s ease-in-out infinite;
+}
+
+.boss-dialogue.silhouette .boss-dialogue-art img {
+    filter: drop-shadow(0 0 30px rgba(110, 40, 190, 0.5));
+}
+
+.boss-dialogue.defeated .boss-dialogue-art img {
+    filter: grayscale(0.4) drop-shadow(0 0 22px rgba(255, 214, 90, 0.7));
+    animation: bossTremble 0.25s linear infinite;
+}
+
+@keyframes bossBreath {
+    0%, 100% { transform: scaleX(-1) scale(1); }
+    50% { transform: scaleX(-1) scale(1.03); }
+}
+
+@keyframes bossTremble {
+    0%, 100% { transform: scaleX(-1) translate(0, 0); }
+    25% { transform: scaleX(-1) translate(-3px, 1px); }
+    50% { transform: scaleX(-1) translate(2px, -2px); }
+    75% { transform: scaleX(-1) translate(-1px, 2px); }
+}
+
+.boss-dialogue.closing .boss-dialogue-art {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.5s, transform 0.5s;
+}
+
+/* Defeated bosses dissolve upward into light */
+.boss-dialogue.defeated.closing .boss-dialogue-art {
+    opacity: 0;
+    transform: translateY(-60px) scale(1.12);
+    filter: brightness(3) blur(12px);
+    transition: opacity 1s ease, transform 1s ease, filter 1s ease;
+}
+
+.boss-dialogue-speech {
+    max-width: 1300px;
+    min-height: 150px;
+    margin-top: 10px;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.5s ease 0.9s;
+}
+
+.boss-dialogue.show .boss-dialogue-speech {
+    opacity: 1;
+}
+
+.boss-dialogue.closing .boss-dialogue-speech {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.boss-dialogue-name {
+    font-size: 36px;
+    letter-spacing: 2px;
+    color: #ff6b6b;
+    text-shadow: var(--outline-thick);
+}
+
+.boss-dialogue.silhouette .boss-dialogue-name {
+    color: #e4dcff;
+}
+
+.boss-dialogue-line {
+    min-height: 50px;
+    margin-top: 8px;
+    font-size: 40px;
+    color: #fff;
+}
+
+.boss-dialogue-hint {
+    margin-top: 14px;
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.7);
+    text-shadow: var(--outline-med);
+    visibility: hidden;
+}
+
+.boss-dialogue.can-continue .boss-dialogue-hint {
+    visibility: visible;
+    animation: caretBlink 1.2s steps(1) infinite;
+}
+
+/* Path lines between nodes on the normal run maps (styled by .map-path-* above) */
+.map-track-path {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.9));
+}
+
+/* Screen-pixel stroke widths/dashes even though the SVG scales with the road image */
+.map-track-path .map-path {
+    vector-effect: non-scaling-stroke;
+}
+
+/* Red warning pop-up (showToast) */
+.game-toast {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    z-index: 900;
+    transform: translate(-50%, -50%);
+    padding: 14px 44px;
+    border: 3px solid #ff5252;
+    border-radius: 10px;
+    background: linear-gradient(#c62828, #7f0000);
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.6);
+    color: #fff;
+    font-size: 46px;
+    text-shadow: var(--outline-thick);
+    white-space: nowrap;
+    pointer-events: none;
+    animation: toastPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), toastShake 0.4s ease-in-out 0.3s;
+    transition: opacity 0.4s ease;
+}
+
+.game-toast.hide {
+    opacity: 0;
+}
+
+@keyframes toastPop {
+    from { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+}
+
+@keyframes toastShake {
+    0%, 100% { transform: translate(-50%, -50%); }
+    20% { transform: translate(calc(-50% - 10px), -50%); }
+    40% { transform: translate(calc(-50% + 10px), -50%); }
+    60% { transform: translate(calc(-50% - 6px), -50%); }
+    80% { transform: translate(calc(-50% + 6px), -50%); }
 }

@@ -19,6 +19,7 @@
         }
 
         function getMapBackground(arcId) {
+            if (arcId === 'tutorial') return 'none'; // the tutorial paints its own blueprint layer instead
             if (arcId === 'arc2') return "url('Art/Forest Map.png')";
             if (arcId === 'arc3') return "url('Art/Laboratory Map.png')";
             return "url('Art/Cave Map.png')";

@@ -48,7 +48,7 @@ logic via plain, non-module `<script>` tags in a fixed order:
 
 ```
 src/data.js → src/state.js → src/core.js → src/collection.js → src/selection.js
-→ src/map.js → src/combat.js → src/merge.js → src/pause.js
+→ src/map.js → src/combat.js → src/merge.js → src/pause.js → src/dialogue.js → src/tutorial.js
 ```
 
 These files are **not ES modules**; they declare `let`/`function` at top level and rely on
@@ -92,6 +92,15 @@ new effect types there when adding new move effects.
 - [merge.js](src/merge.js) — drag-and-drop merging of two monsters into a new one.
 - [collection.js](src/collection.js) — the collection/bestiary screen.
 - [pause.js](src/pause.js) — pause modal and abandon-run flow.
+- [dialogue.js](src/dialogue.js) — `showBossDialogue`, the cinematic boss speech overlay. Bosses in
+  `data.json` with `intro`/`outro` line arrays speak before the fight (via `initCombat`) and after
+  being defeated (via `endCombat`).
+- [tutorial.js](src/tutorial.js) — first-time tutorial (runs when fewer than 2 starters are
+  unlocked, i.e. new save / Reset Progress): after the 1-starter pick in selection.js, a 3-node
+  blueprint "simulation" run with a spotlight overlay (`runTutorialSteps`), a guided unlosable
+  battle that unlocks the second starter, then an unwinnable silhouette boss. Hooks into the
+  engine via `currentRun.isTutorial` (renderMap/proceedToNode/nextTurn/endCombat) and
+  `initCombat` node options (`enemies`, `protectParty`/`protectEnemies`, `beforeFirstTurn`).
 
 ### Art assets — two directories, know which one you're editing for
 

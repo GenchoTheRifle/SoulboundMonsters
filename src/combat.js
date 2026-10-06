@@ -68,6 +68,13 @@
                 const match = /url\(['"]?([^'")]+)['"]?\)/.exec(bgCss);
                 if (match) arenaBgUrl = match[1];
             }
+            // The tutorial's simulated fights swap the arena backdrop for the blueprint grid.
+            if (arenaBg) {
+                arenaBg.classList.toggle('tutorial-arena', !!currentRun.isTutorial);
+                const bpLayer = arenaBg.querySelector(':scope > .blueprint-layer');
+                if (currentRun.isTutorial && !bpLayer) arenaBg.prepend(buildBlueprintLayer());
+                else if (!currentRun.isTutorial && bpLayer) bpLayer.remove();
+            }
 
             showScreen('screen-combat');
 
@@ -96,7 +103,10 @@
             if (currentRun.nodeIndex === 4) enemyCount = 2; // Node 5: 2 enemies
 
             combatState.enemies = [];
-            
+            // Scripted fights (the tutorial) can make one side unable to drop below 1 HP.
+            combatState.protectParty = !!node.protectParty;
+            combatState.protectEnemies = !!node.protectEnemies;
+
             // Define pools per Act
             let simplePool = ['wolf', 'slime', 'sentry'];
             const advancedPool = ['bear', 'mushroom', 'sparkbot'];
@@ -116,11 +126,14 @@
                 pool = currentRun.isFirstRun ? [...simplePool] : [...simplePool, ...advancedPool];
             } else if (currentRun.nodeIndex === 1) pool = [...simplePool, ...advancedPool]; // Node 2
 
-            if (node.type === 'boss') {
+            if (node.enemies) {
+                // Pre-built lineup (the tutorial's scripted fights).
+                combatState.enemies = node.enemies;
+            } else if (node.type === 'boss') {
                 let bossId = 'mega_bat';
                 if (currentRun.arcId === 'arc2') bossId = 'mega_treant';
                 if (currentRun.arcId === 'arc3') bossId = 'mega_mech';
-                
+
                 const base = BOSSES[bossId];
                 const enemyHp = base.hp;
                 const enemyAtk = base.atk;
@@ -231,6 +244,17 @@
                 calculateTurnOrder();
                 updateCombatUI();
                 return deferStart;
+            }).then(() => {
+                // Hook for anything that should play out over the rendered arena before
+                // the first turn (e.g. the tutorial's explanations).
+                if (opts.beforeFirstTurn) return opts.beforeFirstTurn();
+                // Bosses with lines make an entrance before the fight starts.
+                const boss = combatState.enemies.find(e => e && e.isBoss);
+                if (boss && boss.intro) {
+                    return new Promise(r => setTimeout(r, 700))
+                        .then(() => showBossDialogue({ art: boss.art, name: boss.name, lines: boss.intro }));
+                }
+                return null;
             }).then(() => {
                 nextTurn();
             });
@@ -607,18 +631,24 @@
                     if (baseName === "Ultimate Drone") baseName = "Ultimate Spark Bot";
                     if (baseName === "Crimson Bat") baseName = "Mega Bat";
                     const formattedName = baseName.replace(/[ \-]/g, '_');
-                    const img = document.createElement('img');
-                    img.src = `Art/${formattedName}_${portraitSide}_Portrait.png`;
-                    img.style.width = '100%';
-                    img.style.height = '100%';
-                    img.style.objectFit = 'cover';
-                    img.style.imageRendering = 'auto';
-                    img.style.borderRadius = '50%';
-                    img.draggable = false;
-                    img.onerror = () => {
-                        div.innerHTML = renderArt(u.art, 50);
-                    };
-                    div.appendChild(img);
+                    if (u.silhouette) {
+                        // Mystery boss: no portrait, just a "?" so its turns still read as the boss's.
+                        div.classList.add('silhouette');
+                        div.innerHTML = `<span class="turn-icon-mystery">?</span>`;
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = `Art/${formattedName}_${portraitSide}_Portrait.png`;
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.style.objectFit = 'cover';
+                        img.style.imageRendering = 'auto';
+                        img.style.borderRadius = '50%';
+                        img.draggable = false;
+                        img.onerror = () => {
+                            div.innerHTML = renderArt(u.art, 50);
+                        };
+                        div.appendChild(img);
+                    }
                     div.title = u.name;
                     div.style.position = 'relative';
                     div.onmouseenter = () => {
@@ -730,7 +760,7 @@
                 }
             }
 
-            div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargeting ? (isTargetable ? 'targetable' : 'not-targetable') : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''} name-${u.name.replace(/\s+/g, '-').toLowerCase()}`;
+            div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargeting ? (isTargetable ? 'targetable' : 'not-targetable') : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''} ${u.silhouette ? 'silhouette' : ''} name-${u.name.replace(/\s+/g, '-').toLowerCase()}`;
             const hpPerc = Math.max(0, (u.currentHp / u.hp) * 100);
             let hpColor = '#ff6b6b';
             if (hpPerc > 66) hpColor = '#51cf66';
@@ -965,6 +995,7 @@ let shadowClass = getShadowClass(u.name);
         }
 
         async function nextTurn() {
+            if (combatState.ended) return;
             // Check win/loss
             if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
                 combatLog("Victory!");
@@ -1110,6 +1141,7 @@ let shadowClass = getShadowClass(u.name);
 
             if (combatState.isPlayerTurn) {
                 renderMoveControls(unit);
+                if (currentRun.isTutorial) onTutorialPlayerTurn(unit);
             } else {
                 document.getElementById('move-controls').innerHTML = '';
                 await new Promise(r => setTimeout(r, 1000));
@@ -1249,6 +1281,7 @@ let shadowClass = getShadowClass(u.name);
                 const btn = document.createElement('button');
                 const moveType = m.t || '';
                 btn.className = `move-btn ${moveType.toLowerCase()}`;
+                btn.dataset.move = m.n;
                 
                 const isTargetingThis = combatState.targetingMove === m;
                 if (isTargetingThis) btn.style.background = 'gold';
@@ -2288,6 +2321,9 @@ let shadowClass = getShadowClass(u.name);
                         }
 
                         if (!countered) {
+                            if (t.isEnemy ? combatState.protectEnemies : combatState.protectParty) {
+                                damage = Math.min(damage, Math.max(0, Math.ceil(t.currentHp) - 1));
+                            }
                             t.currentHp -= damage;
                             const targetTypesList = Array.isArray(t.type) ? t.type : [t.type];
                             const dmgMult = getElementMultiplier(move.t, targetTypesList);
@@ -2563,7 +2599,7 @@ let shadowClass = getShadowClass(u.name);
                 // status effects like ATK Up/Down (atkMod) and Guard (defMod).
                 const atkMod = attacker.atkMod || 0;
                 const defMod = target.defMod || 0;
-                const dmg = 5 * (1 + atkMod) * (1 - defMod);
+                const dmg = 5 * (1 + atkMod) * (1 - defMod) * (attacker.damageMult || 1);
                 return Math.max(1, Math.round(dmg));
             }
 
@@ -2594,11 +2630,14 @@ let shadowClass = getShadowClass(u.name);
             let defMultiplier = Math.max(0, 1 - (defStat / 100));
             let finalDamage = rawAttack * defMultiplier;
             finalDamage = finalDamage * (1 - defMod);
+            // Flat damage scale for specially-tuned units (the tutorial's pushover enemy).
+            finalDamage = finalDamage * (attacker.damageMult || 1);
 
             return Math.max(1, Math.round(finalDamage));
         }
 
         function enemyAI(unit) {
+            if (combatState.ended) return;
             // Check if win/loss already
             if (combatState.enemies.every(e => !e || e.currentHp <= 0)) {
                 combatLog("Victory!");
@@ -2817,13 +2856,23 @@ let shadowClass = getShadowClass(u.name);
             if (combatState.ended) return;
             combatState.ended = true;
 
+            if (currentRun.isTutorial) {
+                onTutorialCombatEnd(isWin);
+                return;
+            }
+
             // Remove dead party members
             currentRun.party = currentRun.party.map(p => p && p.currentHp > 0 ? p : null);
 
             if (isWin) {
-                // If it's the final boss, show You Win screen
+                // If it's the final boss, let it say its last words, then show the You Win screen
                 if (currentRun.nodeIndex >= currentRun.nodes.length - 1) {
-                    advanceRun();
+                    const boss = combatState.enemies.find(e => e && e.isBoss);
+                    if (boss && boss.outro) {
+                        showBossDialogue({ art: boss.art, name: boss.name, lines: boss.outro, defeated: true }).then(advanceRun);
+                    } else {
+                        advanceRun();
+                    }
                     return;
                 }
 

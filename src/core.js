@@ -203,6 +203,60 @@
             return `<div style="font-size:${size}px; line-height:1;">${art}</div>`;
         }
 
+        // Elemental triangle: each key deals +25% damage to its value (see getElementMultiplier).
+        const ELEMENT_STRONG_AGAINST = { Beast: 'Nature', Nature: 'Mech', Mech: 'Beast' };
+
+        function getElementWeakAgainst(type) {
+            return Object.keys(ELEMENT_STRONG_AGAINST).find(k => ELEMENT_STRONG_AGAINST[k] === type);
+        }
+
+        // Brief red warning that pops up and shakes over the game (e.g. a disallowed drop).
+        function showToast(message) {
+            const old = document.getElementById('game-toast');
+            if (old) old.remove();
+            const toast = document.createElement('div');
+            toast.id = 'game-toast';
+            toast.className = 'game-toast';
+            toast.textContent = message;
+            document.getElementById('game-container').appendChild(toast);
+            setTimeout(() => toast.classList.add('hide'), 1400);
+            setTimeout(() => toast.remove(), 1800);
+        }
+
+        // Fades the whole screen to black, runs `mid` (e.g. a screen switch) while it's covered,
+        // then fades back in.
+        function fadeThroughBlack(mid, holdMs = 150) {
+            const fade = document.getElementById('global-fade');
+            fade.style.transition = 'opacity 0.7s ease-in';
+            fade.style.opacity = '1';
+            setTimeout(() => {
+                mid();
+                setTimeout(() => {
+                    fade.style.transition = 'opacity 0.8s ease-out';
+                    fade.style.opacity = '0';
+                }, holdMs);
+            }, 700);
+        }
+
+        // Types `text` into `el` one character at a time, lingering on periods so "..." reads as
+        // a pause. Starting another typeText on the same element (or setting el._typeToken = null)
+        // cancels the previous one. Resolves when the text is fully typed or cancelled.
+        function typeText(el, text, msPerChar = 30) {
+            const token = {};
+            el._typeToken = token;
+            el.textContent = '';
+            return new Promise(resolve => {
+                let i = 0;
+                const tick = () => {
+                    if (el._typeToken !== token) return resolve();
+                    el.textContent = text.slice(0, ++i);
+                    if (i >= text.length) return resolve();
+                    setTimeout(tick, text[i - 1] === '.' ? msPerChar * 4 : msPerChar);
+                };
+                tick();
+            });
+        }
+
         function getElementIcon(type) {
             if (type === 'Nature') return 'Art/Nature.png';
             if (type === 'Mech') return 'Art/Mech.png';
