@@ -188,6 +188,74 @@
             }, 1000));
         }
 
+        // Extra points the path line passes through between two nodes so it hugs the road's actual
+        // windings (bridges, stairs, floor corners) rather than just joining the node dots. Keyed by
+        // arc, then by the segment's starting node index. Pixel coords in the 3240x540 road image.
+        const MAP_ROAD_REF_SIZE = { w: 3240, h: 540 };
+        const MAP_ROAD_WAYPOINTS_BY_ARC = {
+            arc1: {
+                0: [[309, 291], [369, 304], [429, 301]],
+                1: [[589, 311], [649, 305], [709, 277]],
+                2: [[853, 205], [913, 204], [973, 221]],
+                3: [[1114, 266], [1174, 287], [1234, 301]],
+                4: [[1369, 307], [1429, 301], [1489, 284], [1549, 271], [1609, 266]],
+                5: [[1718, 263], [1778, 252], [1838, 235], [1898, 218]],
+                6: [[2051, 194], [2111, 202], [2171, 215], [2231, 234]],
+                7: [[2392, 275], [2452, 295], [2512, 297], [2572, 296]],
+                8: [[2760, 274], [2870, 270], [2970, 265]]
+            },
+            arc2: {
+                0: [[329, 365], [389, 382], [449, 401], [509, 396]],
+                1: [[659, 376], [719, 365], [779, 341], [839, 294]],
+                2: [[947, 249], [1007, 241], [1067, 239]],
+                3: [[1177, 277], [1237, 327], [1297, 356]],
+                4: [[1435, 366], [1495, 363], [1555, 342], [1615, 319]],
+                5: [[1759, 302], [1819, 296], [1879, 301]],
+                6: [[2019, 334], [2079, 351], [2139, 340], [2199, 333], [2259, 329]],
+                7: [[2370, 333], [2430, 344], [2490, 358], [2550, 369]],
+                8: [[2740, 382], [2850, 378], [2930, 370]]
+            },
+            arc3: {
+                0: [[310, 360], [400, 382], [490, 383]],
+                1: [[640, 350], [705, 322], [775, 276]],
+                2: [[908, 212], [968, 218], [1028, 250]],
+                3: [[1179, 306], [1239, 330], [1299, 336]],
+                4: [[1418, 330], [1478, 312], [1538, 266]],
+                5: [[1666, 228], [1726, 225], [1786, 237], [1846, 235]],
+                6: [[2000, 227], [2060, 227], [2120, 223], [2180, 227]],
+                7: [[2293, 258], [2353, 285], [2413, 313]],
+                8: [[2571, 342], [2631, 349], [2691, 352], [2751, 343], [2811, 344], [2871, 341]]
+            }
+        };
+
+        // Smooth curve through every node plus the road waypoints between them (Catmull-Rom spline
+        // converted to cubic Beziers). Returns one SVG path 'd' per node-to-node segment.
+        function buildMapRoadSegments(arcId, nodePts, w, h) {
+            const wps = MAP_ROAD_WAYPOINTS_BY_ARC[arcId] || {};
+            const sx = w / MAP_ROAD_REF_SIZE.w, sy = h / MAP_ROAD_REF_SIZE.h;
+            const full = [];
+            const segStart = [];
+            nodePts.forEach((p, i) => {
+                segStart.push(full.length);
+                full.push(p);
+                if (i < nodePts.length - 1) (wps[i] || []).forEach(q => full.push({ x: q[0] * sx, y: q[1] * sy }));
+            });
+            const t = 1 / 6;
+            const bez = j => {
+                const p0 = full[Math.max(j - 1, 0)], p1 = full[j], p2 = full[j + 1], p3 = full[Math.min(j + 2, full.length - 1)];
+                const c1 = { x: p1.x + (p2.x - p0.x) * t, y: p1.y + (p2.y - p0.y) * t };
+                const c2 = { x: p2.x - (p3.x - p1.x) * t, y: p2.y - (p3.y - p1.y) * t };
+                return ` C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}`;
+            };
+            const segs = [];
+            for (let i = 0; i < nodePts.length - 1; i++) {
+                let d = `M ${nodePts[i].x} ${nodePts[i].y}`;
+                for (let j = segStart[i]; j < segStart[i + 1]; j++) d += bez(j);
+                segs.push(d);
+            }
+            return segs;
+        }
+
         // Path lines between nodes, same style as the tutorial map: solid behind the party,
         // marching dashes to the next stage, faint dashes beyond. Drawn in the road image's own
         // pixel space so they stay pinned to the nodes however the track scales.
@@ -200,13 +268,14 @@
                 const h = trackImg.naturalHeight || 540;
                 svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
                 const at = currentRun.nodeIndex - 1; // the node the party is standing on
+                // Node positions in the road image's pixel space.
+                const pts = positions.slice(0, currentRun.nodes.length).map(p => ({ x: p.x * w, y: p.y * h }));
+                const segs = buildMapRoadSegments(currentRun.arcId, pts, w, h);
                 let paths = '';
-                for (let i = 0; i < currentRun.nodes.length - 1; i++) {
-                    const a = positions[i], b = positions[i + 1];
-                    if (!a || !b) continue;
+                segs.forEach((d, i) => {
                     const state = i < at ? 'done' : (i === at ? 'next' : 'todo');
-                    paths += `<path class="map-path map-path-${state}" d="M ${a.x * w} ${a.y * h} L ${b.x * w} ${b.y * h}" />`;
-                }
+                    paths += `<path class="map-path map-path-${state}" d="${d}" />`;
+                });
                 svg.innerHTML = paths;
             };
             draw();

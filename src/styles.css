@@ -2325,24 +2325,28 @@ body.tutorial-active #modal-confirm {
 
 .map-path-done {
     stroke: rgba(255, 255, 255, 0.95);
-    stroke-width: 8;
+    stroke-width: 5;
 }
 
 .map-path-next {
     stroke: #ffe066;
-    stroke-width: 7;
-    stroke-dasharray: 18 16;
+    stroke-width: 4.5;
+    stroke-dasharray: 16 14;
     animation: tutPathMarch 0.9s linear infinite;
 }
 
 .map-path-todo {
     stroke: rgba(255, 255, 255, 0.45);
-    stroke-width: 6;
-    stroke-dasharray: 14 18;
+    stroke-width: 4;
+    stroke-dasharray: 12 16;
 }
 
 @keyframes tutPathMarch {
-    to { stroke-dashoffset: -34; }
+    to { stroke-dashoffset: -30; }
+}
+
+@keyframes runPathMarch {
+    to { stroke-dashoffset: -26; }
 }
 
 .tut-node {
@@ -2909,6 +2913,10 @@ body.tutorial-active #modal-confirm {
 .map-track-path .map-path {
     vector-effect: non-scaling-stroke;
 }
+
+.map-track-path .map-path-done { stroke-width: 4; }
+.map-track-path .map-path-next { stroke-width: 3.5; stroke-dasharray: 14 12; animation-name: runPathMarch; }
+.map-track-path .map-path-todo { stroke-width: 3; stroke-dasharray: 10 14; }
 
 /* Red warning pop-up (showToast) */
 .game-toast {
