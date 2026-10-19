@@ -291,6 +291,8 @@
             }
             const screenMap = document.getElementById('screen-map');
             if (screenMap) screenMap.classList.remove('tutorial-mode');
+            // Picks which set of table props (cave / forest / lab) is shown around the map.
+            if (screenMap && currentRun.arcId) screenMap.dataset.arc = currentRun.arcId;
             if (screenMap && currentRun.arcId) {
                 // Remove background from screenMap
                 screenMap.style.background = 'none';
@@ -396,6 +398,9 @@
             }
 
             document.getElementById('btn-continue-node').disabled = currentRun.nodeIndex >= currentRun.nodes.length;
+
+            renderMapScrollMarks(MAP_NODE_POSITIONS);
+            if (trackImg) trackImg.addEventListener('load', updateMapScrollbar, { once: true });
 
             // Auto-scroll to current node. The track image can still be mid-decode here
             // (its src was just (re)assigned above), so map-track's layout width isn't
@@ -611,3 +616,192 @@ window.proceedToNode = function() {
         });
     });
 }
+
+// --- MAP TABLE PROPS (decor around the road map: compass lid, candle flame, flippable coin) ---
+document.addEventListener('click', (e) => {
+    const target = e.target && e.target.closest ? e.target.closest('#map-props [data-prop]') : null;
+    if (!target) return;
+    const props = document.getElementById('map-props');
+    switch (target.dataset.prop) {
+        case 'compass':
+            props.querySelector('.prop-compass').classList.toggle('open');
+            break;
+        case 'candle':
+            props.classList.toggle('candle-out');
+            break;
+        case 'coin': {
+            if (target.classList.contains('flipping')) break;
+            target.classList.add('flipping');
+            // swap faces while the coin is edge-on
+            setTimeout(() => target.classList.toggle('flipped'), 275);
+            setTimeout(() => target.classList.remove('flipping'), 550);
+            break;
+        }
+        case 'mushroom':
+            restartMapPropClass(props.querySelector('.prop-mushroom'), 'puff', 4000);
+            break;
+        case 'leaf':
+            props.querySelector('.prop-leaves').classList.toggle('leaf-moved');
+            break;
+        case 'vial':
+            props.classList.toggle('vial-spilled');
+            break;
+        case 'btn-green':
+        case 'btn-red':
+            restartMapPropClass(target, 'pressed', 300);
+            break;
+        case 'valve':
+            target._angle = (target._angle || 0) + 540;
+            target.style.transform = `rotate(${target._angle}deg)`;
+            break;
+        case 'scrap':
+            restartMapPropClass(props, 'scrap-pulse', 2300);
+            break;
+    }
+});
+
+// Adds a class, restarting its CSS animation if it is already running, and removes it after `ms`.
+function restartMapPropClass(el, cls, ms) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.getBoundingClientRect();
+    el.classList.add(cls);
+    clearTimeout(el._propTimer);
+    el._propTimer = setTimeout(() => el.classList.remove(cls), ms);
+}
+
+// --- ROAD SCROLLBAR (sits over the bottom of the map; shows where the boss is) ---
+function updateMapScrollbar() {
+    const nodes = document.getElementById('map-nodes');
+    const bar = document.getElementById('map-scrollbar');
+    const track = document.getElementById('map-scroll-track');
+    const thumb = document.getElementById('map-scroll-thumb');
+    if (!nodes || !bar || !track || !thumb) return;
+    const max = nodes.scrollWidth - nodes.clientWidth;
+    if (max <= 2) { bar.style.display = 'none'; return; }
+    bar.style.display = 'block';
+    const trackW = track.clientWidth;
+    const thumbW = Math.max(40, trackW * nodes.clientWidth / nodes.scrollWidth);
+    thumb.style.width = thumbW + 'px';
+    thumb.style.left = (nodes.scrollLeft / max) * (trackW - thumbW) + 'px';
+}
+
+// One marker per node along the track: boss (red diamond), current (yellow), cleared (grey).
+function renderMapScrollMarks(positions) {
+    const marks = document.getElementById('map-scroll-marks');
+    if (!marks || !currentRun || !currentRun.nodes) return;
+    marks.innerHTML = '';
+    currentRun.nodes.forEach((n, i) => {
+        const pos = positions[i];
+        if (!pos) return;
+        const m = document.createElement('div');
+        let cls = n.type === 'boss' ? 'boss' : (n.type === 'merge' ? 'merge' : 'combat');
+        if (i < currentRun.nodeIndex) cls = 'done';
+        else if (i === currentRun.nodeIndex && n.type !== 'boss') cls = 'current';
+        m.className = 'map-scroll-mark ' + cls;
+        m.style.left = (pos.x * 100) + '%';
+        marks.appendChild(m);
+    });
+    updateMapScrollbar();
+}
+
+(function initMapScrollbar() {
+    const nodes = document.getElementById('map-nodes');
+    const track = document.getElementById('map-scroll-track');
+    const thumb = document.getElementById('map-scroll-thumb');
+    if (!nodes || !track || !thumb) return;
+
+    // The game is scaled with a CSS transform, so convert screen pixels to layout pixels.
+    const scaleOf = () => (track.offsetWidth ? track.getBoundingClientRect().width / track.offsetWidth : 1);
+    const jump = (left) => nodes.scrollTo({ left, behavior: 'instant' });
+
+    nodes.addEventListener('scroll', updateMapScrollbar, { passive: true });
+    window.addEventListener('resize', updateMapScrollbar);
+
+    // Mouse wheel scrolls the road sideways.
+    nodes.addEventListener('wheel', (e) => {
+        if (nodes.scrollWidth <= nodes.clientWidth) return;
+        e.preventDefault();
+        nodes.scrollBy({ left: (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * 1.5, behavior: 'instant' });
+    }, { passive: false });
+
+    // Drag the thumb.
+    thumb.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        thumb.setPointerCapture(e.pointerId);
+        thumb.classList.add('dragging');
+        const startX = e.clientX;
+        const startScroll = nodes.scrollLeft;
+        const move = (ev) => {
+            const trackW = track.clientWidth;
+            const range = trackW - thumb.offsetWidth;
+            const max = nodes.scrollWidth - nodes.clientWidth;
+            if (range <= 0) return;
+            jump(startScroll + ((ev.clientX - startX) / scaleOf()) * (max / range));
+        };
+        const up = () => {
+            thumb.classList.remove('dragging');
+            thumb.removeEventListener('pointermove', move);
+            thumb.removeEventListener('pointerup', up);
+            thumb.removeEventListener('pointercancel', up);
+        };
+        thumb.addEventListener('pointermove', move);
+        thumb.addEventListener('pointerup', up);
+        thumb.addEventListener('pointercancel', up);
+    });
+
+    // Click the track to jump there.
+    track.addEventListener('pointerdown', (e) => {
+        if (e.target !== track) return;
+        const rect = track.getBoundingClientRect();
+        const ratio = (e.clientX - rect.left) / rect.width;
+        nodes.scrollTo({ left: ratio * nodes.scrollWidth - nodes.clientWidth / 2, behavior: 'smooth' });
+    });
+})();
+
+// --- MAP TABLE: one-off setup that keeps the map screen cheap to show -----------------------------
+// 1) The parchment's ragged edge is a clip-path polygon (cheap) rather than an SVG displacement filter.
+// 2) The table/paper textures are SVG images that run feTurbulence every time they are rasterised;
+//    bake each one to a plain bitmap once so showing the map again is just a texture lookup.
+(function initMapTableCosmetics() {
+    const paper = document.getElementById('map-paper');
+    if (paper) {
+        let seed = 7;
+        const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+        const jitter = () => 3 + rnd() * 5 + Math.sin(rnd() * 6.28) * 2;
+        const pts = [];
+        const H = 110, V = 60;
+        for (let i = 0; i <= H; i++) pts.push(`${(i / H * 100).toFixed(2)}% ${jitter().toFixed(1)}px`);
+        for (let i = 1; i <= V; i++) pts.push(`calc(100% - ${jitter().toFixed(1)}px) ${(i / V * 100).toFixed(2)}%`);
+        for (let i = H - 1; i >= 0; i--) pts.push(`${(i / H * 100).toFixed(2)}% calc(100% - ${jitter().toFixed(1)}px)`);
+        for (let i = V - 1; i > 0; i--) pts.push(`${jitter().toFixed(1)}px ${(i / V * 100).toFixed(2)}%`);
+        paper.style.clipPath = `polygon(${pts.join(',')})`;
+    }
+
+    const bakeBackgrounds = async (el) => {
+        if (!el) return;
+        const bg = getComputedStyle(el).backgroundImage;
+        const re = /url\("(data:image\/svg\+xml[^"]*)"\)/g;
+        const found = [...bg.matchAll(re)];
+        if (!found.length) return;
+        let out = bg;
+        for (const m of found) {
+            try {
+                const img = new Image();
+                img.src = m[1];
+                await img.decode();
+                const w = img.naturalWidth || 512, h = img.naturalHeight || 512;
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+                if (blob) out = out.replace(m[0], `url("${URL.createObjectURL(blob)}")`);
+            } catch (e) { /* keep the original SVG texture */ }
+        }
+        el.style.backgroundImage = out;
+    };
+
+    const run = () => { bakeBackgrounds(document.getElementById('map-table')).then(() => bakeBackgrounds(paper)); };
+    if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 3000 }); else setTimeout(run, 1500);
+})();

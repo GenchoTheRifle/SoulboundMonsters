@@ -2954,3 +2954,348 @@ body.tutorial-active #modal-confirm {
     60% { transform: translate(calc(-50% - 6px), -50%); }
     80% { transform: translate(calc(-50% + 6px), -50%); }
 }
+
+/* ===================================================================
+   MAP SCREEN: wooden table, parchment sheet, props
+   (only the area around #map-viewport is styled here - the map itself is untouched)
+   =================================================================== */
+.map-table {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    /* Every tiled texture uses stitchTiles + a tile height that is a whole number of planks
+       (4 x 210px), so the texture repeats without visible seams. */
+    background:
+        /* heavy vignette */
+        radial-gradient(ellipse at 50% 48%, transparent 25%, rgba(0, 0, 0, 0.8) 100%),
+        /* scratches / pits */
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1050' height='840'><filter id='s' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' stitchTiles='stitch' baseFrequency='0.02 0.5' numOctaves='2' seed='11'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.8  0 0 0 0 0.55  0 0 0 9 -6.6'/></filter><rect width='100%' height='100%' filter='url(%23s)' opacity='0.3'/></svg>"),
+        /* plank seams: deep groove + lit lip */
+        repeating-linear-gradient(180deg, transparent 0 194px, rgba(0, 0, 0, 0.85) 194px 199px, rgba(255, 170, 90, 0.12) 199px 202px, transparent 202px 210px),
+        /* dark long grain */
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1050' height='840'><filter id='g' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' stitchTiles='stitch' baseFrequency='0.003 0.045' numOctaves='6' seed='7'/><feColorMatrix values='0 0 0 0 0.02  0 0 0 0 0.01  0 0 0 0 0  0 0 0 2.2 -0.75'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
+        /* warm highlight grain */
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1050' height='840'><filter id='h' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' stitchTiles='stitch' baseFrequency='0.004 0.07' numOctaves='5' seed='23'/><feColorMatrix values='0 0 0 0 0.6  0 0 0 0 0.32  0 0 0 0 0.12  0 0 0 2.2 -1.15'/></filter><rect width='100%' height='100%' filter='url(%23h)'/></svg>"),
+        /* big blotchy tone variation / knots */
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1050' height='840'><filter id='b' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' stitchTiles='stitch' baseFrequency='0.004 0.02' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.8 -0.6'/></filter><rect width='100%' height='100%' filter='url(%23b)'/></svg>"),
+        /* per-plank tint (repeats every 4 planks) */
+        repeating-linear-gradient(180deg, rgba(255, 130, 50, 0.05) 0 210px, rgba(0, 0, 0, 0.18) 210px 420px, rgba(120, 60, 20, 0.06) 420px 630px, rgba(0, 0, 0, 0.08) 630px 840px),
+        linear-gradient(180deg, #4a2a15, #31190c);
+    background-size: 100% 100%, 1050px 840px, 100% 840px, 1050px 840px, 1050px 840px, 1050px 840px, 100% 840px, 100% 100%;
+}
+
+.map-paper {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-0.4deg);
+    width: min(calc(88% + 110px), 1610px);
+    height: calc(64% + 84px);
+    z-index: 0;
+    pointer-events: none;
+    background:
+        /* coffee ring + stains + smudges */
+        radial-gradient(circle at 9% 78%, transparent 0 38px, rgba(110, 92, 62, 0.45) 40px, rgba(110, 92, 62, 0.12) 46px, transparent 52px),
+        radial-gradient(ellipse at 91% 16%, rgba(100, 84, 58, 0.5), transparent 20%),
+        radial-gradient(ellipse at 14% 12%, rgba(105, 88, 60, 0.4), transparent 18%),
+        radial-gradient(ellipse at 84% 90%, rgba(95, 80, 55, 0.4), transparent 22%),
+        radial-gradient(ellipse at 52% 4%, rgba(100, 84, 58, 0.3), transparent 14%),
+        /* mottled dirt */
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><filter id='m' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' stitchTiles='stitch' baseFrequency='0.009' numOctaves='5' seed='9'/><feColorMatrix values='0 0 0 0 0.36  0 0 0 0 0.31  0 0 0 0 0.2  0 0 0 3.0 -1.35'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>"),
+        /* spots, foxing and scuffs */
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='500' height='400'><filter id='x' x='0' y='0' width='100%' height='100%'><feTurbulence type='turbulence' stitchTiles='stitch' baseFrequency='0.05' numOctaves='3' seed='31'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.25  0 0 0 0 0.16  0 0 0 5 -2.1'/></filter><rect width='100%' height='100%' filter='url(%23x)'/></svg>"),
+        /* rough fibre grain */
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='p' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' stitchTiles='stitch' baseFrequency='0.9 0.5' numOctaves='4' seed='3'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.4  0 0 0 0 0.3  0 0 0 1.6 -0.55'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
+        radial-gradient(ellipse at 50% 50%, #f0ead9 0%, #ddd3b8 62%, #a89a78 100%);
+    box-shadow:
+        inset 0 0 90px rgba(85, 70, 45, 0.75),
+        inset 0 0 14px rgba(55, 45, 28, 0.6),
+        inset 0 0 0 0 transparent;
+}
+
+.map-props {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.map-props .prop {
+    position: absolute;
+    overflow: visible;
+    filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.5));
+}
+
+.prop-candle  { right: -0.8%; top: -3.5%;   height: 32%; }
+.prop-compass { left: 0.8%;  bottom: 1.5%; height: 32%; transform: rotate(-6deg); }
+.prop-coins   { right: 0.8%; bottom: 1%;   height: 25%; }
+
+/* Only the interactive bits of the props receive clicks */
+.map-props [data-prop] {
+    pointer-events: all;
+    cursor: pointer;
+}
+
+/* ---- compass: lid hinges open/closed (click) ---- */
+.compass-lid {
+    transform-origin: 110px 42px;
+    transform: scaleY(-0.42);
+    transition: transform 0.55s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+.prop-compass:not(.open) .compass-lid { transform: scaleY(1); }
+.lid-outer, .lid-inner { transition: opacity 0s linear; }
+/* the lid is edge-on halfway through the swing; swap its two faces there */
+.prop-compass.open .lid-outer { opacity: 0; transition-delay: 0.3s; }
+.prop-compass.open .lid-inner { opacity: 1; transition-delay: 0.3s; }
+.prop-compass:not(.open) .lid-outer { opacity: 1; transition-delay: 0.14s; }
+.prop-compass:not(.open) .lid-inner { opacity: 0; transition-delay: 0.14s; }
+
+.compass-rose { transform-origin: 110px 130px; animation: compassWobble 7s ease-in-out infinite; }
+@keyframes compassWobble {
+    0%, 100% { transform: rotate(-14deg); }
+    35%      { transform: rotate(10deg); }
+    60%      { transform: rotate(-5deg); }
+    80%      { transform: rotate(4deg); }
+}
+
+/* ---- candle: click the flame to snuff / relight ---- */
+.candle-flame { transform-origin: 120px 140px; animation: candleFlicker 1.4s ease-in-out infinite alternate; transition: opacity 0.35s; }
+@keyframes candleFlicker {
+    0%   { transform: scale(1, 1) skewX(0deg); opacity: 1; }
+    30%  { transform: scale(0.95, 1.06) skewX(2deg); }
+    60%  { transform: scale(1.04, 0.96) skewX(-2deg); opacity: 0.92; }
+    100% { transform: scale(0.97, 1.04) skewX(1deg); opacity: 1; }
+}
+.candle-out .candle-flame { animation: none; opacity: 0; }
+.candle-smoke { opacity: 0; }
+.candle-out .candle-smoke { animation: candleSmoke 2.6s ease-out 1; }
+@keyframes candleSmoke {
+    0%   { opacity: 0.7; transform: translateY(0) scale(0.6); }
+    100% { opacity: 0;   transform: translateY(-38px) scale(1.5); }
+}
+
+/* warm light thrown by the candle (top-right corner) */
+.candle-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 96% 12%, rgba(255, 170, 70, 0.38), rgba(255, 140, 40, 0.12) 28%, transparent 55%);
+    animation: candleGlow 2.2s ease-in-out infinite alternate;
+    transition: opacity 0.6s;
+}
+@keyframes candleGlow {
+    from { opacity: 0.75; }
+    to   { opacity: 1; }
+}
+.map-props.candle-out .candle-glow { animation: none; opacity: 0; }
+
+/* ---- coin: click to flip ---- */
+.coin-flipper { transform-box: fill-box; transform-origin: center; }
+.coin-flipper .face-b { display: none; }
+.coin-flipper.flipped .face-a { display: none; }
+.coin-flipper.flipped .face-b { display: inline; }
+.coin-flipper.flipping { animation: coinFlip 0.55s ease-in-out; }
+@keyframes coinFlip {
+    0%   { transform: scale(1, 1); }
+    50%  { transform: scale(0.03, 1.22); }
+    100% { transform: scale(1, 1); }
+}
+
+#screen-map.tutorial-mode .map-table,
+#screen-map.tutorial-mode .map-paper,
+#screen-map.tutorial-mode .map-props {
+    display: none;
+}
+
+/* ===================================================================
+   MAP SCREEN: per-road prop sets (data-arc is set by renderMap)
+   =================================================================== */
+.map-props .set-arc2,
+.map-props .set-arc3 { display: none; }
+#screen-map[data-arc="arc2"] .map-props .set-arc1,
+#screen-map[data-arc="arc3"] .map-props .set-arc1 { display: none; }
+#screen-map[data-arc="arc2"] .map-props .set-arc2,
+#screen-map[data-arc="arc3"] .map-props .set-arc3 { display: block; }
+
+.prop-lantern { right: -0.4%; top: 0.5%;    height: 32%; }
+.prop-vial    { right: 0.3%; top: 0.5%;    height: 31%; }
+.prop-mushroom{ left: 0.2%;  bottom: 0.5%; height: 38%; }
+.prop-device  { left: 0.8%;  bottom: 2%;   height: 26%; transform: rotate(-5deg); }
+.prop-leaves  { right: 0.6%; bottom: 0.5%; height: 27%; }
+.prop-scrap   { right: 0.6%; bottom: 0.5%; height: 28%; }
+
+/* ---- lantern ---- (reuses the candle flame/glow + .candle-out toggle) */
+.lantern-flame { transform-origin: 150px 110px; }
+
+/* ---- mushroom: poison gas ---- */
+.mu-cap { transform-box: fill-box; transform-origin: center; }
+.gas { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.prop-mushroom.puff .gas { animation: gasPuff 3.4s ease-out forwards; animation-delay: var(--d); }
+.prop-mushroom.puff .mu-cap { animation: muSquish 0.45s ease-out; }
+@keyframes gasPuff {
+    0%   { opacity: 0;    transform: translate(0, 0) scale(0.3); }
+    15%  { opacity: 0.8; }
+    100% { opacity: 0;    transform: translate(var(--dx), var(--dy)) scale(2.8); }
+}
+@keyframes muSquish {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(0.92, 0.9); }
+    100% { transform: scale(1); }
+}
+
+/* ---- leaves: top leaf slides off the key ---- */
+.leaf-mover { transition: transform 0.7s cubic-bezier(0.3, 0.8, 0.3, 1); }
+.prop-leaves.leaf-moved .leaf-mover { transform: translate(-122px, 38px) rotate(-55deg); }
+
+/* ---- vial: spill / refill ---- */
+.vial-puddle { transform-box: view-box; transform-origin: 106px 132px; transform: scale(0); opacity: 0; transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s; }
+.map-props.vial-spilled .vial-puddle { transform: scale(1); opacity: 1; }
+.vial-liquid { transform-origin: -62px 0; transition: transform 0.9s ease-in-out; }
+.map-props.vial-spilled .vial-liquid { transform: scaleX(0.28); }
+.map-props.vial-spilled .vial-pulse { animation: vialPulse 2.4s ease-in-out infinite alternate; }
+@keyframes vialPulse { from { opacity: 0.65; } to { opacity: 1; } }
+.vial-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 93% 14%, rgba(90, 180, 255, 0.4), rgba(60, 130, 255, 0.12) 22%, transparent 42%);
+    opacity: 0;
+    transition: opacity 0.8s;
+}
+.map-props.vial-spilled .vial-glow { opacity: 1; animation: candleGlow 2.4s ease-in-out infinite alternate; }
+
+/* ---- control box: buttons + valve ---- */
+.dv-btn, .dv-valve { transform-box: fill-box; transform-origin: center; }
+.dv-btn.pressed { animation: btnPress 0.28s ease-out; }
+@keyframes btnPress {
+    0%   { transform: scale(1);    filter: none; }
+    40%  { transform: scale(0.84); filter: brightness(0.7); }
+    100% { transform: scale(1);    filter: none; }
+}
+.dv-valve { transition: transform 1.3s cubic-bezier(0.15, 0.7, 0.2, 1); }
+
+/* ---- scrap pile: red pulse between the cracks ---- */
+.scrap-underglow, .scrap-topglow { opacity: 0; }
+.map-props.scrap-pulse .scrap-underglow { animation: scrapPulse 2.2s ease-in-out forwards; }
+.map-props.scrap-pulse .scrap-topglow   { animation: scrapPulseTop 2.2s ease-in-out forwards; }
+@keyframes scrapPulse {
+    0% { opacity: 0; } 35% { opacity: 1; } 100% { opacity: 0; }
+}
+@keyframes scrapPulseTop {
+    0% { opacity: 0; } 35% { opacity: 0.3; } 100% { opacity: 0; }
+}
+.scrap-glow-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 94% 90%, rgba(255, 40, 20, 0.4), rgba(255, 30, 10, 0.12) 22%, transparent 42%);
+    opacity: 0;
+}
+.map-props.scrap-pulse .scrap-glow-overlay { animation: scrapPulse 2.2s ease-in-out forwards; }
+
+/* lantern glass glows without moving */
+.candle-flame.lantern-glass { animation: glassFlicker 1.6s ease-in-out infinite alternate; }
+.candle-out .candle-flame.lantern-glass { animation: none; opacity: 0; }
+@keyframes glassFlicker { from { opacity: 0.82; } to { opacity: 1; } }
+
+/* golden key: glows and glints once the leaf is pushed away */
+.key-glow { opacity: 0; transition: opacity 0.7s 0.25s; }
+.prop-leaves.leaf-moved .key-glow { opacity: 1; }
+.key-glint { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.prop-leaves.leaf-moved .key-glint { animation: keyTwinkle 2.6s ease-in-out infinite 0.8s; }
+@keyframes keyTwinkle {
+    0%, 55%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+    75%           { opacity: 1; transform: scale(1) rotate(45deg); }
+}
+
+/* ===================================================================
+   MAP SCREEN: scrollbar along the bottom of the road
+   =================================================================== */
+.map-scrollbar {
+    position: absolute;
+    left: 4%;
+    right: 4%;
+    bottom: 14px;
+    height: 22px;
+    z-index: 4;
+    display: none;
+}
+.map-scroll-track {
+    position: relative;
+    height: 12px;
+    top: 5px;
+    border-radius: 8px;
+    background: rgba(8, 6, 4, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 6px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+}
+.map-scroll-thumb {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    left: 0;
+    min-width: 40px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #d9b274 0%, #a9763a 45%, #6a4420 100%);
+    border: 1px solid #2c1807;
+    box-shadow: inset 0 1px 1px rgba(255, 235, 190, 0.6), 0 1px 3px rgba(0, 0, 0, 0.7);
+    cursor: grab;
+    touch-action: none;
+}
+.map-scroll-thumb:hover { filter: brightness(1.15); }
+.map-scroll-thumb.dragging { cursor: grabbing; filter: brightness(1.25); }
+.map-scroll-marks { position: absolute; inset: 0; pointer-events: none; }
+.map-scroll-mark {
+    position: absolute;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(0, 0, 0, 0.85);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+.map-scroll-mark.combat { background: #b83a30; }
+.map-scroll-mark.merge  { background: #4a7ae0; }
+.map-scroll-mark.done   { background: #5a5a5a; }
+.map-scroll-mark.current { background: #f2d24a; width: 10px; height: 10px; box-shadow: 0 0 6px #f2d24a; }
+.map-scroll-mark.boss {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    background: #d02a20;
+    border-color: #1a0604;
+    transform: translate(-50%, -50%) rotate(45deg);
+    box-shadow: 0 0 8px rgba(255, 50, 30, 0.9);
+}
+#screen-map.tutorial-mode .map-scrollbar { display: none !important; }
+
+/* ===================================================================
+   MAP SCREEN: performance
+   - animated bits (flames, compass rose) live in their own overlay <svg> layers, so the
+     filter-heavy artwork underneath is rasterised once instead of every animation frame
+   - the paper's ragged edge is a clip-path (set in map.js) instead of an SVG displacement filter
+   =================================================================== */
+.map-props .prop-fx {
+    filter: none;
+    will-change: transform;
+}
+.map-paper-shadow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-0.4deg);
+    width: min(calc(88% + 110px), 1610px);
+    height: calc(64% + 84px);
+    z-index: 0;
+    pointer-events: none;
+    border-radius: 6px;
+    box-shadow: 0 18px 30px rgba(0, 0, 0, 0.7), 0 4px 8px rgba(0, 0, 0, 0.6);
+}
+#screen-map.tutorial-mode .map-paper-shadow { display: none; }
+
+/* compass rose sits in its own layer above the case; hide it while the lid covers the dial */
+.prop-compass-fx { opacity: 0; transition: opacity 0s 0.14s; }
+.prop-compass.open + .prop-compass-fx { opacity: 1; transition: opacity 0s 0.3s; }
+
+/* lit lantern glass no longer animates (the flame layer carries the flicker) */
+.candle-flame.lantern-glass { animation: none; }
