@@ -155,7 +155,8 @@
             e.preventDefault();
             const targetSlot = e.target.closest('.select-slot');
             if (!targetSlot) return;
-            
+            SFX.play('drop');
+
             const slotIndex = parseInt(targetSlot.getAttribute('data-slot'));
             const id = draggedStarterId;
             
@@ -248,6 +249,7 @@
                 if (onDone) onDone();
             };
             modal.style.display = 'flex';
+            SFX.play('open');
         }
 
         // Simple "joined your party" popup for recruiting a monster that's
@@ -321,6 +323,8 @@
         window.playClicked = function() {
             if (window.isStartingPlay) return;
             window.isStartingPlay = true;
+            // the click that starts the game also starts the sound (the title screen is silent until then): forest for the first-starter pick, the menu music otherwise
+            SFX.ambience(gameState.unlockedStarters.length < 2 ? 'forest' : 'music');
 
             const screenTitle = document.getElementById('screen-title');
             const fadeOverlay = document.getElementById('title-fade');

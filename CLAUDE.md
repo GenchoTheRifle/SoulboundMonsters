@@ -47,7 +47,7 @@ re-runnable or still relevant; prefer editing the target files directly for new 
 logic via plain, non-module `<script>` tags in a fixed order:
 
 ```
-src/data.js → src/state.js → src/core.js → src/collection.js → src/selection.js
+src/data.js → src/audio.js → src/state.js → src/core.js → src/collection.js → src/selection.js
 → src/map.js → src/combat.js → src/merge.js → src/pause.js → src/dialogue.js → src/tutorial.js
 ```
 
@@ -77,7 +77,37 @@ new effect types there when adding new move effects.
 
 ### Module responsibilities
 
-- [state.js](src/state.js) — global game/run state shape (`gameState`, `currentRun`, slots).
+- [audio.js](src/audio.js) — `SFX`, sample-based sound effects via the Web Audio API. Samples are
+  CC0 files under `Sounds/` (RPG Sound Pack by artisticdude + Kenney Impact/Sci-fi packs; licenses
+  in `Sounds/kenney/`). Call `SFX.play('name', arg)` from game code; it no-ops before the first
+  user gesture, before samples finish loading, and while muted. Three tables: `POOLS` (sample
+  groups), `U` (named UI/event sounds), `M` (exactly one fixed sample per skill, keyed by move name
+  in `data.json`, played via `SFX.play('move', {name})` when the skill's animation lands — add a
+  row when adding a move, a move with no row is silent). Keep attack sounds non-vocal. Timing: `SFX.play('move', {name, delay})` takes the seconds until the
+  animation's impact; the engine measures each sample's own impact point and the browser's output
+  latency, and starts it early enough that the two land together (see `combat.js` `executeMove`,
+  where `delay` is the move's `animDelay`). Only the
+  skill sounds and the event sounds listed in the `ENABLED` set in `audio.js` are switched on (heal,
+  energy, monster falls, victory/defeat, stun/sleep skips, status ticks, counter/thorns/guard
+  reactions and their evolved variants, map footsteps and table props, slot drops, merge,
+  new-starter unlock; the plain recruit sound is parked); every other `U` event sound is parked until approved (add its name to `ENABLED`).
+  Background ambience lives in the same file (`AMBIENCES`, `sceneFor`): `showScreen()` calls
+  `SFX.scene(screenId)`, which crossfades to the bed for that screen (music: title, city menu and
+  act select; muffled music (the same running track, not restarted: `music`/`muffled` share a `bed` key in `AMBIENCES`, and switching only moves the lowpass to 420 Hz and eases the level): collection and team select / ENTER MAP;
+  forest: first starter pick; cave / forest / lab per act while in a run, except Act I fights, which play
+  `caveFight` (normal) or `caveBoss` (boss node; `initCombat` calls `SFX.fightIsBoss()` before opening the combat screen)
+  from `Sounds/ambience/combat_cave.mp3` / `combat_boss.mp3`; Act II fights play `forestFight` / `forestBoss`
+  (`combat_forest.mp3` / `combat_treant.mp3`); Act III fights play `labFight` / `labBoss`
+  (`combat_lab.mp3` / `combat_lab_boss.mp3`); winning a fight (`endCombat`, not the tutorial) switches to
+  `campfire` (`campfire.mp3`) until the next screen, i.e. the road; "sim" hum in the tutorial).
+  Forest, cave and the menu music (`Sounds/ambience/menu_music.mp3`, the first 3 minutes of the user's
+  "A Warmful Day" mix, looped with a 4 s crossfade) are recordings; lab and sim are generated in code.
+  `Sounds/` holds only files the game actually references (`SFX.catalog.files()` lists them; delete anything not in that list, and keep `Sounds/CREDITS.txt` in step).
+  Open `test_sounds.html` (served by the dev server) to audition every sound. Loudness is balanced
+  per sound with the `TRIM` table in `audio.js`: after adding or changing a sound, click "Measure
+  loudness of every sound" on that page and copy its suggested trims (it measures at the real output). Mute/volume persist
+  in localStorage (`soulbound_audio`) via two independent knobs, `[data-sfx-volume]` (sound effects, through `master`) and `[data-music-volume]` (music and ambience, through `ambOut`), in the
+  settings menu and pause modal. It also wires click/hover sounds for every button globally (the click plays on pointerdown, not on release, so it is instant; combat skill buttons `.move-btn` get their own `ability` sound). Skills defined outside `data.json` (e.g. the tutorial boss's "Void Shockwave" / "Soul Devour" in `tutorial.js`) need their own row in `M` too.- [state.js](src/state.js) — global game/run state shape (`gameState`, `currentRun`, slots).
 - [core.js](src/core.js) — data loading (`init`), save/load (`saveGame`, localStorage key
   `soulbound_save`, with legacy `labborn_save` read for back-compat), screen switching
   (`showScreen`), scaling, element icon/type helpers.

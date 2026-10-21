@@ -15,6 +15,7 @@
                         <div class="boss-dialogue-hint">Click to continue</div>
                     </div>`;
                 document.getElementById('game-container').appendChild(el);
+                SFX.play(defeated ? 'bossOutro' : 'bossIntro');   // both are parked (no sound yet)
                 void el.offsetWidth;
                 el.classList.add('show');
 

@@ -1,5 +1,6 @@
 // --- RUN ENGINE ---
         function startRun() {
+            SFX.play('enterMap');   // battle horn as the run begins
             const btn = document.getElementById('btn-start-run');
             if (btn) btn.disabled = true;
             
@@ -604,6 +605,7 @@ window.proceedToNode = function() {
     const node = currentRun.nodes[currentRun.nodeIndex];
     const pos = getMapNodePositions(currentRun.arcId)[currentRun.nodeIndex] || { x: 0.5, y: 0.5 };
     mapTravelBusy = true;
+    SFX.play(currentRun.arcId === 'arc2' ? 'travelForest' : 'travel');   // footsteps: grass in the forest act, stone elsewhere
     document.getElementById('btn-continue-node').disabled = true;
     moveMapToken(`${pos.x * 100}%`, `${pos.y * 100}%`).then(() => {
         fadeThroughBlack(() => {
@@ -622,6 +624,8 @@ document.addEventListener('click', (e) => {
     const target = e.target && e.target.closest ? e.target.closest('#map-props [data-prop]') : null;
     if (!target) return;
     const props = document.getElementById('map-props');
+    const propSounds = { compass: 'compass', candle: 'candle', coin: 'coin', mushroom: 'mushroom', valve: 'valve', scrap: 'scrap', vial: 'vial', leaf: 'leaf', 'btn-green': 'buttonPress', 'btn-red': 'buttonPress' };
+    SFX.play(propSounds[target.dataset.prop] || 'click');
     switch (target.dataset.prop) {
         case 'compass':
             props.querySelector('.prop-compass').classList.toggle('open');

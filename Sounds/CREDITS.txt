@@ -1,0 +1,22 @@
+Sound effects used by src/audio.js. Open test_sounds.html to audition them. All packs are CC0 (public domain); credit is not required.
+
+  rpg/       "RPG Sound Pack" by artisticdude - https://opengameart.org/content/rpg-sound-pack
+  creature/  "80 CC0 creature SFX" by rubberduck - https://opengameart.org/content/80-cc0-creature-sfx
+  bang/      "25 CC0 bang / firework SFX" by rubberduck - https://opengameart.org/content/25-cc0-bang-firework-sfx
+  kenney/    "Impact Sounds" and "Sci-fi Sounds" by Kenney - https://kenney.nl (license text in kenney/LICENSE-*.txt)
+  electric/  "Electricity Game Sound Pack" by faxcorp - https://opengameart.org/content/electricity-game-sound-pack
+  hits/      "hits and punches" by Independent.nu (via qubodup) - https://opengameart.org/content/37-hitspunches
+  splat/     "extreme splatter" by Independent.nu (via qubodup) - https://opengameart.org/content/2-wooden-squish-splatter-sequences
+  dark/      "3 dark magic spells" (fout-02) and "Energy Drain" (powerdrain) by qubodup (Iwan Gabovitch) - https://opengameart.org/content/3-dark-magic-spells , https://opengameart.org/content/energy-drain
+             (Energy Drain's OpenGameArt page states CC0 since 2024-06-23 and asks to "just mention: qubodup"; the older CC BY-SA text inside the original archive is superseded by that.)
+  ambience/  forest.ogg = "Birds and Wind - Ambient" by Spring Spring - https://opengameart.org/content/birds-and-wind-ambient-birds-wind-and-synth
+             cave.ogg = "Loopable Dungeon Ambience" by JaggedStone - https://opengameart.org/content/loopable-dungeon-ambience
+             menu_music.mp3 = the first 3 minutes of "A Warmful Day D&D TTRPG Music 1 Hour Copyright free" (supplied by the project owner; check its source's license/credit before release)
+             combat_cave.mp3 / combat_boss.mp3 = the first 3 minutes of "Low Level Combat Goblin Ambush on the Woods" / "Low Level Combat Owlbear Nest" (D&D TTRPG Battle Combat Music, 1 Hour, "Copyright free"; supplied by the project owner; check the source's license/credit before release)
+             combat_forest.mp3 = "Epic Fight Orc Invasion" (from 0:10, 3 min), combat_treant.mp3 = "Epic Fight Demon Lord Combat" (first 3 min), campfire.mp3 = "Campfire Stories D&D TTRPG Ambience Music" (first 3 min), all "1 Hour Copyright free" mixes supplied by the project owner; check the source's license/credit before release
+             combat_lab.mp3 = "RPG Battle Music Clockwork Dragon" (first 4:28, before its fade-out), combat_lab_boss.mp3 = "Eberron Automaton Brawl D&D TTRPG Steampunk Fight Music" (from 0:10, 3 min), both supplied by the project owner; check the source's license/credit before release
+             (the lab hum and tutorial "simulation" ambience are generated in code, no files)
+  pop/       "pop sounds" by cogitollc - https://opengameart.org/content/pop-sounds
+  creak/     "Tree Creaking" by AntumDeluge (from a Freesound recording by Department64) - https://opengameart.org/node/132362
+
+Only the files referenced by src/audio.js are kept here.

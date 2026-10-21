@@ -91,6 +91,12 @@
             <div style="position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; z-index: 50;">
                 <button id="settings-btn" onclick="document.getElementById('settings-menu').style.display = document.getElementById('settings-menu').style.display === 'none' ? 'flex' : 'none'" style="font-size: 50px; background: none; border: none; cursor: pointer; color: white; filter: drop-shadow(2px 2px 4px black);"><img src="Art/Settings.png" style="width: 70px; height: 70px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));" alt="Settings" /></button>
                 <div id="settings-menu" class="nine-cut-panel" style="display: none; flex-direction: column; gap: 6px; padding: 10px; border-width: 16px;">
+                    <div style="display: flex; flex-direction: column; gap: 2px; width: 220px; color: #fff; font-size: 22px; text-shadow: var(--outline-med);">
+                        <span>SFX</span>
+                        <input data-sfx-volume type="range" min="0" max="100" step="5" value="20" aria-label="Sound effects volume" style="width: 220px; cursor: pointer;">
+                        <span style="margin-top: 4px;">MUSIC</span>
+                        <input data-music-volume type="range" min="0" max="100" step="5" value="20" aria-label="Music volume" style="width: 220px; cursor: pointer;">
+                    </div>
                     <button onclick="document.getElementById('settings-menu').style.display='none'; resetProgress()" class="nine-cut-button" style="font-size: 24px; padding: 4px 20px; width: 220px; border-width: 12px 20px; color: #f99;">RESET PROGRESS</button>
                     <button onclick="document.getElementById('settings-menu').style.display='none'; unlockAllProgress()" class="nine-cut-button" style="font-size: 24px; padding: 4px 20px; width: 220px; border-width: 12px 20px; color: #9f9;">UNLOCK ALL</button>
                 </div>
@@ -1054,6 +1060,12 @@
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     <button onclick="closeModal('modal-pause')" class="nine-cut-button">RESUME</button>
                     <button onclick="openCollectionFromPause()" class="nine-cut-button">COLLECTION</button>
+                    <div style="display: flex; flex-direction: column; gap: 2px; color: #fff; font-size: 22px; text-shadow: var(--outline-med);">
+                        <span>SFX</span>
+                        <input data-sfx-volume type="range" min="0" max="100" step="5" value="20" aria-label="Sound effects volume" style="width: 100%; cursor: pointer;">
+                        <span style="margin-top: 4px;">MUSIC</span>
+                        <input data-music-volume type="range" min="0" max="100" step="5" value="20" aria-label="Music volume" style="width: 100%; cursor: pointer;">
+                    </div>
                     <button onclick="abandonRun()" class="nine-cut-button" style="color: #f99;">ABANDON RUN</button>
                 </div>
             </div>
@@ -1126,6 +1138,7 @@
     <div id="global-fade" style="position: fixed; top:0; left:0; width:100%; height:100%; background: black; opacity: 0; pointer-events: none; transition: opacity 1.5s; z-index: 10000;"></div>
 
     <script src="src/data.js"></script>
+    <script src="src/audio.js"></script>
     <script src="src/state.js"></script>
     <script src="src/core.js"></script>
     <script src="src/collection.js"></script>

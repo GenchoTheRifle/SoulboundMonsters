@@ -714,7 +714,7 @@
         function onTutorialBattleWon() {
             const recruitBase = STARTERS[tutorialState.enemyId];
             [tutorialState.starterId, tutorialState.enemyId].forEach(id => {
-                if (!gameState.unlockedStarters.includes(id)) gameState.unlockedStarters.push(id);
+                if (!gameState.unlockedStarters.includes(id)) { gameState.unlockedStarters.push(id); SFX.play('unlock'); }
             });
             saveGame();
 

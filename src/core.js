@@ -108,6 +108,7 @@
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
+            SFX.scene(screenId);   // background ambience for this screen (forest / town / collection / cave / lab ...)
             
             if (screenId === 'screen-selection') {
                 selectionSlots = [null, null, null, null];
@@ -250,6 +251,7 @@
                 const tick = () => {
                     if (el._typeToken !== token) return resolve();
                     el.textContent = text.slice(0, ++i);
+                    if (i % 2 === 0 && text[i - 1] !== ' ') SFX.play('blip');
                     if (i >= text.length) return resolve();
                     setTimeout(tick, text[i - 1] === '.' ? msPerChar * 4 : msPerChar);
                 };

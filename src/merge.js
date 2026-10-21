@@ -189,6 +189,7 @@
             let targetSlot = ev.target.closest('.select-slot');
             if (!targetSlot) return;
             const targetIndex = parseInt(targetSlot.getAttribute('data-slot'));
+            SFX.play('drop');
 
             if (source === 'party') {
                 // Swap in party
@@ -219,6 +220,7 @@
             let targetSlot = ev.target.closest('.merge-slot');
             if (!targetSlot) return;
             const targetIndex = parseInt(targetSlot.getAttribute('data-slot'));
+            SFX.play('drop');
 
             if (source === 'party') {
                 const m = currentRun.party[sourceIndex];
@@ -287,6 +289,7 @@
             );
 
             if (outcome) {
+                SFX.play('merge');
                 const types = [...new Set([
                     ...(Array.isArray(p1.type) ? p1.type : [p1.type]),
                     ...(Array.isArray(p2.type) ? p2.type : [p2.type])

@@ -14,6 +14,7 @@
         };
 
         let isExecutingMove = false;
+        const _deathSoundPlayed = new WeakSet(); // so a unit's death sound plays once, not on every re-render
 
         const _spritePreloadCache = new Map();
         function preloadSprite(src) {
@@ -76,6 +77,7 @@
                 else if (!currentRun.isTutorial && bpLayer) bpLayer.remove();
             }
 
+            SFX.fightIsBoss(node.type === 'boss');   // Act I picks its fight music (normal / boss) when the screen opens
             showScreen('screen-combat');
 
             // Wipe any leftover combatant DOM from the previous encounter. Those divs'
@@ -329,6 +331,7 @@
         }
 
         async function playSoulCollectVFX(fromUnit, toUnit, amount) {
+            SFX.play('soul');
             const arenaEl = document.getElementById('combat-arena');
             const fromEl = getElementForUnit(fromUnit);
             const toEl = getElementForUnit(toUnit);
@@ -421,6 +424,7 @@
             }
             q.pending.sort((a, b) => (FLOATING_TEXT_ORDER[a.category] ?? 0) - (FLOATING_TEXT_ORDER[b.category] ?? 0));
             const entry = q.pending.shift();
+            if (entry.category === 'energy') SFX.play('energy');
             renderFloatingText(unit, entry.text, entry.color);
             setTimeout(() => processFloatingTextQueue(unit, q), FLOATING_TEXT_STAGGER);
         }
@@ -462,6 +466,8 @@
         }
 
         async function playStatusVFX(unit, type, onImpact) {
+            // poison / toxin tick: the sound of the skill that applied it (Giant Poison Cloud has its own)
+            SFX.play(type === 'Poison' && unit.poisonEvolved ? 'poisonGiant' : String(type).toLowerCase());
             const targetEl = getElementForUnit(unit);
             if (!targetEl) {
                 if (onImpact) onImpact();
@@ -528,6 +534,7 @@
         }
 
         function playHealVFX(unit) {
+            SFX.play('heal');
             const teamPrefix = unit.isEnemy ? 'enemy' : 'player';
             let index = -1;
             if (unit.isEnemy) {
@@ -760,6 +767,10 @@
                 }
             }
 
+            if (u.currentHp <= 0 && !_deathSoundPlayed.has(u)) {
+                _deathSoundPlayed.add(u);
+                SFX.play('enemyDeath');   // one sound whenever any monster falls: enemies and your own
+            }
             div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargeting ? (isTargetable ? 'targetable' : 'not-targetable') : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''} ${u.silhouette ? 'silhouette' : ''} name-${u.name.replace(/\s+/g, '-').toLowerCase()}`;
             const hpPerc = Math.max(0, (u.currentHp / u.hp) * 100);
             let hpColor = '#ff6b6b';
@@ -1106,6 +1117,7 @@ let shadowClass = getShadowClass(u.name);
 
             if (unit.stunned > 0) {
                 combatLog(`${unit.name} is stunned and skips their turn!`);
+                SFX.play('stun');
                 unit.stunned--;
                 setTimeout(advanceTurn, 1000);
                 return;
@@ -1113,6 +1125,7 @@ let shadowClass = getShadowClass(u.name);
 
             if (unit.sleep > 0) {
                 combatLog(`${unit.name} is asleep and skips their turn!`);
+                SFX.play('sleep');
                 unit.sleep--;
                 setTimeout(advanceTurn, 1000);
                 return;
@@ -1140,6 +1153,7 @@ let shadowClass = getShadowClass(u.name);
             if (energyDisplayEl) energyDisplayEl.classList.toggle('energy-visible', combatState.isPlayerTurn);
 
             if (combatState.isPlayerTurn) {
+                SFX.play('turn');
                 renderMoveControls(unit);
                 if (currentRun.isTutorial) onTutorialPlayerTurn(unit);
             } else {
@@ -1521,6 +1535,8 @@ let shadowClass = getShadowClass(u.name);
             combatLog(`${attacker.name} used ${move.n}!`);
 
             if (move.p > 0 && !move.effect?.type?.includes('heal')) {
+                // Basic attacks have no hit animation: they land right after this 250 ms dash, so start their sound now.
+                if (move.isBasicAttack) SFX.play('move', { name: move.n, delay: 0.25 });
                 const attackerEl = getElementForUnit(attacker);
                 if (attackerEl) {
                     const dashDist = attacker.isEnemy ? '-30px' : '30px';
@@ -2267,22 +2283,36 @@ let shadowClass = getShadowClass(u.name);
                     }
                 }
 
+                // The skill's sound: its own impact is scheduled to land exactly when the animation does
+                // (animDelay from now), once per target. Multi-hit moves play one sound per hit as each hit lands.
+                const dealsDamage = move.p > 0 && !move.effect?.type?.includes('heal');
+                const isMultiHit = dealsDamage && (move.hits || 1) > 1;
+                if (isMultiHit) {
+                    // each hit lands 400 ms after the previous one; schedule every shot up front so each lands on its hit
+                    for (let h = 0; h < move.hits; h++) SFX.play('move', { name: move.n, delay: animDelay / 1000 + h * 0.408, noGap: true });
+                } else if (!move.isBasicAttack) {
+                    SFX.play('move', { name: move.n, delay: animDelay / 1000 });
+                }
+
                 if (animDelay > 0) {
                     await new Promise(r => setTimeout(r, animDelay));
                 }
 
                 // Damage
-                if (move.p > 0 && !move.effect?.type?.includes('heal')) {
+                if (dealsDamage) {
                     const hitCount = move.hits || 1;
 
                     for (let i = 0; i < hitCount; i++) {
                         if (t.currentHp <= 0) break;
-                        
+
                         let damage = calculateDamage(attacker, move, t);
                         damage = Math.max(1, Math.floor(damage));
-                        
+
                         // Guard reduction is already applied in calculateDamage, but we need to consume it
                         if (t.defMod > 0) {
+                            // the guard absorbs this hit: Elder Guard has its own, heavier sound
+                            const guardBuff = t.buffs && t.buffs.find(b => b.type === 'guard' || b.type === 'guard_pct');
+                            SFX.play(guardBuff && guardBuff.evolved ? 'guardBlockElder' : 'guardBlock');
                             t.defMod = 0; // Guard is consumed on hit
                             if (t.buffs) {
                                 t.buffs = t.buffs.filter(b => b.type !== 'guard' && b.type !== 'guard_pct');
@@ -2300,6 +2330,7 @@ let shadowClass = getShadowClass(u.name);
                                 t.buffs.splice(counterBuffIdx, 1); // remove counter after hit
                                 attacker.currentHp -= counterDamage;
                                 showFloatingText(attacker, "-" + counterDamage, "#ff4444", 'damage');
+                                SFX.play(counterBuff.evolved ? 'counterHeavy' : 'counter');   // Heavy Counter has its own sound
                                 combatLog(`${t.name} countered! ${attacker.name} took ${counterDamage} damage!`);
                                 if (attacker.currentHp <= 0) {
                                     if (attacker.isEnemy && !combatState.killedEnemies.includes(attacker)) combatState.killedEnemies.push(attacker);
@@ -2353,6 +2384,7 @@ let shadowClass = getShadowClass(u.name);
                                 if (reflectAmt > 0) {
                                     attacker.currentHp -= reflectAmt;
                                     showFloatingText(attacker, "-" + reflectAmt, "#ff4444", 'damage');
+                                    SFX.play(bramblesBuffs[0].evolved ? 'thornsColossal' : 'thorns');   // Colossal Thorns has its own sound
                                     combatLog(`${attacker.name} took ${reflectAmt} damage from Thorns!`);
                                     if (attacker.currentHp <= 0) {
                                         if (attacker.isEnemy && !combatState.killedEnemies.includes(attacker)) combatState.killedEnemies.push(attacker);
@@ -2855,11 +2887,13 @@ let shadowClass = getShadowClass(u.name);
         function endCombat(isWin) {
             if (combatState.ended) return;
             combatState.ended = true;
+            SFX.play(isWin ? 'victory' : 'defeat');
 
             if (currentRun.isTutorial) {
                 onTutorialCombatEnd(isWin);
                 return;
             }
+            if (isWin) SFX.ambience('campfire');   // the fight music gives way to the campfire track; the next screen (the road) brings back the act's ambience
 
             // Remove dead party members
             currentRun.party = currentRun.party.map(p => p && p.currentHp > 0 ? p : null);
@@ -2934,6 +2968,8 @@ let shadowClass = getShadowClass(u.name);
 
         function recruitMonster(e) {
             const base = STARTERS[e.baseId];
+            // a monster joins: the new-starter fanfare if it's the first time you've ever unlocked it, otherwise the recruit greeting
+            SFX.play(gameState.unlockedStarters.includes(base.id) ? 'recruit' : 'unlock');
             const recruit = {
                 ...base,
                 isEnemy: false,
@@ -2997,6 +3033,7 @@ let shadowClass = getShadowClass(u.name);
                                     energy: outcome.startingEnergy || 0
                                 };
 
+                                SFX.play('merge');
                                 showGameAlert("Merge Successful!", `Created ${outcome.name}!`, advanceRun, mergeArt);
                             },
                             () => {
@@ -3116,6 +3153,7 @@ let shadowClass = getShadowClass(u.name);
                     const unlocksId = bossData.unlocks;
                     if (!gameState.unlockedStarters.includes(unlocksId)) {
                         gameState.unlockedStarters.push(unlocksId);
+                        SFX.play('unlock');   // the run's boss unlocked a new starter
                         const starter = STARTERS[unlocksId];
                         msg += `\nUnlocked new starter: ${starter.name}!`;
                         if (starter && starter.art) {
