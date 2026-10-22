@@ -48,7 +48,7 @@ logic via plain, non-module `<script>` tags in a fixed order:
 
 ```
 src/data.js → src/audio.js → src/state.js → src/core.js → src/collection.js → src/selection.js
-→ src/map.js → src/combat.js → src/merge.js → src/pause.js → src/dialogue.js → src/tutorial.js
+→ src/backpack.js → src/map.js → src/combat.js → src/merge.js → src/pause.js → src/dialogue.js → src/tutorial.js → src/finalboss.js
 ```
 
 These files are **not ES modules**; they declare `let`/`function` at top level and rely on
@@ -107,10 +107,11 @@ new effect types there when adding new move effects.
   per sound with the `TRIM` table in `audio.js`: after adding or changing a sound, click "Measure
   loudness of every sound" on that page and copy its suggested trims (it measures at the real output). Mute/volume persist
   in localStorage (`soulbound_audio`) via two independent knobs, `[data-sfx-volume]` (sound effects, through `master`) and `[data-music-volume]` (music and ambience, through `ambOut`), in the
-  settings menu and pause modal. It also wires click/hover sounds for every button globally (the click plays on pointerdown, not on release, so it is instant; combat skill buttons `.move-btn` get their own `ability` sound). Skills defined outside `data.json` (e.g. the tutorial boss's "Void Shockwave" / "Soul Devour" in `tutorial.js`) need their own row in `M` too.- [state.js](src/state.js) — global game/run state shape (`gameState`, `currentRun`, slots).
+  settings menu and pause modal. It also wires click/hover sounds for every button globally (the click plays on pointerdown, not on release, so it is instant; combat skill buttons `.move-btn` get their own `ability` sound). Skills defined outside `data.json` need their own row in `M` too.- [state.js](src/state.js) — global game/run state shape (`gameState`, `currentRun`, slots).
 - [core.js](src/core.js) — data loading (`init`), save/load (`saveGame`, localStorage key
   `soulbound_save`, with legacy `labborn_save` read for back-compat), screen switching
   (`showScreen`), scaling, element icon/type helpers.
+- [backpack.js](src/backpack.js) — the run backpack (`currentRun.backpack`, 3 slots): a recruit goes there when the party is full (`recruitMonster` in combat.js; if the backpack is full too, `openBackpackFullModal` picks who to leave behind). Backpack monsters keep HP/energy; `swapSlots`/`locateMonster` move them between backpack and party on the team, merge and Last Changes screens, and they can be merge parents. The boss node opens the merge screen in `lastChanges` mode (title LAST CHANGES, button BOSS FIGHT!) via `initMerge({lastChanges: node})` before `initCombat`.
 - [selection.js](src/selection.js) — pre-run team selection UI, generic modal helpers
   (`showGameAlert`, `showGameConfirm`, `closeModal`) used across the app.
 - [map.js](src/map.js) — run start (`startRun`) and node map rendering.
@@ -131,6 +132,21 @@ new effect types there when adding new move effects.
   battle that unlocks the second starter, then an unwinnable silhouette boss. Hooks into the
   engine via `currentRun.isTutorial` (renderMap/proceedToNode/nextTurn/endCombat) and
   `initCombat` node options (`enemies`, `protectParty`/`protectEnemies`, `beforeFirstTurn`).
+- [finalboss.js](src/finalboss.js) — the endgame. Beating the Act III boss (the fight that unlocks the
+  `mech_melee` starter) opens a portal: the start screen gets a portal widget (`#menu-portal`,
+  `usePortal`, `playPortalTransition`) leading to the "dark dimension" version of the start screen
+  (`inDarkDimension`, `refreshMenuDimension`, called from `showScreen('screen-menu')`; art
+  `Final Boss Start Run.png`, collection door sealed). START RUN there opens `screen-selection` in
+  `selectionMode = 'final'` (selection.js: exactly 4 merges, no starters; fewer than 4 discovered merges
+  allows duplicates), then `startFinalBossFight` builds a `currentRun` with `isFinalBoss` and
+  `arcId: 'final'` (arena `Dark Dimension.png`). The boss ("Void Shade", 200 HP, only starter moves, same as the tutorial boss) is
+  replaced in place by its second form ("Void Devourer", 400 HP, every merge move, nothing of its own) when it falls:
+  `endCombat` calls `finalBossPhaseBreak`, which plays `showBossDialogue({ evolveTo })` (dialogue.js) and
+  resumes the turn loop. Its AI (`finalBossAI`/`finalBossChooseAction`) scores every affordable move and
+  target in "HP worth of value" instead of a fixed priority list. Stats live in `FINAL_BOSS_STAGES`; they
+  were tuned with a headless copy of the fight (see the comment there). `gameState.finalBossBeaten`
+  decides between "YOU WIN THE GAME!" and "YOU WIN AGAIN!". Music: `dark_secrets.mp3` for the dark
+  start screen and its team select, `final_fight_1.mp3` / `final_fight_2.mp3` for the two forms.
 
 ### Art assets — two directories, know which one you're editing for
 

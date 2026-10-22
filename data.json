@@ -513,7 +513,7 @@
           "ranged": true,
           "effect": {
             "type": "toxin_pct",
-            "value": 0.15,
+            "value": 0.12,
             "turns": 4,
             "target": "enemy"
           }
@@ -1172,7 +1172,7 @@
           "ranged": true,
           "effect": {
             "type": "toxin_pct",
-            "value": 0.15,
+            "value": 0.12,
             "turns": 3,
             "target": "enemy"
           }

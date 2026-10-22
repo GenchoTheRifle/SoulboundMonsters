@@ -17,60 +17,9 @@
             { type: 'boss', x: 1540, y: 640 }
         ];
 
-        // The tutorial boss isn't any real monster: a smoky shadow with long spindly arms, almost
-        // invisible except for its glowing white features - a single staring eye
-        // and a wide grin of jagged teeth. Drawn inline so it needs no art file.
-        function buildTutorialBossSvg() {
-            // Deterministic jitter so the teeth look hand-drawn but come out identical every time.
-            let seed = 7;
-            const rand = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-            let teeth = '';
-            for (let x = 168; x <= 336; x += 12.5) {
-                const t = (x + 6 - 256) / 96;
-                const open = Math.max(0, 1 - t * t);
-                const top = 258 + 22 * open;         // upper gum line - the grin's corners curl up
-                const bottom = top + 10 + 52 * open; // lower gum line
-                const gap = bottom - top;
-                const upper = gap * (0.42 + rand() * 0.22);
-                const lower = gap * (0.38 + rand() * 0.22);
-                const w = 10 + rand() * 2;
-                teeth += `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${w.toFixed(1)}" height="${upper.toFixed(1)}" rx="4"/>`;
-                teeth += `<rect x="${(x + 4).toFixed(1)}" y="${(bottom - lower).toFixed(1)}" width="${w.toFixed(1)}" height="${lower.toFixed(1)}" rx="4"/>`;
-            }
-            const arm = side => `
-                <g transform="${side < 0 ? '' : 'translate(512 0) scale(-1 1)'}">
-                    <path d="M132 196 C86 240 62 320 54 420" stroke-width="15"/>
-                    <path d="M54 418 L28 480 M54 418 L44 492 M54 418 L62 490 M54 418 L80 474" stroke-width="6"/>
-                </g>`;
-            return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-                <defs>
-                    <filter id="smoke" x="-20%" y="-20%" width="140%" height="140%">
-                        <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="4" result="noise"/>
-                        <feDisplacementMap in="SourceGraphic" in2="noise" scale="24" xChannelSelector="R" yChannelSelector="G"/>
-                        <feGaussianBlur stdDeviation="1.2"/>
-                    </filter>
-                    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-                        <feGaussianBlur stdDeviation="2.5" result="b"/>
-                        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                    </filter>
-                    <radialGradient id="shade" cx="50%" cy="42%" r="62%">
-                        <stop offset="0.55" stop-color="#000"/>
-                        <stop offset="1" stop-color="#000" stop-opacity="0.7"/>
-                    </radialGradient>
-                </defs>
-                <g filter="url(#smoke)">
-                    <g fill="none" stroke="#000" stroke-linecap="round">${arm(-1)}${arm(1)}</g>
-                    <path fill="url(#shade)" d="M256 36 C350 36 400 120 398 220 C396 300 420 380 452 500 L410 478 L392 506 L360 476 L334 506 L306 478 L282 506 L256 480 L230 506 L206 478 L178 506 L152 476 L120 506 L102 478 L60 500 C92 380 116 300 114 220 C112 120 162 36 256 36 Z"/>
-                </g>
-                <g filter="url(#glow)" fill="#f2f2f2">
-                    <path d="M206 178 Q256 144 306 178 Q256 210 206 178 Z" fill="none" stroke="#f2f2f2" stroke-width="5"/>
-                    <circle cx="256" cy="178" r="11" fill="none" stroke="#f2f2f2" stroke-width="4"/>
-                    <circle cx="256" cy="178" r="3.5"/>
-                    ${teeth}
-                </g>
-            </svg>`;
-        }
-        const TUTORIAL_BOSS_ART = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(buildTutorialBossSvg());
+        // The tutorial boss is the shadow that waits behind the whole game: you meet it here as a mystery ("???"),
+        // and face it again, unmasked, as the first form of the final boss (see finalboss.js).
+        const TUTORIAL_BOSS_ART = 'Art/First Stage.png';
         const TUT_EN_ICON = `<img src="Art/EN.png" class="tut-inline-icon" alt="EN" />`;
         const TUT_HP_ICON = `<img src="Art/HP.png" class="tut-inline-icon" alt="HP" />`;
 
@@ -333,6 +282,7 @@
             o.step = step;
             o.lastTarget = undefined; // force a full layout for the new step
             o.root.classList.remove('idle');
+            o.root.classList.toggle('instant', !!step.instant);
             o.title.innerHTML = step.title || '';
             o.title.style.display = step.title ? '' : 'none';
             o.text.innerHTML = step.text;
@@ -765,7 +715,7 @@
                 id: 'tutorial_boss',
                 name: '???',
                 type: [],
-                hp: 999,
+                hp: 200,   // same as its first form in the final fight; protectEnemies below stops it at 1 HP so it can't be beaten here
                 matk: 30,
                 mdef: 30,
                 ratk: 28,
@@ -773,13 +723,11 @@
                 spd: 12,
                 startingEnergy: 2,
                 art: TUTORIAL_BOSS_ART,
-                moves: [
-                    { n: 'Soul Devour', c: 1, t: 'Neutral', p: 1.1, melee: true },
-                    { n: 'Void Shockwave', c: 2, t: 'Neutral', p: 0.85, ranged: true, effect: { type: 'atk_debuff_pct', value: 0.25, turns: 2, target: 'all_enemies' } }
-                ]
+                moves: collectUniqueMoves(Object.values(STARTERS))   // every starter move, like the final boss's first form (finalboss.js)
             }, {
                 isBoss: true,
-                silhouette: true
+                silhouette: true,
+                sizeClass: 'boss-small'
             });
             initCombat({ type: 'boss', enemies: [boss], protectEnemies: true }, {
                 beforeFirstTurn: () => tutorialWait(900)

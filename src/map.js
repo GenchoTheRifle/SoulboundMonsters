@@ -13,7 +13,9 @@
             'Guard stays up until it absorbs a hit.',
             'Counter reflects a hit back, along with any stun or poison.',
             "Poison ticks at the start of the victim's turn.",
-            'Rearrange your party on the team screen between fights.'
+            'Rearrange your party on the team screen between fights.',
+            'A full party sends new recruits to your backpack. Swap them in on the team screen.',
+            'The node before the boss lets you merge and set your formation one last time.'
         ];
         const RUN_TIP_MS = 3600;   // how long the loading bar / tip stays up
         let lastRunTipIndex = -1;
@@ -108,6 +110,7 @@
 
                     // Initialize run state in the background while black screen is up
                     currentRun.party = selectionSlots.map(s => s ? { ...s, currentHp: s.hp } : null);
+                    resetBackpack();
                     currentRun.arcId = selectedArcId;
                     currentRun.nodeIndex = 0;
                     // Node 1's enemy pool is restricted to the base starters only on the
@@ -429,6 +432,7 @@
 
                 div.innerHTML = `
                     ${isActive ? `<div class="node-active-arrow">&#9660;</div>` : ''}
+                    ${n.type === 'boss' && !isActive ? `<div class="boss-merge-tell"><img src="Art/Merge_Icon.png" alt="" /><span>&#9660;</span></div>` : ''}
                     ${i === currentRun.nodeIndex - 1 ? '' : `<div style="position:absolute; top:-35px; left:50%; transform:translateX(-50%); color:${textColor}; font-size:24px; font-weight: normal; text-shadow:var(--outline-med); white-space:nowrap; z-index:10;">${nodeText}</div>`}
                     <img src="${iconSrc}" style="width: 80%; height: 80%; object-fit: contain; filter: ${filterStr}; transition: filter 0.3s;" />
                     ${isCompleted ? `<img src="Art/Victory.png" style="position:absolute; top:0; right:0; width: 36%; height: 36%; object-fit: contain; filter: drop-shadow(1px 1px 2px black); z-index: 11;" />` : ''}
@@ -553,7 +557,8 @@
                     slot.classList.remove('combatant');
                 }
             }
-            
+            renderBackpack('team');
+
             // Render Stats grid
             const statsGrid = document.getElementById('team-stats-grid');
             if (statsGrid) {
@@ -626,26 +631,13 @@
         }
 
         window.dragStartTeam = function(ev, index) {
+            ev.dataTransfer.setData("source", "party");
             ev.dataTransfer.setData("index", index);
         }
 
-        window.dropTeamParty = function(ev) {
-            ev.preventDefault();
-            const sourceIndexStr = ev.dataTransfer.getData("index");
-            if (!sourceIndexStr) return;
-            const sourceIndex = parseInt(sourceIndexStr);
-            
-            let targetSlot = ev.target.closest('.select-slot');
-            if (!targetSlot) return;
-            const targetIndex = parseInt(targetSlot.getAttribute('data-slot'));
-
-            // Swap in party
-            const temp = currentRun.party[sourceIndex];
-            currentRun.party[sourceIndex] = currentRun.party[targetIndex];
-            currentRun.party[targetIndex] = temp;
-            
-            updateTeamUI();
-        }
+        // Party slots and backpack slots both accept drops from either list (swap).
+        window.dropTeamParty = function(ev) { dropIntoSlot(ev, 'party', updateTeamUI); }
+        window.dropTeamBackpack = function(ev) { dropIntoSlot(ev, 'backpack', updateTeamUI); }
 
         
         
@@ -664,7 +656,10 @@ window.proceedToNode = function() {
     moveMapToken(`${pos.x * 100}%`, `${pos.y * 100}%`).then(() => {
         fadeThroughBlack(() => {
             mapTravelBusy = false;
-            if (node.type === 'combat' || node.type === 'boss') {
+            if (node.type === 'boss') {
+                // one last chance to merge and fix the formation before the boss (see finishMerge)
+                initMerge({ lastChanges: node });
+            } else if (node.type === 'combat') {
                 if (typeof initCombat === 'function') initCombat(node);
             } else if (node.type === 'merge') {
                 if (typeof initMerge === 'function') initMerge();

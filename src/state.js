@@ -3,7 +3,9 @@
             unlockedStarters: [],
             discoveredMerges: [],
             maxActReached: 1,
-            hasStartedFirstRun: false
+            hasStartedFirstRun: false,
+            finalBossBeaten: false,
+            finalBossAttempted: false
         };
 
         function getMapRoadBackground(arcId) {
@@ -20,6 +22,7 @@
 
         function getMapBackground(arcId) {
             if (arcId === 'tutorial') return 'none'; // the tutorial paints its own blueprint layer instead
+            if (arcId === 'final') return "url('Art/Dark Dimension.png')"; // the final boss's arena
             if (arcId === 'arc2') return "url('Art/Forest Map.png')";
             if (arcId === 'arc3') return "url('Art/Laboratory Map.png')";
             return "url('Art/Cave Map.png')";

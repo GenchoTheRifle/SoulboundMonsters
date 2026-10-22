@@ -642,7 +642,7 @@
                         div.innerHTML = `<span class="turn-icon-mystery">?</span>`;
                     } else {
                         const img = document.createElement('img');
-                        img.src = `Art/${formattedName}_${portraitSide}_Portrait.png`;
+                        img.src = u.portrait || `Art/${formattedName}_${portraitSide}_Portrait.png`;
                         img.style.width = '100%';
                         img.style.height = '100%';
                         img.style.objectFit = 'cover';
@@ -772,7 +772,7 @@
                 _deathSoundPlayed.add(u);
                 SFX.play('enemyDeath');   // one sound whenever any monster falls: enemies and your own
             }
-            div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargeting ? (isTargetable ? 'targetable' : 'not-targetable') : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''} ${u.silhouette ? 'silhouette' : ''} name-${u.name.replace(/\s+/g, '-').toLowerCase()}`;
+            div.className = `combatant ${u.currentHp <= 0 ? 'dead' : ''} ${isTargeting ? (isTargetable ? 'targetable' : 'not-targetable') : ''} ${u.isEnemy ? 'enemy' : 'ally'} ${u.isBoss ? 'boss' : ''} ${u.silhouette ? 'silhouette' : ''} ${u.sizeClass || ''} name-${u.name.replace(/\s+/g, '-').toLowerCase()}`;
             const hpPerc = Math.max(0, (u.currentHp / u.hp) * 100);
             let hpColor = '#ff6b6b';
             if (hpPerc > 66) hpColor = '#51cf66';
@@ -1502,6 +1502,7 @@ let shadowClass = getShadowClass(u.name);
             if (isExecutingMove) return;
             if (attacker.energy < move.c) return;
             isExecutingMove = true;
+            combatState.lastMove = move;
             attacker.energy -= move.c;
             attacker.gainEnergyOnAdvance = !!move.isBasicAttack;
             combatState.targetingMove = null;
@@ -2811,6 +2812,10 @@ let shadowClass = getShadowClass(u.name);
         }
 
         function bossAI(unit) {
+            if (unit.finalBossStage) {
+                finalBossAI(unit);
+                return;
+            }
             if (unit.baseId === 'mega_mech' && heavyRobotOpeningAI(unit)) {
                 return;
             }
@@ -2901,11 +2906,17 @@ let shadowClass = getShadowClass(u.name);
 
         function endCombat(isWin) {
             if (combatState.ended) return;
+            // The final boss's first form falling isn't the end: it evolves and the fight goes on.
+            if (isWin && currentRun.isFinalBoss && finalBossPhaseBreak()) return;
             combatState.ended = true;
             SFX.play(isWin ? 'victory' : 'defeat');
 
             if (currentRun.isTutorial) {
                 onTutorialCombatEnd(isWin);
+                return;
+            }
+            if (currentRun.isFinalBoss) {
+                onFinalBossCombatEnd(isWin);
                 return;
             }
             if (isWin) SFX.ambience('campfire');   // the fight music gives way to the campfire track; the next screen (the road) brings back the act's ambience
@@ -2991,164 +3002,27 @@ let shadowClass = getShadowClass(u.name);
                 currentHp: base.hp, // FULL HP
                 hp: base.hp
             };
+            const isNewStarter = !gameState.unlockedStarters.includes(recruit.id);
+            if (isNewStarter) {
+                gameState.unlockedStarters.push(recruit.id);
+                saveGame();
+            }
 
             const emptyIndex = currentRun.party.findIndex(p => p === null);
-            const artHtml = `<div style="display:flex; justify-content:center; align-items:center; margin:10px auto; width:200px; height:200px; overflow:hidden;">${renderFocusedArt(recruit.art)}</div>`;
-
             if (emptyIndex !== -1) {
                 currentRun.party[emptyIndex] = recruit;
-                // Unlock in collection
-                if (!gameState.unlockedStarters.includes(recruit.id)) {
-                    gameState.unlockedStarters.push(recruit.id);
-                    saveGame();
-                    showMergeResultDetails(recruit, advanceRun);
-                } else {
-                    showRecruitmentAlert(recruit, advanceRun);
-                }
-                return;
-            } else {
-                const mergesInParty = currentRun.party.filter(p => p && p.parents).length;
-                const nonMerges = currentRun.party.filter(p => p && !p.parents);
-
-                if (mergesInParty === 3 && nonMerges.length === 1) {
-                    const p1 = nonMerges[0];
-                    const p2 = recruit;
-                    const outcome = MERGES.find(m =>
-                        (m.parents[0] === p1.id && m.parents[1] === p2.id) ||
-                        (m.parents[0] === p2.id && m.parents[1] === p1.id)
-                    );
-
-                    if (outcome) {
-                        const mergeArt = `<div style="display:flex; justify-content:center; align-items:center; margin:10px 0; gap: 10px; height:190px;">
-                            <div style="width:190px; height:190px; overflow:hidden; display:flex; justify-content:center; align-items:center;">${renderFocusedArt(p1.art)}</div>
-                            <span style="font-size: 48px; color:#fff;">+</span>
-                            <div style="width:190px; height:190px; overflow:hidden; display:flex; justify-content:center; align-items:center;">${renderFocusedArt(p2.art)}</div>
-                            <span style="font-size: 48px; color:#fff;">=</span>
-                            <div style="width:190px; height:190px; overflow:hidden; display:flex; justify-content:center; align-items:center;">${renderFocusedArt(outcome.art)}</div>
-                        </div>`;
-
-                        showGameConfirm(
-                            "Auto Merge Opportunity",
-                            `You have 3 Merged monsters and 1 base monster (${p1.name}). Do you want to fuse ${p1.name} with ${p2.name} to create ${outcome.name}?`,
-                            () => {
-                                if (!gameState.unlockedStarters.includes(recruit.id)) {
-                                    gameState.unlockedStarters.push(recruit.id);
-                                }
-                                if (!gameState.discoveredMerges.includes(outcome.name)) {
-                                    gameState.discoveredMerges.push(outcome.name);
-                                }
-                                saveGame();
-
-                                const destIdx = currentRun.party.indexOf(p1);
-                                currentRun.party[destIdx] = {
-                                    ...outcome,
-                                    isEnemy: false,
-                                    currentHp: outcome.hp,
-                                    energy: outcome.startingEnergy || 0
-                                };
-
-                                SFX.play('merge');
-                                showGameAlert("Merge Successful!", `Created ${outcome.name}!`, advanceRun, mergeArt);
-                            },
-                            () => {
-                                let replaceText = `Replace a monster with ${recruit.name}?`;
-                                if (!gameState.unlockedStarters.includes(recruit.id)) {
-                                    replaceText += ` (This will also unlock it in your Collection)`;
-                                }
-                                showGameConfirm("Recruitment", replaceText,
-                                    () => openReplacementModal(recruit),
-                                    advanceRun,
-                                    artHtml
-                                );
-                            },
-                            mergeArt
-                        );
-                        return;
-                    }
-                }
-
-                let replaceText = `Your party is full. Replace a monster with ${recruit.name}?`;
-                if (!gameState.unlockedStarters.includes(recruit.id)) {
-                    replaceText += ` (This will also unlock it in your Collection)`;
-                }
-                showGameConfirm("Recruitment", replaceText,
-                    () => openReplacementModal(recruit),
-                    advanceRun,
-                    artHtml
-                );
+                if (isNewStarter) showMergeResultDetails(recruit, advanceRun);
+                else showRecruitmentAlert(recruit, advanceRun);
                 return;
             }
-        }
 
-        function openReplacementModal(recruit) {
-            const modal = document.getElementById('modal-selection');
-            const list = document.getElementById('modal-list');
-            document.getElementById('modal-title').innerText = "Select to Replace";
-            list.className = '';
-            list.innerHTML = `
-                <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
-                    <div>
-                        <div style="display: grid; grid-template-columns: 240px 240px; gap: 50px; justify-content: center; margin-bottom: 15px; color: white; font-weight: normal; font-size: 20px; text-shadow: var(--outline-thin);">
-                            <div style="text-align: center;">BACKLINE</div>
-                            <div style="text-align: center;">FRONTLINE</div>
-                        </div>
-                        <div style="position: relative; padding: 25px 45px; background: ${getMapBackground(currentRun.arcId)} center/cover; border-radius: 15px; border: 2px solid #444;">
-                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); border-radius: 15px;"></div>
-                            <div class="team" style="position: relative; z-index: 2; width: auto; padding: 0; direction: rtl;" id="replace-list-team">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            const teamContainer = document.getElementById('replace-list-team');
-            
-            const closeBtn = document.getElementById('modal-selection-close-btn');
-            closeBtn.onclick = () => {
-                closeModal('modal-selection');
-                advanceRun();
-            };
-            
-            for(let idx = 0; idx < 4; idx++) {
-                const m = currentRun.party[idx];
-                const btn = document.createElement('div');
-                btn.className = 'select-slot';
-                btn.style.direction = 'ltr';
-                btn.style.width = '220px';
-                btn.style.height = '220px';
-
-                if (!m) {
-                    teamContainer.appendChild(btn);
-                    continue;
-                }
-
-                btn.innerHTML = `
-                    <button style="width: 100%; height: 100%; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0;">
-                        <div style="width:170px; height:170px; margin-bottom:8px; pointer-events:none;">
-                            ${renderArt(m.art, 150)}
-                        </div>
-                        <strong style="font-size:28px; text-align:center; pointer-events:none; color: white; text-shadow: var(--outline-med);">${m.name}</strong>
-                    </button>
-                `;
-                btn.querySelector('button').onclick = () => {
-                    currentRun.party[idx] = recruit;
-                    // Unlock in collection
-                    if (!gameState.unlockedStarters.includes(recruit.id)) {
-                        gameState.unlockedStarters.push(recruit.id);
-                        saveGame();
-                        setTimeout(() => {
-                            showMergeResultDetails(recruit, advanceRun);
-                        }, 500);
-                    } else {
-                        setTimeout(() => {
-                            showRecruitmentAlert(recruit, advanceRun);
-                        }, 500);
-                    }
-                    closeModal('modal-selection');
-                };
-                teamContainer.appendChild(btn);
-            }
-            modal.style.display = 'flex';
+            // Party full: the recruit goes to the backpack (or, if that is full too, you pick who stays behind).
+            const saved = saveToBackpack(recruit) !== -1;
+            const next = saved
+                ? () => showRecruitmentAlert(recruit, advanceRun, `Your party is full! Defeated ${recruit.name} was saved in your backpack.`)
+                : () => openBackpackFullModal(recruit);
+            if (isNewStarter) showMergeResultDetails(recruit, next);
+            else next();
         }
 
         function advanceRun() {
@@ -3157,6 +3031,7 @@ let shadowClass = getShadowClass(u.name);
                 // Victory Run
                 let msg = "Congratulations! You have completed the run.";
                 let winHtml = '';
+                let opensDarkDimension = false;   // beating the Act III boss (which unlocks the small robot) for the first time opens the final boss's portal
 
                 let bossId = 'mega_bat';
                 if (currentRun.arcId === 'arc2') bossId = 'mega_treant';
@@ -3170,6 +3045,10 @@ let shadowClass = getShadowClass(u.name);
                         SFX.play('unlock');   // the run's boss unlocked a new starter
                         const starter = STARTERS[unlocksId];
                         msg += `\nUnlocked new starter: ${starter.name}!`;
+                        if (unlocksId === 'mech_melee') {
+                            opensDarkDimension = true;
+                            msg += `\n\nA dark portal tears open in the sky...`;
+                        }
                         if (starter && starter.art) {
                             winHtml = `<div style="display:flex; justify-content:center; margin: 12px 0;">${renderArt(starter.art, 340)}</div>`;
                         }
@@ -3187,7 +3066,8 @@ let shadowClass = getShadowClass(u.name);
 
                 saveGame();
                 showGameAlert("YOU WIN!", msg, () => {
-                    showScreen('screen-menu');
+                    if (opensDarkDimension) enterDarkDimensionFirstTime();
+                    else showScreen('screen-menu');
                 }, winHtml);
             } else {
                 showScreen('screen-map');

@@ -28,7 +28,7 @@ const SFX = (() => {
         bottle: ['rpg/bottle.wav'], cloth: ['rpg/cloth.wav'],
         // Kenney Impact Sounds (CC0)
         woodL: kn('impactWood_light'), step: kn('footstep_concrete'), stepGrass: kn('footstep_grass'),
-        ambience: ['ambience/forest.ogg', 'ambience/cave.ogg', 'ambience/menu_music.mp3', 'ambience/combat_cave.mp3', 'ambience/combat_boss.mp3', 'ambience/combat_forest.mp3', 'ambience/combat_treant.mp3', 'ambience/combat_lab.mp3', 'ambience/combat_lab_boss.mp3', 'ambience/campfire.mp3'],   // looped beds (see AMBIENCES); listed here so they get preloaded
+        ambience: ['ambience/forest.ogg', 'ambience/cave.ogg', 'ambience/menu_music.mp3', 'ambience/combat_cave.mp3', 'ambience/combat_boss.mp3', 'ambience/combat_forest.mp3', 'ambience/combat_treant.mp3', 'ambience/combat_lab.mp3', 'ambience/combat_lab_boss.mp3', 'ambience/campfire.mp3', 'ambience/dark_secrets.mp3', 'ambience/final_fight_1.mp3', 'ambience/final_fight_2.mp3'],   // looped beds (see AMBIENCES); listed here so they get preloaded
     };
 
     // ---------------------------------------------------------------- layers
@@ -78,7 +78,15 @@ const SFX = (() => {
         merge: [['synth:chime', .72, 1, 0, { notes: [392, 493.88, 587.33, 783.99], step: .09, decay: 1.6, pad: 196, glide: [150, 900], wet: .85, bright: .6, sparkle: true }],
                 ['kenney/lowFrequency_explosion_001.ogg', .6, 1.3, .3]],
         // New starter unlocked: a little "lock opening" click, then a bright rising fanfare with a glow.
-        unlock: [['metalSmall', .7, 1.3], ['synth:chime', .78, 1, .1, { notes: [587.33, 739.99, 880, 1174.66], step: .08, decay: 1.4, pad: 293.66, wet: .85, bright: .9, sparkle: true }]]
+        unlock: [['metalSmall', .7, 1.3], ['synth:chime', .78, 1, .1, { notes: [587.33, 739.99, 880, 1174.66], step: .08, decay: 1.4, pad: 293.66, wet: .85, bright: .9, sparkle: true }]],
+        // The portal to the dark dimension: a deep draining pull and a slow, eerie rising swell, ending on a heavy boom as it swallows the screen.
+        portal: [['dark/powerdrain.ogg', .8, .6, 0, { dur: 3 }],
+                 ['synth:chime', .6, 1, .2, { notes: [196, 233.08, 293.66, 392], step: .32, decay: 2.2, pad: 98, glide: [90, 700], wet: .95, bright: .5, sparkle: true }],
+                 ['kenney/lowFrequency_explosion_001.ogg', .9, .6, 2.1]],
+        // A boss evolving: it charges with a rising drone, then bursts into a boom and a bright shimmer.
+        evolve: [['dark/powerdrain.ogg', .85, .5, 0, { dur: 2 }],
+                 ['synth:chime', .7, 1, 0, { notes: [130.81, 196, 261.63, 392, 523.25], step: .3, decay: 1.8, pad: 65.41, glide: [100, 1200], wet: .9, bright: .7, sparkle: true }],
+                 ['kenney/lowFrequency_explosion_001.ogg', 1, .6, 1.75]]
     };
 
     // ---------------------------------------------------------------- per-move sounds
@@ -620,7 +628,7 @@ const SFX = (() => {
     // 'heal' stays on because it is the sound of the Heal / King Heal skills.
     const ENABLED = new Set(['heal', 'enemyDeath', 'energy', 'victory', 'defeat', 'stun', 'sleep', 'poison', 'toxin', 'counter', 'thorns', 'guardBlock', 'counterHeavy', 'thornsColossal', 'guardBlockElder', 'poisonGiant',
         // map, team and rewards
-        'travel', 'travelForest', 'coin', 'candle', 'compass', 'mushroom', 'leaf', 'vial', 'valve', 'scrap', 'buttonPress', 'drop', 'merge', 'unlock', 'enterMap', 'click', 'hover', 'blip', 'ability']);   // (recruit is parked: removed on request)
+        'travel', 'travelForest', 'coin', 'candle', 'compass', 'mushroom', 'leaf', 'vial', 'valve', 'scrap', 'buttonPress', 'drop', 'merge', 'unlock', 'enterMap', 'click', 'hover', 'blip', 'ability', 'portal', 'evolve']);   // (recruit is parked: removed on request)
 
     function play(name, arg = {}) {
         if (prefs.muted || !unlocked) return;
@@ -747,6 +755,10 @@ const SFX = (() => {
         labFight:    { build: sampleLoop('ambience/combat_lab.mp3', 4), level: 0.42 },
         labBoss:     { build: sampleLoop('ambience/combat_lab_boss.mp3', 4), level: 0.42 },
         campfire:    { build: sampleLoop('ambience/campfire.mp3', 4), level: 0.3 },
+        // The dark dimension: its start screen and the merge team select share one track; the final boss has a track per form
+        darkSecrets: { build: sampleLoop('ambience/dark_secrets.mp3', 4), level: 0.2 },
+        finalFight1: { build: sampleLoop('ambience/final_fight_1.mp3', 4), level: 0.3 },
+        finalFight2: { build: sampleLoop('ambience/final_fight_2.mp3', 4), level: 0.27 },
         lab:     { build: labAmbience, level: 0.18 },
         sim:     { build: simAmbience, level: 0.19 }
     };
@@ -755,14 +767,19 @@ const SFX = (() => {
     function sceneFor(screenId) {
         switch (screenId) {
             case 'screen-first-time': return 'forest';                       // choosing your first starter
-            case 'screen-title': case 'screen-menu': case 'screen-arcs': return 'music';   // main menu, the city, act select (the title's music starts with the first click: browsers allow no sound before one)
-            case 'screen-collection': case 'screen-selection': return 'muffled';           // collection and team select / ENTER MAP: the same music heard through a wall
+            case 'screen-title': case 'screen-menu': case 'screen-arcs':                   // main menu, the city, act select (the title's music starts with the first click: browsers allow no sound before one)
+                if (screenId === 'screen-menu' && typeof inDarkDimension !== 'undefined' && inDarkDimension) return 'darkSecrets';   // the dark dimension's start screen has its own track
+                return 'music';
+            case 'screen-collection': case 'screen-selection':                             // collection and team select / ENTER MAP: the same music heard through a wall
+                if (screenId === 'screen-selection' && typeof selectionMode !== 'undefined' && selectionMode === 'final') return 'darkSecrets';   // picking the final boss's merges
+                return 'muffled';
             case 'screen-map': case 'screen-combat': case 'screen-merge': case 'screen-team': {
                 const arc = (typeof currentRun !== 'undefined' && currentRun) ? currentRun.arcId : null;
                 if (screenId === 'screen-combat' && arc === 'arc1') return fightIsBoss ? 'caveBoss' : 'caveFight';       // Acts I and II: fights have their own music
                 if (screenId === 'screen-combat' && arc === 'arc2') return fightIsBoss ? 'forestBoss' : 'forestFight';
                 if (screenId === 'screen-combat' && arc === 'arc3') return fightIsBoss ? 'labBoss' : 'labFight';
-                return { arc1: 'cave', arc2: 'forest', arc3: 'lab', tutorial: 'sim' }[arc] ?? null;
+                if (screenId === 'screen-combat' && arc === 'final') return 'finalFight1';                                  // the final boss: stage 1 track (stage 2 switches to finalFight2 when it evolves)
+                return { arc1: 'cave', arc2: 'forest', arc3: 'lab', tutorial: 'sim', final: 'lab' }[arc] ?? null;
             }
             default: return undefined;
         }

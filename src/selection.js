@@ -23,14 +23,55 @@
             mech_melee: { scale: 0.91, cx: 51.3, cy: 70.3 }
         };
 
+        // 'run' = pick 2 starters for a normal run; 'final' = pick 4 merges for the final boss (see finalboss.js).
+        let selectionMode = 'run';
+
+        function isFinalSelection() {
+            return selectionMode === 'final';
+        }
+
+        function selectionRequiredCount() {
+            return isFinalSelection() ? FINAL_TEAM_SIZE : 2;
+        }
+
+        // What the "Available" drawer offers: unlocked starters for a run, discovered merges for the final boss.
+        function getSelectablePool() {
+            if (isFinalSelection()) return getFinalBossMerges();
+            return [...gameState.unlockedStarters]
+                .sort((a, b) => Object.keys(STARTERS).indexOf(a) - Object.keys(STARTERS).indexOf(b))
+                .map(id => STARTERS[id])
+                .filter(Boolean);
+        }
+
+        // With fewer merges discovered than team slots, the same merge may be picked more than once.
+        function canReuseSelectable() {
+            return isFinalSelection() && getSelectablePool().length < FINAL_TEAM_SIZE;
+        }
+
+        window.confirmSelection = function() {
+            if (isFinalSelection()) startFinalBossFight();
+            else startRun();
+        };
+
+        window.selectionBack = function() {
+            if (isFinalSelection()) showScreen('screen-menu');
+            else showScreen('screen-arcs');
+        };
+
         window.startArc = function(arcId) {
             selectedArcId = arcId;
+            selectionMode = 'run';
             const bgElement = document.getElementById('selection-bg');
             if (bgElement) bgElement.style.backgroundImage = getMapBackground(arcId);
             showScreen('screen-selection');
         };
 
         function updateSelectionUI() {
+            const required = selectionRequiredCount();
+            const finalMode = isFinalSelection();
+            document.getElementById('selection-title').innerText = finalMode ? `SELECT ${required} MERGES` : 'SELECT 2 STARTERS';
+            document.getElementById('selection-drawer-title').innerText = finalMode ? 'Your Merges' : 'Available';
+            document.getElementById('selection-list').classList.toggle('selection-list-scroll', finalMode);
             selectionSlots.forEach((s, i) => {
                 const slot = document.getElementById(`slot-${i}`);
                 if (!slot) return;
@@ -88,25 +129,21 @@
             const filledCount = selectionSlots.filter(s => s !== null).length;
             const btnStart = document.getElementById('btn-start-run');
             if (btnStart) {
-                btnStart.disabled = filledCount !== 2;
-                btnStart.classList.toggle('merge-btn-pulse', filledCount === 2);
+                btnStart.disabled = filledCount !== required;
+                btnStart.classList.toggle('merge-btn-pulse', filledCount === required);
+                btnStart.innerText = finalMode ? 'FACE THE VOID' : 'ENTER MAP';
             }
 
-            // Render available starters
+            // Render available starters (or, for the final boss, merges)
             const list = document.getElementById('selection-list');
             if (!list) return;
             list.innerHTML = '';
-            
-            const sortedStartersList = [...gameState.unlockedStarters].sort((a, b) => {
-                return Object.keys(STARTERS).indexOf(a) - Object.keys(STARTERS).indexOf(b);
-            });
-            
-            sortedStartersList.forEach(id => {
-                // If already selected, visually disable it so it stays in place
-                const isSelected = selectionSlots.some(s => s && s.id === id);
 
-                const s = STARTERS[id];
-                if (!s) return;
+            getSelectablePool().forEach(s => {
+                const id = s.id;
+                // If already selected, visually disable it so it stays in place
+                const isSelected = !canReuseSelectable() && selectionSlots.some(sl => sl && sl.id === id);
+
                 const btn = document.createElement('div');
                 btn.className = 'collection-square';
                 btn.style.aspectRatio = 'auto';
@@ -119,20 +156,25 @@
                     btn.ondragstart = (e) => dragStartSelection(e, id, null);
                 }
                 btn.style.cursor = btn.style.cursor || 'pointer';
-                btn.onclick = () => openCollectionDetails(s, true, false);
+                btn.onclick = () => openCollectionDetails(s, true, finalMode);
                 const focus = STARTER_ART_FOCUS[id];
                 const imgTransform = focus
                     ? `transform-origin:${focus.cx}% ${focus.cy}%; transform: translate(${50 - focus.cx}%, ${50 - focus.cy}%) scale(${focus.scale});`
                     : '';
+                // Merges have no hand-tuned crop, so their art is measured and centered at runtime instead.
+                const artHtml = !s.art.includes('.png')
+                    ? `<div style="font-size:120px; line-height:1;">${s.art}</div>`
+                    : (focus ? `<img src="${s.art}" style="width:100%; height:100%; object-fit:contain; image-rendering: pixelated; ${imgTransform}" draggable="false" />` : renderFocusedArt(s.art));
                 btn.innerHTML = `
                     <div class="collection-type-icon">${getTypeIconHtml(s.type, 40)}</div>
                     <div class="monster-art" style="position: absolute; inset: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; pointer-events: none;">
-                        ${s.art.includes('.png') ? `<img src="${s.art}" style="width:100%; height:100%; object-fit:contain; image-rendering: pixelated; ${imgTransform}" draggable="false" />` : `<div style="font-size:120px; line-height:1;">${s.art}</div>`}
+                        ${artHtml}
                     </div>
                     <strong style="position: absolute; left: 0; right: 0; bottom: 16px; z-index: 3; pointer-events: none;">${s.name}</strong>
                 `;
                 list.appendChild(btn);
             });
+            list.querySelectorAll('img.art-autofocus').forEach(img => autoFocusArt(img, 0.4, 0.74));
 
             requestAnimationFrame(() => {
                 list.querySelectorAll('.collection-square').forEach(card => {
@@ -171,13 +213,15 @@
                 // Dragging from list to slot
                 const filledCount = selectionSlots.filter(s => s !== null).length;
                 
-                // If slot is empty and we already have 2, don't allow
-                if (!selectionSlots[slotIndex] && filledCount >= 2) {
-                    showToast('MAX 2 STARTERS');
+                // If slot is empty and the team is already full, don't allow
+                if (!selectionSlots[slotIndex] && filledCount >= selectionRequiredCount()) {
+                    showToast(isFinalSelection() ? `MAX ${FINAL_TEAM_SIZE} MERGES` : 'MAX 2 STARTERS');
                     return;
                 }
-                
-                selectionSlots[slotIndex] = JSON.parse(JSON.stringify(STARTERS[id]));
+
+                const picked = getSelectablePool().find(m => m.id === id);
+                if (!picked) return;
+                selectionSlots[slotIndex] = JSON.parse(JSON.stringify(picked));
             }
             
             updateSelectionUI();
@@ -255,8 +299,8 @@
         // Simple "joined your party" popup for recruiting a monster that's
         // already unlocked in the Collection. First-time unlocks instead go
         // through showMergeResultDetails to show the full collection card.
-        function showRecruitmentAlert(recruit, onDone) {
-            document.getElementById('recruit-message').innerText = `Defeated ${recruit.name} joined your party!`;
+        function showRecruitmentAlert(recruit, onDone, message) {
+            document.getElementById('recruit-message').innerText = message || `Defeated ${recruit.name} joined your party!`;
             const recruitArt = document.getElementById('recruit-art');
             recruitArt.style.cssText = 'width:240px; height:240px; margin:10px auto; overflow:hidden; display:flex; align-items:center; justify-content:center;';
             recruitArt.innerHTML = renderFocusedArt(recruit.art);
@@ -567,8 +611,11 @@
                     unlockedStarters: [],
                     discoveredMerges: [],
                     maxActReached: 1,
-                    hasStartedFirstRun: false
+                    hasStartedFirstRun: false,
+                    finalBossBeaten: false,
+                    finalBossAttempted: false
                 };
+                inDarkDimension = false;
                 playClicked();
             });
         }
@@ -581,7 +628,9 @@
                     unlockedStarters: allStarters,
                     discoveredMerges: allMerges,
                     maxActReached: 3,
-                    hasStartedFirstRun: true
+                    hasStartedFirstRun: true,
+                    finalBossBeaten: !!gameState.finalBossBeaten,
+                    finalBossAttempted: !!gameState.finalBossAttempted
                 };
                 saveGame();
                 showScreen('screen-menu');
@@ -634,6 +683,13 @@ window.startRunZoom = function() {
     const collectionBtn = document.getElementById('hitbox-collection');
     const startBtn = document.getElementById('hitbox-start');
 
+    // The dark dimension has no acts to pick: START RUN goes straight to the final boss's team select, so check first
+    // that there is a merge to bring.
+    if (inDarkDimension && !getFinalBossMerges().length) {
+        showGameAlert('NO MERGES YET', 'Only merged monsters can enter the dark dimension. Merge two monsters during a run to discover one, then come back.');
+        return;
+    }
+
     // Disable buttons
     collectionBtn.style.pointerEvents = 'none';
     startBtn.style.pointerEvents = 'none';
@@ -656,8 +712,13 @@ window.startRunZoom = function() {
         collectionBtn.style.pointerEvents = 'auto';
         startBtn.style.pointerEvents = 'auto';
         
-        // Open arcs screen
-        showScreen('screen-arcs');
+        if (inDarkDimension) {
+            // Final boss: merges only, no starters
+            openFinalBossSelection();
+        } else {
+            // Open arcs screen
+            showScreen('screen-arcs');
+        }
         
         // Fade from black
         setTimeout(() => {

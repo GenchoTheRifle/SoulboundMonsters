@@ -125,6 +125,8 @@
                 updateSelectionUI();
             } else if (screenId === 'screen-arcs') {
                 updateArcsUI();
+            } else if (screenId === 'screen-menu') {
+                refreshMenuDimension();
             }
         }
 

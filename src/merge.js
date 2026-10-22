@@ -1,7 +1,40 @@
 // --- MERGE ENGINE ---
-        function initMerge() {
+        // `options.lastChanges` (the boss node) turns the screen into the pre-boss stop: same merging and
+        // formation, but the finish button starts the boss fight instead of moving on along the road.
+        let mergeLastChangesNode = null;
+
+        // Stepping on a merge node with nothing to merge heals the whole team (party and backpack) instead.
+        const NO_MERGE_HEAL_FRACTION = 0.15;
+
+        function healTeamNoMerge() {
+            const lines = [];
+            [...currentRun.party, ...getBackpack()].forEach(m => {
+                if (!m || m.currentHp <= 0 || m.currentHp >= m.hp) return;
+                const amount = Math.min(m.hp - m.currentHp, Math.ceil(m.hp * NO_MERGE_HEAL_FRACTION));
+                m.currentHp += amount;
+                lines.push(`<div style="font-size:24px; text-shadow: var(--outline-thin);"><span style="color:#fff;">${m.name}</span> <span style="color:#22c55e;">+${amount} HP</span></div>`);
+            });
+            SFX.play('heal');
+            const message = lines.length
+                ? 'You have no possible merges. Instead, your team healed 15% of their HP.'
+                : 'You have no possible merges, and your team is already at full health.';
+            showGameAlert('NO MERGES', message, () => {
+                currentRun.nodeIndex++;
+                showScreen('screen-map');
+                renderMap();
+            }, lines.length ? `<div style="margin:10px 0; display:flex; flex-direction:column; gap:4px; align-items:center;">${lines.join('')}</div>` : '');
+        }
+
+        function initMerge(options) {
+            mergeLastChangesNode = (options && options.lastChanges) || null;
+            if (!mergeLastChangesNode && !hasAnyPossibleMerge()) {
+                healTeamNoMerge();
+                return;
+            }
             const bgElement = document.getElementById('merge-bg');
             if (bgElement && currentRun.arcId) bgElement.style.backgroundImage = getMapBackground(currentRun.arcId);
+            document.getElementById('merge-title').innerText = mergeLastChangesNode ? 'LAST CHANGES' : 'SOULBOUND MERGE';
+            document.getElementById('merge-subtitle').style.display = mergeLastChangesNode ? 'block' : 'none';
             showScreen('screen-merge');
             mergeSlots = [null, null];
             updateMergeUI();
@@ -67,7 +100,8 @@
                 slot.classList.remove('combatant');
             }
         }
-        
+        renderBackpack('merge', mergeSlots);
+
         // Update Merge Slots
         mergeSlots.forEach((s, i) => {
             const slot = document.getElementById(`merge-slot-${i}`);
@@ -151,14 +185,19 @@
 
         const btnFinish = document.getElementById('btn-finish-merge');
         if (btnFinish) {
-            const canStillMerge = hasAnyPossibleMerge();
-            btnFinish.textContent = canStillMerge ? 'SKIP' : 'DONE';
-            btnFinish.classList.toggle('merge-btn-pulse', !canStillMerge);
+            if (mergeLastChangesNode) {
+                btnFinish.textContent = 'BOSS FIGHT!';
+                btnFinish.classList.add('merge-btn-pulse');
+            } else {
+                const canStillMerge = hasAnyPossibleMerge();
+                btnFinish.textContent = canStillMerge ? 'SKIP' : 'DONE';
+                btnFinish.classList.toggle('merge-btn-pulse', !canStillMerge);
+            }
         }
     }
 
     function hasAnyPossibleMerge() {
-        const alive = currentRun.party.filter(m => m && m.currentHp > 0);
+        const alive = [...currentRun.party, ...getBackpack()].filter(m => m && m.currentHp > 0);
         for (let i = 0; i < alive.length; i++) {
             for (let j = i + 1; j < alive.length; j++) {
                 const a = alive[i], b = alive[j];
@@ -191,25 +230,32 @@
             const targetIndex = parseInt(targetSlot.getAttribute('data-slot'));
             SFX.play('drop');
 
-            if (source === 'party') {
-                // Swap in party
-                const temp = currentRun.party[sourceIndex];
-                currentRun.party[sourceIndex] = currentRun.party[targetIndex];
-                currentRun.party[targetIndex] = temp;
-            } else if (source === 'merge') {
-                // Move from merge back to party
+            moveToSlot(source, sourceIndex, { kind: 'party', idx: targetIndex });
+            updateMergeUI();
+        }
+
+        function dropMergeBackpack(ev) {
+            ev.preventDefault();
+            const source = ev.dataTransfer.getData("source");
+            const sourceIndex = parseInt(ev.dataTransfer.getData("index"));
+            const targetSlot = ev.target.closest('.backpack-slot');
+            if (!targetSlot) return;
+            SFX.play('drop');
+            moveToSlot(source, sourceIndex, { kind: 'backpack', idx: parseInt(targetSlot.getAttribute('data-slot')) });
+            updateMergeUI();
+        }
+
+        // Drag from a party slot, a backpack slot or a merge slot onto a party/backpack slot: swap them.
+        // A monster dragged out of a merge slot is still in its party/backpack slot, so it swaps from there.
+        function moveToSlot(source, sourceIndex, target) {
+            if (source === 'merge') {
                 const m = mergeSlots[sourceIndex];
                 mergeSlots[sourceIndex] = null;
-                // If target slot is empty, we don't need to do anything special since it's already in the party array, just not in mergeSlots anymore
-                // But if we want to swap positions, we can find its original index and swap
-                const originalIndex = currentRun.party.indexOf(m);
-                if (originalIndex !== -1 && originalIndex !== targetIndex) {
-                    const temp = currentRun.party[originalIndex];
-                    currentRun.party[originalIndex] = currentRun.party[targetIndex];
-                    currentRun.party[targetIndex] = temp;
-                }
+                const from = locateMonster(m);
+                if (from) swapSlots(from, target);
+            } else if (source === 'party' || source === 'backpack') {
+                swapSlots({ kind: source, idx: sourceIndex }, target);
             }
-            updateMergeUI();
         }
 
         function dropMergeSlot(ev) {
@@ -222,8 +268,8 @@
             const targetIndex = parseInt(targetSlot.getAttribute('data-slot'));
             SFX.play('drop');
 
-            if (source === 'party') {
-                const m = currentRun.party[sourceIndex];
+            if (source === 'party' || source === 'backpack') {
+                const m = getSlotList(source)[sourceIndex];
                 if (m && m.currentHp > 0) {
                     // If moving to a merge slot, check if it's already in the other slot
                     if (mergeSlots[1 - targetIndex] === m) {
@@ -303,12 +349,14 @@
                     moves: outcome.moves || []
                 };
 
-                // Remove parents, add child
-                const p1Index = currentRun.party.indexOf(p1);
-                const p2Index = currentRun.party.indexOf(p2);
-                
-                currentRun.party[p1Index] = newMonster;
-                currentRun.party[p2Index] = null;
+                // Remove parents, add child. The child takes a parent's party slot when either parent was in
+                // the party, otherwise (both in the backpack) the first parent's backpack slot.
+                const loc1 = locateMonster(p1);
+                const loc2 = locateMonster(p2);
+                const childLoc = (loc1.kind === 'party' || loc2.kind !== 'party') ? loc1 : loc2;
+                const otherLoc = childLoc === loc1 ? loc2 : loc1;
+                getSlotList(childLoc.kind)[childLoc.idx] = newMonster;
+                getSlotList(otherLoc.kind)[otherLoc.idx] = null;
 
                 if (!gameState.discoveredMerges.includes(outcome.name)) {
                     gameState.discoveredMerges.push(outcome.name);
@@ -325,7 +373,13 @@
         }
 
         function finishMerge() {
-            const startersInParty = currentRun.party.filter(p => p && Object.keys(STARTERS).includes(p.id) && !p.name.includes('Alpha'));
+            if (mergeLastChangesNode) {
+                const bossNode = mergeLastChangesNode;
+                mergeLastChangesNode = null;
+                fadeThroughBlack(() => initCombat(bossNode));
+                return;
+            }
+            const startersInParty = [...currentRun.party, ...getBackpack()].filter(p => p && Object.keys(STARTERS).includes(p.id) && !p.name.includes('Alpha'));
             if (startersInParty.length >= 2) {
                 showGameConfirm("Skip Merge?", "You have merge possibilities, are you sure you want to skip?", () => {
                     currentRun.nodeIndex++;
