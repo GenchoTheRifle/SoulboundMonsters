@@ -1,4 +1,29 @@
 // --- RUN ENGINE ---
+        // Hints shown on a loading bar before each run starts. One is picked at random (never the same one twice in a row).
+        const RUN_TIPS = [
+            'Merge at every merge stage. You can merge more than once.',
+            "HP doesn't recover between fights. Protect it.",
+            'Energy carries over. Basic Attack tops it up (+1).',
+            'The boss is the last fight. Spend all your energy!',
+            'Defeating an enemy gives +1 energy.',
+            'Beast beats Nature, Nature beats Mech, Mech beats Beast.',
+            'Melee only hits the front row. Ranged hits anyone.',
+            'Higher SPD means more turns. Watch the turn order.',
+            'Recruit with merges in mind. Check the Collection.',
+            'Guard stays up until it absorbs a hit.',
+            'Counter reflects a hit back, along with any stun or poison.',
+            "Poison ticks at the start of the victim's turn.",
+            'Rearrange your party on the team screen between fights.'
+        ];
+        const RUN_TIP_MS = 3600;   // how long the loading bar / tip stays up
+        let lastRunTipIndex = -1;
+        function pickRunTip() {
+            let i;
+            do { i = Math.floor(Math.random() * RUN_TIPS.length); } while (i === lastRunTipIndex && RUN_TIPS.length > 1);
+            lastRunTipIndex = i;
+            return RUN_TIPS[i];
+        }
+
         function startRun() {
             SFX.play('enterMap');   // battle horn as the run begins
             const btn = document.getElementById('btn-start-run');
@@ -44,7 +69,25 @@
             actText.style.opacity = '0';
             actText.style.transition = 'opacity 1s ease-in-out 0.5s';
             overlay.appendChild(actText);
-            
+
+            // Loading bar + tip, shown first (same blue look as the tutorial's boot screen); it fades out before the act title appears.
+            const tipBox = document.createElement('div');
+            tipBox.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; opacity:0; transition:opacity 0.5s ease; pointer-events:none;';
+            const tipLabel = document.createElement('div');
+            tipLabel.innerText = 'TIP';
+            tipLabel.style.cssText = 'font-size:30px; letter-spacing:10px; color:#cfe6ff; text-shadow:0 0 18px rgba(80,160,255,0.9), var(--outline-med);';
+            const tipText = document.createElement('div');
+            tipText.innerText = pickRunTip();
+            tipText.className = 'move-description-text';
+            tipText.style.cssText = 'font-size:34px; color:#fff; text-align:center; max-width:85vw; text-shadow:var(--outline-med);';
+            const tipBar = document.createElement('div');
+            tipBar.style.cssText = 'width:min(620px, 70vw); height:14px; border:2px solid rgba(160,210,255,0.8); border-radius:8px; overflow:hidden; box-shadow:0 0 16px rgba(80,160,255,0.6);';
+            const tipBarFill = document.createElement('div');
+            tipBarFill.style.cssText = `width:0; height:100%; background:linear-gradient(90deg, #4aa3ff, #e0f0ff); box-shadow:0 0 14px #8cc8ff; transition:width ${RUN_TIP_MS - 300}ms cubic-bezier(0.3, 0.1, 0.3, 1);`;
+            tipBar.appendChild(tipBarFill);
+            tipBox.append(tipLabel, tipText, tipBar);
+            overlay.appendChild(tipBox);
+
             document.body.appendChild(overlay);
 
             // Resolves once the black transition overlay has fully faded out and been
@@ -58,9 +101,10 @@
                 overlay.style.opacity = '1';
 
                 setTimeout(() => {
-                    logo.style.transform = 'translateY(0)';
-                    logo.style.opacity = '1';
-                    actText.style.opacity = '1';
+                    // Loading bar fills while a tip is shown (the act title follows once it has faded)
+                    tipBox.style.opacity = '1';
+                    void tipBar.offsetWidth;
+                    tipBarFill.style.width = '100%';
 
                     // Initialize run state in the background while black screen is up
                     currentRun.party = selectionSlots.map(s => s ? { ...s, currentHp: s.hp } : null);
@@ -96,7 +140,17 @@
                     const selTeam = document.getElementById('selection-player-team');
                     if (selTeam) selTeam.style.opacity = '0';
                     
-                    // Fade out
+                    // When the bar is full the tip fades away, then the act title appears as before
+                    setTimeout(() => {
+                        tipBox.style.opacity = '0';
+                        setTimeout(() => {
+                            logo.style.transform = 'translateY(0)';
+                            logo.style.opacity = '1';
+                            actText.style.opacity = '1';
+                        }, 500);
+                    }, RUN_TIP_MS);
+
+                    // Fade out (after the tip phase and the act title have had their time)
                     setTimeout(() => {
                         overlay.style.opacity = '0';
                         
@@ -109,7 +163,7 @@
                             if (selTeam) selTeam.style.opacity = '1';
                             resolveOverlayGone();
                         }, 800);
-                    }, 2500);
+                    }, RUN_TIP_MS + 500 + 2500);
                 }, 800);
             }, 100);
         }

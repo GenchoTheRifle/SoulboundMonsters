@@ -138,13 +138,11 @@
 
                 const base = BOSSES[bossId];
                 const enemyHp = base.hp;
-                const enemyAtk = base.atk;
                 combatState.enemies.push({
                     ...base,
                     baseId: base.id,
                     hp: enemyHp,
                     currentHp: enemyHp,
-                    atk: enemyAtk,
                     isEnemy: true,
                     isBoss: true,
                     id: `enemy-${Date.now()}-boss`,
@@ -748,7 +746,10 @@
 
                 if (targetType !== "self" && targetType !== "all_allies" && targetType !== "all_enemies" && isCorrectSide) {
                     const targetTeam = u.isEnemy ? combatState.enemies : currentRun.party;
-                    const tauntingTargets = targetTeam.filter(e => e && e.currentHp > 0 && e.buffs && e.buffs.some(b => b.type === 'taunt'));
+                    // Taunt (and the melee front-row rule) only restricts who you can hit on the OPPOSING team;
+                    // your own Taunting monster must not stop you healing or buffing its teammates.
+                    const targetIsOpponent = !!u.isEnemy !== !!combatState.activeUnit.isEnemy;
+                    const tauntingTargets = !targetIsOpponent ? [] : targetTeam.filter(e => e && e.currentHp > 0 && e.buffs && e.buffs.some(b => b.type === 'taunt'));
                     
                     if (tauntingTargets.length > 0) {
                         if (u.buffs && u.buffs.some(b => b.type === 'taunt')) {
@@ -756,7 +757,7 @@
                         } else {
                             isTargetable = false;
                         }
-                    } else if (combatState.targetingMove.melee) {
+                    } else if (combatState.targetingMove.melee && targetIsOpponent) {
                         const frontlineDead = (!targetTeam[0] || targetTeam[0].currentHp <= 0) && (!targetTeam[1] || targetTeam[1].currentHp <= 0);
                         if (index < 2 || frontlineDead) {
                             isTargetable = true;
@@ -886,8 +887,8 @@ let shadowClass = getShadowClass(u.name);
                             <img src="Art/HP.png" style="width: 20px; height: 20px; filter: drop-shadow(1px 1px 1px black);" alt="HP" />
                             <div class="hp-bar" style="flex: 1; position: relative;">
                                 <div class="hp-fill" style="width:${hpPerc}%; background-color:${hpColor}; transition: width 1.5s ease-out, background-color 1.5s ease-out;"></div>
-                                <div class="hp-text move-description-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; pointer-events: none;" data-current-hp="${Math.ceil(u.currentHp)}">
-                                    ${Math.ceil(u.currentHp)}/${u.hp}
+                                <div class="hp-text move-description-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; pointer-events: none;" data-current-hp="${Math.max(0, Math.ceil(u.currentHp))}">
+                                    ${Math.max(0, Math.ceil(u.currentHp))}/${u.hp}
                                 </div>
                             </div>
                         </div>
@@ -919,7 +920,7 @@ let shadowClass = getShadowClass(u.name);
                 hpFill.style.backgroundColor = hpColor;
 
                 const hpTextEl = div.querySelector('.hp-text');
-                const targetHp = Math.ceil(u.currentHp);
+                const targetHp = Math.max(0, Math.ceil(u.currentHp));
                 const currentDisplayedHp = parseInt(hpTextEl.getAttribute('data-current-hp')) || targetHp;
                 
                 if (currentDisplayedHp !== targetHp) {
@@ -1161,6 +1162,14 @@ let shadowClass = getShadowClass(u.name);
                 await new Promise(r => setTimeout(r, 1000));
                 enemyAI(unit);
             }
+        }
+
+        // Ends the player's input for this turn right away (advanceTurn follows after a delay) and refreshes the
+        // UI so Basic Attack greys out immediately.
+        function lockPlayerTurn() {
+            combatState.isPlayerTurn = false;
+            combatState.targetingMove = null;
+            updateCombatUI();
         }
 
         function basicAttack() {
@@ -2586,6 +2595,7 @@ let shadowClass = getShadowClass(u.name);
             // If the attacker died from a reflected counter/thorns hit during their own move,
             // end their turn immediately instead of letting them act again with leftover energy.
             if (attacker.currentHp <= 0) {
+                if (!attacker.isEnemy) lockPlayerTurn();
                 setTimeout(advanceTurn, attacker.isEnemy ? 800 : 500);
                 isExecutingMove = false;
                 return;
@@ -2604,6 +2614,9 @@ let shadowClass = getShadowClass(u.name);
                 // as unlocked for the ~500ms before advanceTurn() ends the turn.
                 if (!move.isBasicAttack) renderMoveControls(attacker);
                 if (attacker.energy === 0 || move.isBasicAttack) {
+                    // The turn is over, but advanceTurn only fires after a short delay. Lock input now so Basic Attack
+                    // can't be clicked inside that window (a second action, plus a second advanceTurn that skips a unit).
+                    lockPlayerTurn();
                     setTimeout(advanceTurn, 500);
                 }
             }
@@ -2687,7 +2700,10 @@ let shadowClass = getShadowClass(u.name);
                 return;
             }
 
-            const affordableMoves = unit.moves.filter(m => m.c <= unit.energy);
+            // A heal is pointless when nobody on the team is hurt, so don't offer it (it used to burn whole turns healing 0).
+            const teamHurt = combatState.enemies.some(e => e && e.currentHp > 0 && e.currentHp < e.hp);
+            const isIdleHeal = m => !teamHurt && m.effect && m.effect.type && m.effect.type.includes('heal');
+            const affordableMoves = unit.moves.filter(m => m.c <= unit.energy && !isIdleHeal(m));
 
             // AI logic:
             // 1. If low energy (1), 60% chance to hold back and Basic Attack to build energy instead of spending it
@@ -2874,14 +2890,13 @@ let shadowClass = getShadowClass(u.name);
                 return true;
             }).sort((a, b) => b.name.length - a.name.length);
 
-            let result = msg;
-            uniqueUnits.forEach(u => {
-                const escapedName = u.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const re = new RegExp(`\\b${escapedName}\\b`, 'g');
-                const cls = u.isEnemy ? 'log-enemy' : 'log-ally';
-                result = result.replace(re, `<span class="${cls}">${u.name}</span>`);
-            });
-            return result;
+            if (uniqueUnits.length === 0) return msg;
+            // One pass with the longest names first, so "Spark Wolf" is matched whole instead of having its
+            // "Wolf" re-coloured inside an already-coloured span (which gave nested ally/enemy spans).
+            const byName = new Map(uniqueUnits.map(u => [u.name, u]));
+            const alternation = uniqueUnits.map(u => u.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+            const re = new RegExp(`\\b(?:${alternation})\\b`, 'g');
+            return msg.replace(re, name => `<span class="${byName.get(name).isEnemy ? 'log-enemy' : 'log-ally'}">${name}</span>`);
         }
 
         function endCombat(isWin) {
@@ -2974,8 +2989,7 @@ let shadowClass = getShadowClass(u.name);
                 ...base,
                 isEnemy: false,
                 currentHp: base.hp, // FULL HP
-                hp: base.hp,
-                atk: base.atk
+                hp: base.hp
             };
 
             const emptyIndex = currentRun.party.findIndex(p => p === null);

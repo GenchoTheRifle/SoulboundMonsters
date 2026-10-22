@@ -98,7 +98,7 @@
                         <input data-music-volume type="range" min="0" max="100" step="5" value="20" aria-label="Music volume" style="width: 220px; cursor: pointer;">
                     </div>
                     <button onclick="document.getElementById('settings-menu').style.display='none'; resetProgress()" class="nine-cut-button" style="font-size: 24px; padding: 4px 20px; width: 220px; border-width: 12px 20px; color: #f99;">RESET PROGRESS</button>
-                    <button onclick="document.getElementById('settings-menu').style.display='none'; unlockAllProgress()" class="nine-cut-button" style="font-size: 24px; padding: 4px 20px; width: 220px; border-width: 12px 20px; color: #9f9;">UNLOCK ALL</button>
+                    <button id="btn-unlock-all" onclick="document.getElementById('settings-menu').style.display='none'; unlockAllProgress()" class="nine-cut-button" style="display: none; font-size: 24px; padding: 4px 20px; width: 220px; border-width: 12px 20px; color: #9f9;">UNLOCK ALL</button>
                 </div>
             </div>
         </div>

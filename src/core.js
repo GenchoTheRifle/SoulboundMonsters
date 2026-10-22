@@ -78,12 +78,22 @@
                 console.error("Failed to load game data", e);
             }
 
-            // Temporary check to reset your progress so you can test the first-time choice
-            if (!localStorage.getItem('firstTimeChoiceReset')) {
-                localStorage.removeItem('soulbound_save');
-                localStorage.removeItem('labborn_save');
-                localStorage.setItem('firstTimeChoiceReset', 'true');
-                console.log("Wiped save data for testing choice start!");
+            // Debug-only tools (e.g. UNLOCK ALL in the settings menu) are hidden unless the page is opened with
+            // ?debug in the URL, or localStorage 'soulbound_debug' is set to '1'.
+            let debugMode = false;
+            try { debugMode = new URLSearchParams(location.search).has('debug') || localStorage.getItem('soulbound_debug') === '1'; } catch (e) {}
+            const unlockAllBtn = document.getElementById('btn-unlock-all');
+            if (unlockAllBtn && debugMode) unlockAllBtn.style.display = '';
+            // Secret reveal without a URL flag: click the "SFX" label in the settings menu 5 times within 3 seconds.
+            const sfxLabel = document.querySelector('#settings-menu span');
+            if (unlockAllBtn && sfxLabel) {
+                let clicks = 0, resetTimer = null;
+                sfxLabel.addEventListener('click', () => {
+                    clicks++;
+                    clearTimeout(resetTimer);
+                    resetTimer = setTimeout(() => { clicks = 0; }, 3000);
+                    if (clicks >= 5) { unlockAllBtn.style.display = ''; clicks = 0; }
+                });
             }
 
             const saved = localStorage.getItem('soulbound_save') || localStorage.getItem('labborn_save');
