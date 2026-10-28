@@ -2838,6 +2838,10 @@ let shadowClass = getShadowClass(u.name);
                 finalBossAI(unit);
                 return;
             }
+            if (unit.tutorialBoss) {
+                tutorialBossAI(unit);
+                return;
+            }
             if (unit.baseId === 'mega_mech' && heavyRobotOpeningAI(unit)) {
                 return;
             }

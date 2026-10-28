@@ -466,12 +466,12 @@
                 {
                     target: () => tutNodeTarget(0, true),
                     title: 'YOU ARE HERE',
-                    text: `This is where your journey begins. It's safe here &mdash; no fighting.`
+                    text: `This is where your journey begins. It's safe here, so there's no fighting.`
                 },
                 {
                     target: () => tutNodeTarget(1),
                     title: "LET'S START YOUR ADVENTURE!",
-                    text: `This is a <span class="tut-hl">Battle</span> stage. A wild monster is waiting &mdash; defeat it to move on.`
+                    text: `This is a <span class="tut-hl">Battle</span> stage. A wild monster is waiting. Defeat it to move on.`
                 },
                 {
                     target: () => document.getElementById('btn-continue-node'),
@@ -527,17 +527,17 @@
                 {
                     title: 'YOUR FIRST BATTLE',
                     width: 640,
-                    text: `Monsters fight in turns. Defeat every enemy to win &mdash; but if all of your monsters faint, the battle is lost.`
+                    text: `Monsters fight in turns. Defeat every enemy to win, but if all of your monsters faint, the battle is lost.`
                 },
                 {
                     target: () => getElementForUnit(player),
                     title: `YOUR ${player.name.toUpperCase()}`,
-                    text: `The bar under your monster is its ${TUT_HP_ICON} <span class="tut-hl">HP</span> &mdash; if it reaches 0, it faints. The blue pips are its ${TUT_EN_ICON} <span class="tut-hl">Energy</span>.`
+                    text: `The bar under your monster is its ${TUT_HP_ICON} <span class="tut-hl">HP</span>. If it reaches 0, it faints. The blue pips are its ${TUT_EN_ICON} <span class="tut-hl">Energy</span>.`
                 },
                 {
                     target: () => getElementForUnit(enemy),
                     title: `A WILD ${enemy.name.toUpperCase()}!`,
-                    text: `Defeat it and its soul will be bound to you &mdash; it will join your team and your Collection.`
+                    text: `Defeat it and its soul will be bound to you. It will join your team and your Collection.`
                 },
                 {
                     target: () => document.getElementById('turn-order'),
@@ -605,7 +605,7 @@
                 },
                 {
                     target: getTutorialEnemyEl,
-                    text: `Now click the <span class="tut-hl">${enemyName}</span> to strike! Hovering over a target previews the damage &mdash; a gold <span style="color:#ffcc00;">&uarr;</span> means you're hitting its weakness.`,
+                    text: `Now click the <span class="tut-hl">${enemyName}</span> to strike! Hovering over a target previews the damage. A gold <span style="color:#ffcc00;">&uarr;</span> means you're hitting its weakness.`,
                     advance: 'click'
                 }
             ]);
@@ -640,7 +640,7 @@
                     width: 640,
                     pad: 8,
                     button: 'GOT IT',
-                    text: `<span class="tut-hl">${util.n}</span> is a <span style="color:#ff9ff3;">Utility</span> move. ${getMoveDescription(util)}<br><br>${canUse ? `You have enough ${TUT_EN_ICON} to use it right now.` : `It costs ${util.c} ${TUT_EN_ICON} &mdash; charge up with Basic Attacks first.`}<br><br>From here on, it's all you. Finish the fight!`
+                    text: `<span class="tut-hl">${util.n}</span> is a <span style="color:#ff9ff3;">Utility</span> move. ${getMoveDescription(util)}<br><br>${canUse ? `You have enough ${TUT_EN_ICON} to use it right now.` : `It costs ${util.c} ${TUT_EN_ICON}. Charge up with Basic Attacks first.`}<br><br>From here on, it's all you. Finish the fight!`
                 }
             ]);
         }
@@ -695,7 +695,7 @@
                     {
                         target: () => tutNodeTarget(1, true),
                         title: 'STAGE CLEARED!',
-                        text: `The ${recruit.name} joined your team &mdash; you now have 2 starters to begin real runs with.`
+                        text: `The ${recruit.name} joined your team. You now have 2 starters to begin real runs with.`
                     },
                     {
                         target: () => tutNodeTarget(2),
@@ -709,6 +709,32 @@
         // ---------------------------------------------------------------------------------------
         // Boss: unwinnable on purpose
         // ---------------------------------------------------------------------------------------
+        // The tutorial boss is meant to flatten the party, so unlike the real bosses it never buffs, heals or stalls:
+        // it spends its energy on whichever damaging move (and target) hurts most right now, and Basic Attacks only
+        // when it can't afford one.
+        function tutorialBossAI(unit) {
+            let best = null;
+            unit.moves.filter(m => m.p > 0 && m.c <= unit.energy).forEach(move => {
+                if (move.effect && move.effect.target === 'all_enemies') {
+                    const value = currentRun.party
+                        .filter(p => p && p.currentHp > 0)
+                        .reduce((sum, p) => sum + finalBossHitValue(unit, move, p), 0);
+                    if (!best || value > best.value) best = { move, target: undefined, value };
+                    return;
+                }
+                finalBossValidTargets(move).forEach(t => {
+                    const value = finalBossHitValue(unit, move, t);
+                    if (!best || value > best.value) best = { move, target: t, value };
+                });
+            });
+            if (best) {
+                executeMove(unit, best.move, best.target);
+                return;
+            }
+            const targets = finalBossValidTargets(BASIC_ATTACK_MOVE);
+            executeMove(unit, BASIC_ATTACK_MOVE, targets[Math.floor(Math.random() * targets.length)]);
+        }
+
         function startTutorialBoss() {
             tutorialState.stage = 'boss';
             const boss = buildTutorialEnemy({
@@ -726,6 +752,7 @@
                 moves: collectUniqueMoves(Object.values(STARTERS))   // every starter move, like the final boss's first form (finalboss.js)
             }, {
                 isBoss: true,
+                tutorialBoss: true,
                 silhouette: true,
                 sizeClass: 'boss-small'
             });
@@ -756,7 +783,7 @@
                     target: () => currentRun.party.filter(Boolean).map(getElementForUnit),
                     title: 'YOUR TEAM',
                     button: 'FIGHT!',
-                    text: `Both of your monsters fight now, each taking its own turns. Use everything you've learned &mdash; give it all you've got!`
+                    text: `Both of your monsters fight now, each taking its own turns. Use everything you've learned and give it all you've got!`
                 }
             ]);
         }
@@ -783,7 +810,7 @@
                                 <strong>${s.name}</strong>
                             </div>`).join('')}
                     </div>
-                    <p class="move-description-text">Both starters are now unlocked. Start a run, defeat monsters to bind their souls, merge them into stronger forms &mdash; then come back for that Boss.</p>
+                    <p class="move-description-text">Both starters are now unlocked. Start a run, defeat monsters to bind their souls, merge them into stronger forms, then come back for that Boss.</p>
                     <button class="nine-cut-button">CONTINUE</button>
                 </div>`;
             document.getElementById('game-container').appendChild(el);
