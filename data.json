@@ -377,7 +377,7 @@
     },
     {
       "name": "Elder Bear",
-      "hp": 85,
+      "hp": 95,
       "spd": 7,
       "matk": 26,
       "mdef": 20,
@@ -472,7 +472,7 @@
     },
     {
       "name": "Giant Mushroom",
-      "hp": 75,
+      "hp": 80,
       "spd": 9,
       "matk": 0,
       "mdef": 16,
@@ -911,11 +911,11 @@
     },
     {
       "name": "Mossy Bear",
-      "hp": 90,
+      "hp": 100,
       "spd": 6,
       "matk": 24,
       "mdef": 20,
-      "ratk": 18,
+      "ratk": 20,
       "rdef": 20,
       "moves": [
         {
@@ -965,7 +965,7 @@
     },
     {
       "name": "Fungal Bear",
-      "hp": 80,
+      "hp": 85,
       "spd": 8,
       "matk": 23,
       "mdef": 16,
@@ -1027,7 +1027,7 @@
     },
     {
       "name": "Artillery Bear",
-      "hp": 78,
+      "hp": 88,
       "spd": 7,
       "matk": 23,
       "mdef": 18,
@@ -1144,7 +1144,7 @@
     },
     {
       "name": "Mycelium Ooze",
-      "hp": 75,
+      "hp": 80,
       "spd": 7,
       "matk": 0,
       "mdef": 20,
@@ -1199,7 +1199,7 @@
     },
     {
       "name": "Bio-Tank",
-      "hp": 85,
+      "hp": 95,
       "spd": 6,
       "matk": 0,
       "mdef": 22,
@@ -1319,7 +1319,7 @@
       "matk": 0,
       "mdef": 14,
       "ratk": 28,
-      "rdef": 18,
+      "rdef": 22,
       "moves": [
         {
           "n": "Spore",
@@ -1720,7 +1720,7 @@
     {
       "name": "Nocturne Bear",
       "type": "Beast",
-      "hp": 76,
+      "hp": 86,
       "matk": 26,
       "mdef": 22,
       "ratk": 24,
@@ -1908,7 +1908,7 @@
       "name": "Colossal Treant",
       "hp": 95,
       "spd": 6,
-      "matk": 25,
+      "matk": 28,
       "mdef": 25,
       "ratk": 15,
       "rdef": 25,
@@ -2011,7 +2011,7 @@
     },
     {
       "name": "Thorn Bear",
-      "hp": 90,
+      "hp": 100,
       "spd": 6,
       "matk": 26,
       "mdef": 24,
@@ -2066,11 +2066,11 @@
     },
     {
       "name": "Blight Wood",
-      "hp": 110,
+      "hp": 120,
       "spd": 6,
       "matk": 18,
       "mdef": 30,
-      "ratk": 18,
+      "ratk": 20,
       "rdef": 30,
       "moves": [
         {
@@ -2120,7 +2120,7 @@
     },
     {
       "name": "Deathcap Wood",
-      "hp": 86,
+      "hp": 96,
       "spd": 7,
       "matk": 22,
       "mdef": 22,
@@ -3022,7 +3022,7 @@
       "spd": 17,
       "matk": 22,
       "mdef": 12,
-      "ratk": 0,
+      "ratk": 15,
       "rdef": 12,
       "moves": [
         {

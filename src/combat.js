@@ -2,6 +2,29 @@
         // Merge-tier moves that share a base move's status icon but show the Ability Evolution badge.
         const EVOLVED_MOVES = new Set(['Colossal Thorns', 'Crimson Lifesteal', 'Heavy Counter', 'Alpha Howl', 'Elder Guard', 'Giant Poison Cloud']);
 
+        // Same-type buffs of different strength (Full Throttle 15% / Overcharge 20% / Ultimate Overcharge 40%) are kept as separate tiers
+        // instead of the weaker one being overwritten. Their turns add up on one icon, but they are spent one after another, strongest
+        // first: only the strongest tier of a type is in effect and ticks down, the rest wait in the queue. Taunt, Counter and Guard
+        // are not tiered (they are on/off).
+        function isTieredBuff(type) {
+            return type !== 'taunt' && type !== 'counter' && !type.includes('guard');
+        }
+        function activeBuffs(unit) {
+            const list = unit.buffs || [];
+            const best = {};
+            list.forEach(b => { if (isTieredBuff(b.type) && (!best[b.type] || (b.value || 0) > (best[b.type].value || 0))) best[b.type] = b; });
+            return list.filter(b => !isTieredBuff(b.type) || best[b.type] === b);
+        }
+        // For the status icon: the tier in effect, the turns of all tiers of its type added up, and a tooltip listing the queue.
+        function tieredBuffInfo(unit, label, matches) {
+            const active = activeBuffs(unit).find(matches);
+            if (!active) return null;
+            const tiers = unit.buffs.filter(b => b.type === active.type).sort((a, b) => (b.value || 0) - (a.value || 0));
+            const fmt = v => v > 0 && v < 1 ? Math.round(v * 100) + '%' : v;
+            const title = tiers.length > 1 ? `${label}: ` + tiers.map(b => `${fmt(b.value)} for ${b.turns}`).join(', then ') : label;
+            return { buff: active, turns: tiers.reduce((sum, b) => sum + b.turns, 0), title };
+        }
+
         let combatState = {
             enemies: [],
             log: [],
@@ -821,23 +844,16 @@
                 if (u.stunned > 0) statusHtml += renderIcon('Art/Stun.png', badStyle, 'Stunned', u.stunned);
                 
                 if (u.buffs) {
-                    const regenBuff = u.buffs.find(b => b.type === 'regen' || b.type === 'regen_flat' || b.type === 'regen_pct');
-                    if (regenBuff) statusHtml += renderIcon('Art/Regen.png', goodStyle, 'Regen', regenBuff.turns);
-                    
-                    const atkBuff = u.buffs.find(b => b.type === 'atk_buff' || b.type === 'atk_buff_pct');
-                    if (atkBuff) statusHtml += renderIcon('Art/Buff DMG.png', goodStyle, 'ATK Up', atkBuff.turns, atkBuff.evolved);
-
-                    const spdBuff = u.buffs.find(b => b.type === 'spd_buff' || b.type === 'spd_buff_pct');
-                    if (spdBuff) statusHtml += renderIcon('Art/Buff Energy.png', goodStyle, 'SPD Up', spdBuff.turns);
-
-                    const lifestealBuff = u.buffs.find(b => b.type === 'lifesteal_buff');
-                    if (lifestealBuff) statusHtml += renderIcon('Art/Lifesteal.png', goodStyle, 'Lifesteal', lifestealBuff.turns, lifestealBuff.evolved);
-
-                    const overchargeBuff = u.buffs.find(b => b.type === 'overcharge_buff');
-                    if (overchargeBuff) statusHtml += renderIcon('Art/Buff Energy.png', goodStyle, 'Overcharge', overchargeBuff.turns);
-
-                    const bramblesBuff = u.buffs.find(b => b.type === 'brambles');
-                    if (bramblesBuff) statusHtml += renderIcon('Art/Thorns.png', goodStyle, 'Thorns', bramblesBuff.turns, bramblesBuff.evolved);
+                    const tieredIcon = (src, label, matches) => {
+                        const info = tieredBuffInfo(u, label, matches);
+                        if (info) statusHtml += renderIcon(src, goodStyle, info.title, info.turns, info.buff.evolved);
+                    };
+                    tieredIcon('Art/Regen.png', 'Regen', b => b.type === 'regen' || b.type === 'regen_flat' || b.type === 'regen_pct');
+                    tieredIcon('Art/Buff DMG.png', 'ATK Up', b => b.type === 'atk_buff' || b.type === 'atk_buff_pct');
+                    tieredIcon('Art/Buff Energy.png', 'SPD Up', b => b.type === 'spd_buff' || b.type === 'spd_buff_pct');
+                    tieredIcon('Art/Lifesteal.png', 'Lifesteal', b => b.type === 'lifesteal_buff');
+                    tieredIcon('Art/Buff Energy.png', 'Overcharge', b => b.type === 'overcharge_buff');
+                    tieredIcon('Art/Thorns.png', 'Thorns', b => b.type === 'brambles');
 
                     const counterBuff = u.buffs.find(b => b.type === 'counter');
                     if (counterBuff) statusHtml += renderIcon('Art/Counter.png', goodStyle, 'Counter', counterBuff.turns, counterBuff.evolved);
@@ -1037,7 +1053,7 @@ let shadowClass = getShadowClass(u.name);
             unit.defMod = 0;
 
             if (unit.buffs) {
-                unit.buffs.forEach(b => {
+                activeBuffs(unit).forEach(b => {
                     if (b.type === 'atk_buff' || b.type === 'atk_buff_pct') unit.atkMod += b.value;
                     if (b.type === 'spd_buff' || b.type === 'spd_buff_pct') unit.spdMod += b.value;
                     if (b.type === 'guard' || b.type === 'guard_pct') unit.defMod = b.value;
@@ -1222,8 +1238,10 @@ let shadowClass = getShadowClass(u.name);
 
                 // Decay buffs and debuffs at turn end
                 if (unit.buffs) {
+                    const inEffect = activeBuffs(unit);
                     unit.buffs.forEach(b => {
-                        if (b.isNew) b.isNew = false;
+                        if (!inEffect.includes(b)) b.isNew = false;   // a queued tier waits for the stronger one to run out
+                        else if (b.isNew) b.isNew = false;
                         else if (b.type !== 'guard' && b.type !== 'guard_pct') b.turns--;
                     });
                     unit.buffs = unit.buffs.filter(b => b.turns > 0 || b.type === 'guard' || b.type === 'guard_pct');
@@ -2388,7 +2406,7 @@ let shadowClass = getShadowClass(u.name);
                         }
 
                         if (t.buffs) {
-                            const bramblesBuffs = t.buffs.filter(b => b.type === 'brambles');
+                            const bramblesBuffs = activeBuffs(t).filter(b => b.type === 'brambles');
                             if (bramblesBuffs.length > 0) {
                                 const reflectAmt = bramblesBuffs[0].value;
                                 if (reflectAmt > 0) {
@@ -2416,7 +2434,7 @@ let shadowClass = getShadowClass(u.name);
                         }
 
                         if (attacker.buffs) {
-                            const lifestealBuffs = attacker.buffs.filter(b => b.type === 'lifesteal_buff');
+                            const lifestealBuffs = activeBuffs(attacker).filter(b => b.type === 'lifesteal_buff');
                             if (lifestealBuffs.length > 0) {
                                 const lifestealAmt = lifestealBuffs[0].value;
                                 const healAmt = Math.floor(damage * lifestealAmt);
@@ -2428,7 +2446,7 @@ let shadowClass = getShadowClass(u.name);
                                 }
                             }
 
-                            const overchargeBuffs = attacker.buffs.filter(b => b.type === 'overcharge_buff');
+                            const overchargeBuffs = activeBuffs(attacker).filter(b => b.type === 'overcharge_buff');
                             if (overchargeBuffs.length > 0) {
                                 const chance = overchargeBuffs[0].value || 0.2;
                                 if (Math.random() < chance) {
@@ -2462,7 +2480,9 @@ let shadowClass = getShadowClass(u.name);
                     const isEvolvedMove = EVOLVED_MOVES.has(move.n);
                     function applyStatus(isDebuff, bType, bValue, bTurns) {
                         const list = isDebuff ? (fxTarget.debuffs = fxTarget.debuffs || []) : (fxTarget.buffs = fxTarget.buffs || []);
-                        const existing = list.find(b => b.type === bType);
+                        // Buffs of the same type and strength merge (turns add up); a different strength becomes its own tier (see activeBuffs).
+                        const tiered = !isDebuff && isTieredBuff(bType);
+                        const existing = list.find(b => b.type === bType && (!tiered || (b.value || 0) === (bValue || 0)));
                         if (existing) {
                             if (bType === 'taunt' || bType === 'counter') {
                                 existing.turns = Math.max(existing.turns, bTurns);
@@ -2475,10 +2495,12 @@ let shadowClass = getShadowClass(u.name);
                         } else {
                             list.push({ type: bType, value: bValue, turns: bTurns, isNew: true, evolved: isEvolvedMove });
                         }
+                        // The cast turn doesn't tick: flag the tier in effect, which may be an older, stronger one.
+                        if (tiered) activeBuffs(fxTarget).forEach(b => { if (b.type === bType) b.isNew = true; });
                     }
                     function recalcMods(unit) {
                         unit.atkMod = 0; unit.spdMod = 0; unit.defMod = 0;
-                        if (unit.buffs) unit.buffs.forEach(b => {
+                        if (unit.buffs) activeBuffs(unit).forEach(b => {
                             if (b.type.includes('atk_buff')) unit.atkMod += b.value;
                             if (b.type.includes('spd_buff')) unit.spdMod += b.value;
                             if (b.type.includes('guard')) unit.defMod = b.value;

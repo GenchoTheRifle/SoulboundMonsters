@@ -543,7 +543,7 @@
             const raw = calculateDamage(unit, move, t) * hits;
             let value = Math.min(raw, t.currentHp);
             if (raw >= t.currentHp) value += 20 + finalBossThreat(t) * 2;   // a kill removes all its future turns
-            const thorns = t.buffs && t.buffs.find(b => b.type === 'brambles');
+            const thorns = activeBuffs(t).find(b => b.type === 'brambles');
             if (thorns) value -= thorns.value * hits;
             return value;
         }
