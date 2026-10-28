@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sound Test</title>
+<style>
+    body { background: #1b1b22; color: #eee; font: 15px system-ui, sans-serif; margin: 0; padding: 20px 24px 60px; }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    h2 { margin: 28px 0 10px; font-size: 16px; color: #ffd166; border-bottom: 1px solid #3a3a48; padding-bottom: 4px; }
+    #status { color: #9ab; margin-bottom: 8px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { background: #2e2e3d; color: #eee; border: 1px solid #4a4a5e; border-radius: 6px; padding: 7px 12px; cursor: pointer; font: inherit; }
+    button:hover { background: #3d3d52; }
+    button:active { background: #55557a; }
+    .move { display: flex; align-items: center; gap: 6px; background: #23232e; border: 1px solid #3a3a48; border-radius: 8px; padding: 4px 6px 4px 10px; }
+    .move span { min-width: 120px; }
+    .move small { color: #789; }
+    .Beast { border-left: 4px solid #e07a3f; } .Nature { border-left: 4px solid #5fb85f; } .Mech { border-left: 4px solid #5f9fe0; } .Event { border-left: 4px solid #c9a0ff; }
+    label { margin-right: 14px; }
+</style>
+</head>
+<body>
+<h1>Sound Test</h1>
+<div id="status">Click anywhere first (browsers need a click before audio). Loading samples…</div>
+<div>
+    <label>Volume <input id="vol" type="range" min="0" max="100" value="70"></label>
+    <label><input id="mute" type="checkbox"> Mute</label>
+</div>
+
+<div style="margin-top:10px">
+    <button id="measure">Measure loudness of every sound</button>
+    <span id="measureStatus" style="color:#9ab"></span>
+    <pre id="loud" style="white-space:pre-wrap;color:#cde;font-size:13px;background:#14141a;padding:10px;border-radius:6px;display:none"></pre>
+</div>
+
+<h2>Ambience - the background bed for each place (click one to hear it fade in; it keeps playing until you pick another)</h2>
+<div class="grid" id="ambience"></div>
+
+<h2>Skills - the one sound each skill makes when it lands (sample file shown on the right)</h2>
+<div class="grid" id="moves"></div>
+
+<h2>Other sounds that are on in the game</h2>
+<div class="grid" id="events"></div>
+
+<script src="src/audio.js"></script>
+<script>
+    const TYPE = {
+        'Alpha Bite':'Beast','Alpha Howl':'Beast','Bite':'Beast','Crimson Echo':'Beast','Crimson Lifesteal':'Beast','Devour':'Beast','Echo':'Beast','Elder Guard':'Beast','Elder Maul':'Beast','Guard':'Beast','Hemorrhage':'Beast','Howl':'Beast','Intimidate':'Beast','Lifesteal':'Beast','Maul':'Beast','Savage Stance':'Beast',
+        'Colossal Slam':'Nature','Colossal Thorns':'Nature','Giant Poison Cloud':'Nature','Giant Spore':'Nature','King Spit':'Nature','Poison Cloud':'Nature','Renewal Spores':'Nature','Root Crush':'Nature','Slam':'Nature','Slumber Sludge':'Nature','Spit':'Nature','Spore':'Nature','Thorns':'Nature','Toxin':'Nature'
+    };
+    // Event sounds that are switched on in the game (everything else is parked - see ENABLED in src/audio.js)
+    const EVENT_LABELS = {
+        heal: 'Heal - Heal, King Heal, regen and lifesteal, when HP is restored',
+        enemyDeath: 'A monster falls - dark energy (every enemy, and your own monsters too)',
+        energy: 'Energy gained - the blue +1',
+        victory: 'Victory - fight won',
+        defeat: 'Defeat - party wiped',
+        stun: 'Turn skipped: stunned - dizzy birds chirping',
+        sleep: 'Turn skipped: asleep - a snore',
+        poison: 'Poison tick - same as Poison Cloud',
+        poisonGiant: 'Poison tick from Giant Poison Cloud - same as Giant Poison Cloud',
+        toxin: 'Toxin tick - same as Toxin',
+        counter: 'Counter triggers - same as Counter',
+        counterHeavy: 'Heavy Counter triggers - same as Heavy Counter',
+        thorns: 'Thorns reflect damage - same as Thorns',
+        thornsColossal: 'Colossal Thorns reflect damage - same as Colossal Thorns',
+        guardBlock: 'Guard absorbs a hit - same as Guard',
+        guardBlockElder: 'Elder Guard absorbs a hit - same as Elder Guard',
+        travel: 'Map: footsteps to the next node (stone)',
+        travelForest: 'Map: footsteps to the next node (forest act, grass)',
+        coin: 'Map prop: coin flip',
+        candle: 'Map prop: candle blown out',
+        compass: 'Map prop: compass lid',
+        mushroom: 'Map prop: mushroom puff',
+        leaf: 'Map prop: leaves',
+        vial: 'Map prop: vial',
+        valve: 'Map prop: valve',
+        scrap: 'Map prop: scrap pile',
+        buttonPress: 'Map prop: red / green button',
+        drop: 'Drop a monster into a slot',
+        merge: 'Merge succeeds',
+        recruit: 'A monster joins your party',
+        unlock: 'New starter unlocked',
+        enterMap: 'Enter Map button - battle horn',
+        click: 'Button click - the one sound for every button',
+        hover: 'Button hover - a very soft pulse',
+        blip: 'Typewriter blip - dialogue text'
+    };
+    const AMBIENCE_LABELS = [
+        ['forest', 'Forest - the first-starter screen, and Act II'],
+        ['music', 'Menu music - title, the city menu and the act-select screen'],
+        ['muffled', 'Muffled menu music - the collection and team select / ENTER MAP screens'],
+        ['cave', 'Cave - Act I'],
+        ['lab', 'Lab - Act III'],
+        ['sim', 'Simulation - the tutorial'],
+        [null, 'Silence']
+    ];
+    const mk = (parent, label, fn) => { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; parent.appendChild(b); return b; };
+
+    const movesEl = document.getElementById('moves');
+    SFX.catalog.moves.forEach(n => {
+        const t = TYPE[n] || 'Mech';
+        const row = document.createElement('div'); row.className = 'move ' + t;
+        row.innerHTML = `<span>${n}</span>`;
+        mk(row, '▶ play', () => SFX.play('move', { name: n }));
+        const f = document.createElement('small'); f.textContent = SFX.catalog.moveFile(n); row.appendChild(f);
+        movesEl.appendChild(row);
+    });
+
+    const ambEl = document.getElementById('ambience');
+    AMBIENCE_LABELS.forEach(([name, label]) => mk(ambEl, label, () => { SFX.ambience(name); }));
+
+    const ev = document.getElementById('events');
+    SFX.catalog.enabled.forEach(n => {
+        const row = document.createElement('div'); row.className = 'move Event';
+        row.innerHTML = `<span style="min-width:0">${EVENT_LABELS[n] || n}</span>`;
+        mk(row, '▶ play', () => SFX.play(n, { force: true }));
+        ev.appendChild(row);
+    });
+
+    // ---- loudness check ----------------------------------------------------------------------------
+    // Plays every sound and measures its loudest 200 ms (mean power, in dB) at the real output. Small / frequent sounds
+    // are meant to sit ~4 dB under the rest. Prints the spread and the TRIM multipliers (in src/audio.js) that would even things out.
+    const QUIET = ['heal', 'energy', 'travel', 'travelForest', 'drop', 'coin', 'candle', 'compass', 'mushroom', 'leaf', 'vial', 'valve', 'scrap', 'buttonPress', 'stun', 'sleep'];
+    const QUIET_OFFSET_DB = -4;
+    window.__loud = window.__loud || {};
+    // Loudness is measured on the spectrum with a gentle low-frequency discount (our ears hear deep bass as much quieter than its raw
+    // power suggests): bin weight = 1 / (1 + (200 Hz / f)^2), i.e. about -9 dB at 75 Hz, -4 dB at 150 Hz, -1.6 dB at 300 Hz, ~0 above 600 Hz.
+    window.measureSome = async function (from, count) {
+        const an = SFX.catalog.analyser(); const buf = new Float32Array(an.fftSize); const spec = new Float32Array(an.frequencyBinCount);
+        const binHz = an.context.sampleRate / an.fftSize; const W = Array.from(spec, (_, k) => { const f = Math.max(k, 1) * binHz; return 1 / (1 + Math.pow(200 / f, 2)); });
+        const items = [...SFX.catalog.moves.map(n => ({ key: n, kind: 'skill', play: () => SFX.play('move', { name: n, noGap: true }) })),
+                       ...SFX.catalog.enabled.map(n => ({ key: n, kind: 'event', play: () => SFX.play(n, { force: true, noGap: true }) }))];
+        for (const it of items.slice(from, from + count)) {
+            const frames = []; it.play(); const st = performance.now();
+            while (performance.now() - st < 1500) {
+                an.getFloatTimeDomainData(buf); let pk = 0; for (const x of buf) { if (Math.abs(x) > pk) pk = Math.abs(x); }
+                an.getFloatFrequencyData(spec); let wp = 0; for (let k = 1; k < spec.length; k++) wp += Math.pow(10, spec[k] / 10) * W[k];
+                frames.push({ t: performance.now() - st, p: wp, pk }); await new Promise(r => setTimeout(r, 10));
+            }
+            let best = 0; for (let i = 0; i < frames.length; i++) { let sum = 0, n = 0; for (let j = i; j < frames.length && frames[j].t < frames[i].t + 200; j++) { sum += frames[j].p; n++; } if (n) best = Math.max(best, sum / n); }
+            window.__loud[it.key] = { kind: it.kind, db: 10 * Math.log10(best || 1e-9), peak: Math.max(...frames.map(f => f.pk)) };
+            await new Promise(r => setTimeout(r, 120));
+        }
+        return Object.keys(window.__loud).length + ' / ' + items.length + ' measured';
+    };
+    window.loudReport = function () {
+        const rows = Object.entries(window.__loud);
+        const med = a => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+        const OFFSETS = { click: -4, hover: -12, blip: -9 };   // the UI sounds sit under everything else; hover is nearly subliminal
+        const offsetOf = (k, v) => (v.kind === 'event' ? (OFFSETS[k] ?? (QUIET.includes(k) ? QUIET_OFFSET_DB : 0)) : 0);
+        // Reference = the median skill. Quiet, sparse sounds can only be boosted so far before the output limiter flattens
+        // their peaks (so they may need a second pass, or a fuller sound) - trims are capped to 0.15 .. 3.
+        const median = med(rows.filter(([k, v]) => v.kind === 'skill').map(([k, v]) => v.db));
+        const ref = median;
+        const out = rows.map(([k, v]) => {
+            const target = ref + offsetOf(k, v);
+            const diff = target - v.db; const cur = SFX.catalog.trim[k] ?? 1;
+            const trim = Math.abs(diff) < 0.75 ? cur : Math.min(3, Math.max(0.15, cur * Math.pow(10, diff / 20)));
+            return { key: k, kind: v.kind, db: +v.db.toFixed(1), peak: +v.peak.toFixed(2), off: +(-diff).toFixed(1), trim: +trim.toFixed(2), hot: v.peak * trim / cur > 0.95 };
+        }).sort((a, b) => b.off - a.off);
+        return { reference: +ref.toFixed(1), median: +median.toFixed(1), limitedBy: null, rows: out };
+    };
+    document.getElementById('measure').onclick = async () => {
+        const st = document.getElementById('measureStatus'); window.__loud = {};
+        const total = SFX.catalog.moves.length + SFX.catalog.enabled.length;
+        for (let i = 0; i < total; i += 8) { st.textContent = ` measuring ${Math.min(i + 8, total)} / ${total}…`; await window.measureSome(i, 8); }
+        const r = window.loudReport(); st.textContent = ' done';
+        const pre = document.getElementById('loud'); pre.style.display = 'block';
+        pre.textContent = `Reference level: ${r.reference} dB (median skill ${r.median} dB${r.limitedBy ? '; lowered so ' + r.limitedBy + ' does not clip' : ''}). "off" = how far each sound is from where it should be (dB, + = too loud). Suggested TRIM values:\n\n` +
+            r.rows.map(x => `${x.key.padEnd(22)} ${x.kind.padEnd(6)} ${String(x.db).padStart(6)} dB  peak ${x.peak}  off ${String(x.off).padStart(5)}  trim ${x.trim}`).join('\n');
+    };
+
+    document.getElementById('vol').oninput = e => SFX.setVolume(e.target.value / 100);
+    document.getElementById('mute').onchange = e => SFX.setMuted(e.target.checked);
+    document.getElementById('vol').value = Math.round(SFX.volume * 100);
+    document.getElementById('mute').checked = SFX.muted;
+    setInterval(() => {
+        document.getElementById('status').textContent = SFX.ready < SFX.total
+            ? `Loading samples… ${SFX.ready}/${SFX.total} (click once anywhere to start audio)`
+            : `All ${SFX.total} samples loaded. Click a button to hear it.`;
+    }, 300);
+</script>
+</body>
+</html>
